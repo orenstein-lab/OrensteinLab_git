@@ -1,0 +1,2 @@
+Lockin_ID	dev3537
+ESP301_COM_PORT	COM5

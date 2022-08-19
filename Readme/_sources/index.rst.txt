@@ -1,0 +1,215 @@
+.. OrensteinLab documentation master file, created by
+   sphinx-quickstart on Mon Jun 21 11:57:17 2021.
+   You can adapt this file completely to your liking, but it should at least
+   contain the root `toctree` directive.
+
+Welcome to OrensteinLab's documentation!
+========================================
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Contents:
+
+OrensteinLab Python Module
+===========================
+OrensteinLab is a python module including all the functions which will be useful to the experiments in Orenstein's lab. The outline of OrensteinLab is listed below.
+
+- Instrument
+    - OptiCool
+        - OptiCool_Control
+    - Lakeshore
+        - Lakeshore336
+        - Lakeshore335
+- Operation
+    - ESP301
+    - Attocube
+        - v2
+            - Attocube_v2
+- Measurement
+    - Yue
+        - Measurement
+
+
+Installation
+==============
+Copy and paste OrensteinLab from the Google Drive folder to the site-packages folder. The path of the folder can be accessed by the following command in Jupyter Notebook.
+
+.. code-block:: python
+   
+   import numpy
+   print(numpy.__path__)
+
+numpy is a very common python package. And it is automatically installed inside the site-packages folder.
+
+The following packages need to be installed to support OrensteinLab.
+
+- lakeshore
+- zhinst
+- InstrumentKit
+- pyanc350
+
+There is also a pyanc350 folder in the Google Drive folder. Please use this one to replace the pyanc350 folder in the site-packages folder.
+
+Before using OrensteinLab, please remember to update the "configuration.txt" file in the module. The device ID of the lockin and the port ID of the ESP301 controller are required.
+
+Instrument
+===============
+This section includes the home-written control programs of several instruments. These instruments don't have any developed python module/package to control, so I have to write the control programs by myself.
+
+=====================================
+Instrument.OptiCool.OptiCool_Control
+=====================================
+Control all the necessary operations of the OptiCool.
+
+connect_opticool()
+-------------------
+No input. Return the telnet object connecting to the socket server of the OptiCool.
+
+read_temperature(telnetObj)
+---------------------------
+Input the telnet object returned by connect_opticool(). Return an array [temperature, status]. The status means the temperature approaching status, which can be "Standby", "Tracking", "Chasing", "Near" and "Stable".
+
+set_temperature(telnetObj, set_point, rate, mode)
+--------------------------------------------------
+Input 4 arguments, telnet object, temperature set point, ramp rate, mode. The highest ramp rate is 10 K/min. The mode has two options.
+
+- 0: Fast settle
+- 1: No overshoot
+
+Return "command received".
+
+read_field(telnetObj)
+-----------------------
+Input the telnet object. Return an array [field, status]. The status means the field approaching status, which can be "Ramping (Driven)" and "Holding (Driven)".
+
+set_field(telnetObj, set_point, rate, approach_mode, 1)
+--------------------------------------------------------
+Input 5 arguments, telnet object, field set point, ramp rate, approach mode, field mode. The highest ramp rate is 110 Oe/s. The approach mode has three options.
+
+- 0: Linear
+- 1: No overshoot
+- 2: Oscillate
+
+The field mode has only one option in the OptiCool, but has two options in the PPMS and MPMS3. In this way, just use the value 1 for the field mode, which means "Driven".
+
+Return "command received".
+
+disconnect_opticool(telnetObj)
+-------------------------------
+Close the telnet object returned by connect_opticool().
+
+----------------------------------
+Instrument.Lakeshore.Lakeshore336
+----------------------------------
+Control all the necessary operations of the Lakeshore 336 temperature controller.
+
+initialization_lakeshore336()
+--------------------------------
+Return the instrument object (inst).
+
+read_temperature(inst)
+------------------------
+Input the instrument object obtained from initialization_lakeshore336(). Return the temperature.
+
+read_setpoint(inst)
+------------------------
+Input the instrument object. Return the temperature setpoint.
+
+set_setpoint(inst, output, set_temperature)
+--------------------------------------------
+Input 3 arguments, instrument object, output port number (1, 2, 3, 4) and temperature setpoint. 
+
+read_ramp(inst)
+------------------------
+Input the instrument object. Return an array [on_off, ramp rate].
+
+set_ramp(inst, output, on_off, ramp_rate)
+------------------------------------------
+Input 4 arguments, instrument object, output port number (1, 2, 3, 4), on_off (0, 1) and ramp rate. 
+
+close_lakeshore336(inst)
+------------------------------------------
+Input the instrument object. Close the connection with the lakeshore 336. 
+
+
+
+Operation
+=============
+This section includes some basic single-step operations frequently used in lab. The related instruments have developed python module/package to support, so the purpose of this section is just to make some basic operations easier to realize.
+
+====================
+Operation.ESP301
+====================
+Simple operations related to the ESP301 controller.
+
+SingleStageMove(axis_index, pos, go_back)
+---------------------------------------------
+
+Corotate(axis_index_1, pos_1, go_back_1, axis_index_2, pos_2, go_back_2)
+--------------------------------------------------------------------------
+
+Read_Position(axis_index)
+--------------------------
+
+Balance_PID_single(incident_polarization_angle, P, tolerance, balance_axis_index, channel_index, time_constant)
+-------------------------------------------------------------------------------------------------------------------
+
+P can be extracted from Find_balance_angle in the Measurement section.
+
+==================================
+Operation.Attocube.v2.Attocube_v2
+==================================
+Simple operations related to the attocube controller. **Note: attocube axis index: 'x', 'y' and 'z'.**
+
+Read_Position(axis_index)
+----------------------------
+
+SingleStageMove(axis_index, real_target, tolerance, go_back)
+----------------------------------------------------------------
+
+DoubleStageMove(axis_index_1, real_target_1, tolerance_1, go_back_1, axis_index_2, real_target_2, tolerance_2, go_back_2)
+---------------------------------------------------------------------------------------------------------------------------------------
+
+
+Measurement
+=============
+This section will include all the measurements in lab. However, different experiments may have different measurements to take, so I would like to create a subsection for everyone, so that group members can create their own measurement control programs. My measurement programs can work as examples. Please feel free to refer to them.
+
+=============================
+Measurement.Yue.Measurement
+=============================
+
+Lockin_time_record(channel_index, recording_time, time_constant, filename_head)
+---------------------------------------------------------------------------------
+
+Find_balance_angle(incident_polarization_angle, axis_index, start_pos, step_size, num_of_steps, go_back, channel_index, time_constant, filename_head)
+------------------------------------------------------------------------------------------------------------------------------------------------------
+
+Corotate_measurement(num_of_steps, axis_index_1, start_pos_1, step_size_1, go_back_1, axis_index_2, start_pos_2, step_size_2, go_back_2, channel_index, time_constant, filename_head)
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+Pump_probe(axis_index, start_pos, step_size, num_of_steps, go_back, channel_index, time_constant, filename_head)
+------------------------------------------------------------------------------------------------------------------------------
+
+Mapping(filename_head)
+-------------------------
+
+Balance_PID_single(incident_polarization_angle, P, tolerance, balance_axis_index, channel_index, time_constant)
+-------------------------------------------------------------------------------------------------------------------
+P can be extracted from Find_balance_angle.
+
+Field_scan(set_points, ramp_rate, balance_axis_index, channel_index, time_constant, balance_channel_index, filename_head)
+--------------------------------------------------------------------------------------------------------------------------------------
+Set points need to be an array.
+
+Field_scan_PID(set_points, ramp_rate, balance_axis_index, channel_index, time_constant, P, balance_channel_index, balance_time_constant, filename_head)
+--------------------------------------------------------------------------------------------------------------------------------------------------------------
+Set points need to be an array. P can be extracted from Find_balance_angle.
+
+
+Indices and tables
+==================
+
+* :ref:`genindex`
+* :ref:`modindex`
+* :ref:`search`

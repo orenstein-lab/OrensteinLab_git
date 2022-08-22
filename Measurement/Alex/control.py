@@ -23,10 +23,10 @@ def save_data(fname, data, header, metadata=None):
         raise ValueError('number of header items does not match number of data columns.')
     with open(fname, 'w') as f:
         if not(metadata==None):
-            f.write('[Metadata]\n')
+            f.write('[METADATA]\n')
             for key, value in metadata.items():
                 f.write(f'{key}:\t{value}\n')
-            f.write('[Data]\n')
+            f.write('[DATA]\n')
         for item in header:
             f.write(str(item)+'\t')
         f.write('\n')

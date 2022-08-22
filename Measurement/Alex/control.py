@@ -7,7 +7,7 @@ import time
 import numpy as np
 import matplotlib.pyplot as plt
 
-def save_data(fname, data, header, metadata=None):
+def save_data_to_file(fname, data, header, metadata=None):
     '''
     utility function for saving data to a file, with optional metadata
 
@@ -52,4 +52,4 @@ def measure_strain_cell_capacitor(fname, sc, num_points=1000, dt_min=0.1):
             t[i] = t_new - t0
             i = i + 1
             t_old = t_new
-    save_data(f, np.transpose([t, cap]), ['Time', 'Cap'])
+    save_data_to_file(f, np.transpose([t, cap]), ['Time', 'Cap'])

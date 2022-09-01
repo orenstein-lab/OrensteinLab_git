@@ -18,11 +18,11 @@ import json
 import re
 import time
 
-import ssh_tunnel
+import OrensteinLab_git.Instrument.montana.ssh_tunnel as ssh_tunnel
 import socket
 import http
 
-import mirs_helpers
+import OrensteinLab_git.Instrument.montana.mirs_helpers as mirs_helpers
 
 _force_ipv4 = True  # Some day IPv6 will be ubiquitous.  Today is not that day.
 
@@ -44,17 +44,17 @@ class Rest_Ports(IntEnum):
     temp_control3_llm      = 47113  # /etc/services entry is "tcm3-llm             47113/tcp"
     temp_control4_llm      = 47114  # /etc/services entry is "tcm4-llm             47114/tcp"
     temp_control5_llm      = 47115  # /etc/services entry is "tcm5-llm             47115/tcp"
-    
+
     piezo_stepper1_llm     = 47121 # /etc/services entry is "piezostep1-llm        47121/tcp"
     piezo_stepper2_llm     = 47122 # /etc/services entry is "piezostep2-llm        47122/tcp"
     piezo_stepper3_llm     = 47123 # /etc/services entry is "piezostep3-llm        47123/tcp"
     piezo_stepper4_llm     = 47124 # /etc/services entry is "piezostep4-llm        47124/tcp"
     piezo_stepper5_llm     = 47125 # /etc/services entry is "piezostep5-llm        47125/tcp"
-    
+
     pfeiffertc110_llm      = 47130 # /etc/services entry is "pfeiffertc110-llm     47130/tcp"
-    
+
     cryostatancillary_llm  = 47135 # /etc/services entry is "cryostatancillary-llm 47135/tcp"
-    
+
     massflow_llm           = 47140 # /etc/services entry is "massflow-llm          47140/tcp"
 
     mercury_hlm            = 47150 # /etc/services entry is "mercury-hlm           47150/tcp"
@@ -99,18 +99,18 @@ def _verifySuccess(op, path, resp) -> None:
 def _rewrite_connection(ip, port, tunnel):
     """For hostnames that start with "mirs:" determine port on MIRS server
 
-    If the user specified "mirs:somemachine" this routine will lookup 
+    If the user specified "mirs:somemachine" this routine will lookup
     the corresponding secure tunnel on the MIRS server.
 
     If ip doesn't start with "mirs:" then ip, port, and tunnel are
-    returned unchanged. 
+    returned unchanged.
     """
-    
+
     if isinstance(ip, str):
         if ip.startswith("mirs:"):
             (miec, mirs) = (ip+":support").split(':')[1:3]
             try:
-                (ip, port, tunnel) = (mirs, 
+                (ip, port, tunnel) = (mirs,
                                       mirs_helpers.lookup_port(miec, port, mirs_server=mirs),
                                       False)
             except mirs_helpers.MirsClientNotFound:
@@ -118,7 +118,7 @@ def _rewrite_connection(ip, port, tunnel):
         elif _force_ipv4 and not re.match('[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$', ip):
             ip = socket.getaddrinfo(ip, None, socket.AF_INET)[0][4][0]
     return (ip, port, tunnel)
-        
+
 class Instrument:
     def __init__(self, ip, port, version, verbose=False, tunnel=False):
         """Create a base instrument object for Scripting R3
@@ -126,13 +126,13 @@ class Instrument:
         Keyword arguments:
           ip      -- IP address (or hostname) of the instrument (e.g. an XP100).
                      To access the instrumnent through a remote access server
-                     use a string like 
+                     use a string like
                         mirs:<miec>:<name or IP of server>
-                     e.g. 
+                     e.g.
                         mirs:CR-713:support
-                     If the name of the MIRS is omitted it defaults 
+                     If the name of the MIRS is omitted it defaults
                      to support
-          port    -- TCP Port number of the service on the MIEC.                     
+          port    -- TCP Port number of the service on the MIEC.
           version -- REST API version (e.g. "v1")
           verbose -- Print debug information?
           tunnel  -- Communicate through a secure SSH tunnel?
@@ -185,11 +185,11 @@ class Instrument:
             tmp = self.get("/version")
             result = True
         except ApiError:
-            # 
+            #
             # An API error means the cryostation didn't like what we
             # sent it.  The fact that it doesn't like something means
             # it is up and running.
-            # 
+            #
             result = True
         except http.client.RemoteDisconnected:
             self.close()
@@ -200,7 +200,7 @@ class Instrument:
         except NotConnected:
             print("hit an instrument.NotConnected")
             self.close()
-            pass            
+            pass
         except:
             raise
         return result

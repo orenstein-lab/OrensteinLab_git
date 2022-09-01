@@ -21,8 +21,8 @@ Example usage:
 """
 import sys
 import os
-import instrument
-import genericcryostat
+import OrensteinLab_git.Instrument.montana.instrument as intrument
+import OrensteinLab_git.Instrument.montana.genericcryostat as genericcryostat
 
 Ports = instrument.Rest_Ports
 
@@ -163,7 +163,7 @@ class SCryostation(genericcryostat.GenericCryostat):
 
     def get_user1_temperature_stable(self):
         r = self.get_prop('/sampleChamber/temperatureControllers/user1/thermometer/properties/sample')
-        return r['sample']['temperatureStabilityOK'], r['sample']['temperatureStable']    
+        return r['sample']['temperatureStabilityOK'], r['sample']['temperatureStable']
 
     def set_user1_temperature_controller_enabled(self, enabled):
         return self.set_prop('/sampleChamber/temperatureControllers/user1/properties/controllerEnabled', enabled)
@@ -213,14 +213,14 @@ class SCryostation(genericcryostat.GenericCryostat):
     def get_mo_enabled(self):
         r = self.get_prop('/magnetoOptic/magnet/properties/enabled')
         return r['enabled']
-    
+
     def set_mo_enabled(self, enabled):
         return self.set_prop('/magnetoOptic/magnet/properties/enabled', enabled)
-    
+
     def get_mo_state(self):
         r = self.get_prop('/magnetoOptic/magnet/properties/state')
         return r['state']
-    
+
     def get_mo_safe_mode(self):
         r = self.get_prop('/magnetoOptic/magnet/properties/safeMode')
         return r['safeMode']

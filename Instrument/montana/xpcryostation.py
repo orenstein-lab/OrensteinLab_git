@@ -21,8 +21,8 @@ Example usage:
 
 import sys
 import os
-import instrument
-import genericcryostat
+import OrensteinLab_git.Instrument.montana.instrument as instrument
+import OrensteinLab_git.Instrument.montana.genericcryostat as genericcryostat
 
 Ports = instrument.Rest_Ports
 
@@ -130,11 +130,11 @@ class XPCryostation(genericcryostat.GenericCryostat):
     # User 1
     def set_user1_temperature_controller_enabled(self, enabled):
         return self.set_prop('/sampleChamber/temperatureControllers/user1/properties/controllerEnabled', enabled)
-    
+
     def get_user1_target_temperature(self):
         r = self.get_prop('/sampleChamber/temperatureControllers/user1/properties/targetTemperature')
         return r['targetTemperature']
-    
+
     def set_user1_target_temperature(self, target):
         return self.set_prop('/sampleChamber/temperatureControllers/user1/properties/targetTemperature', target)
 

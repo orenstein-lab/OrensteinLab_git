@@ -176,9 +176,8 @@ def read_temperature():
     '''
     lsobj = ls.initialization_lakeshore335()
     temp = ls.read_temperature(lsobj)
-    print(ls.read_temperature(lsobj))
     ls.close_lakeshore335(lsobj)
-    return
+    return temp
 
 def z_scan(z_start, z_end, step_size):
     pass

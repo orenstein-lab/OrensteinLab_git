@@ -80,9 +80,12 @@ def strain_cell_temperature_calibration(fname1, fname2, filename_head, sc, cryo,
     print('Cooling down cryostat.')
 
     if mode==1: # cooldown to base temperature and then set temperature with lakeshore, waiting for both lakeshore and capacitance to stabilize before moving on.
+        print('Measuring in mode 1.')
         setpoints = np.sort(temps) # measure from base to high temp.
         target_stability = cryo_stability_low
+        cryo.set_platform_target_temperature(3)
         cryo.set_platform_stability_target(target_stability)
+        ctrl.set_temperature(0)
         while True:
             time.sleep(wait_time)
             stability_ok, is_stable = cryo.get_platform_temperature_stable()
@@ -139,6 +142,7 @@ def strain_cell_temperature_calibration(fname1, fname2, filename_head, sc, cryo,
                         break
 
     if mode==2: # on cooldown, set cryostat target temperature and wait for lakeshore and capacitance - this still needs some work to work around stability issues at 10-12K by switching the stability criteria for both cryostat and lakeshore.
+        print('Measuring in mode 1.')
         setpoint = np.flip(np.sort(temps)) # measure from high temp to low temp.
         for sp in setpoints:
             print(f'Setting setpoint to {sp} K')
@@ -206,7 +210,6 @@ def strain_cell_temperature_calibration(fname1, fname2, filename_head, sc, cryo,
 
     cryo.warmup()
     print('Warming up cryostat')
-
 
 def zero_strain_cell(sc, slew_rate=1, target_voltage=120, tol=0.1):
     '''

@@ -26,6 +26,19 @@ def read_ramp(inst):
 def set_ramp(inst, output, on_off, rate):
     inst.command("RAMP "+str(output)+','+str(int(on_off))+','+str(rate))
 
+def set_range(inst, output, range):
+    '''
+    sets lakeshore range to low, med, or high
+
+    args:
+        - output:   1 or 2
+        - range:    0=off, 1=low, 2=med, 3=high
+    '''
+    inst.command(f'RANGE {output},{range}')
+
+def read_range(inst):
+    range = inst.query('Range?')
+    return range
+
 def close_lakeshore335(inst):
     inst.disconnect_usb()
-

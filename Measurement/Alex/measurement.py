@@ -3,6 +3,8 @@ Main file for controlling lab equipment and orchestrating measurements, with a s
 '''
 
 from strain_control.strain_client import StrainClient
+import OrensteinLab_git.Measurement.Alex.control as ctrl
+import OrensteinLab_git.Instrument.montana.cryocore as cryocore
 import time
 import numpy as np
 import matplotlib.pyplot as plt
@@ -54,92 +56,157 @@ def measure_strain_cell_capacitor(fname, sc, num_points=1000, dt_min=0.1):
             t_old = t_new
     save_data_to_file(fname, np.transpose([t, cap]), ['Time', 'Cap'])
 
-def strain_cell_temperature_calibration(fname1, fname2, filename_head, sc, cryo, temps, lakeshore_stability, cap_stability, target_stability_high, target_stability_low, wait_time=1):
+def strain_cell_temperature_calibration(fname1, fname2, filename_head, sc, cryo, temps, lakeshore_stability, cap_stability, cryo_stability_high, cryo_stability_low, mode, wait_time=1):
     '''
-    runs a cooldown and warmup of Montana CryoAdvance and monitors platform temperature vs strain cell capacitance. The strain cell should be loaded with a titanium dummy sample.
+    runs a cooldown and warmup of Montana CryoAdvance and monitors platform temperature vs strain cell capacitance. The strain cell should be loaded with a titanium dummy sample. For consistency, block temperature should be measured NOT sample temperature, which will change from setup to setup.
 
     args:
         - fname1:           file path to a file to log continuosly during a ramp
         - fname2:           file path to a file to log only at times when both temperature and capacitor are stable
         - sc:               StrainClient object
         - cryo:             Montana CryoCore object
-        - temps             list of temperatures. Note that Montana seems to like integer values.
+        - temps:            list of temperatures. Note that Montana seems to like integer values.
+        - mode:             1 for keeping cryostat at base and using heater and 2 for changing cold plate temp
     '''
-
     filename1 = filename_head+'\\'+fname1+'.dat'
     filename2 = filename_head+'\\'+fname2+'.dat'
-    print(filename1)
     with open(filename1, 'a') as f1:
         f1.write('Time' + '\t' + 'Setpoint Temperature (K)' + '\t' + 'Platform Temperature (K)' + '\t' + 'Lakeshore Temperature (K)' + '\t' + 'Capacitance' + '\n')
     with open(filename2, 'a') as f2:
         f2.write('Platform Temperature (K)' + '\t' + 'Lakeshore Temperature (K)' + '\t' + 'Capacitance' + '\n')
 
-
-    setpoints = temps
     t0 = time.time()
-    for sp in setpoints:
-        print(f'Setting setpoint to {sp} K')
-        if sp >= 10:
-            target_stability = target_stability_high
-        else:
-            target_stability = target_stability_low
-        cryo.set_platform_target_temperature(int(sp))
+    cryo.cooldown()
+    print('Cooling down cryostat.')
+
+    if mode==1: # cooldown to base temperature and then set temperature with lakeshore, waiting for both lakeshore and capacitance to stabilize before moving on.
+        setpoints = np.sort(temps) # measure from base to high temp.
+        target_stability = cryo_stability_low
         cryo.set_platform_stability_target(target_stability)
         while True:
             time.sleep(wait_time)
-            with open(filename1, 'a') as f1:
-                f1.write(str(format(float(time.time()-t0), '.5f')) + '\t' + str(sp) + '\t' +
-                     str(format(float(cryo.get_platform_temperature()[1]), '.5f')) + '\t' +
-                     str(format(float(ctrl.read_temperature()), '.5f')) + '\t' + str(format(float(sc.get_cap()), '.5f')) + '\n')
             stability_ok, is_stable = cryo.get_platform_temperature_stable()
             if is_stable:
-                print(f'Stabilized platform temperature at {cryo.get_platform_temperature()[1]} K')
-                lakeshore_temps = []
-                while True:
-                    time.sleep(wait_time)
-                    lakeshore_temps.append(ctrl.read_temperature())
-                    with open(filename1, 'a') as f1:
-                        f1.write(str(format(float(time.time()-t0), '.5f')) + '\t' + str(sp) + '\t' +
-                             str(format(float(cryo.get_platform_temperature()[1]), '.5f')) + '\t' +
-                             str(format(float(lakeshore_temps[-1]), '.5f')) + '\t' +
-                             str(format(float(sc.get_cap()), '.5f')) + '\n')
-                    if len(lakeshore_temps) > 120:
-                        if (np.std(np.asarray(lakeshore_temps[-120:])) < lakeshore_stability) or (len(lakeshore_temps) > 7200):
-                            print(f'Stabilized Lakeshore temperature at {ctrl.read_temperature()} K')
-                            print(f'Lakeshore noise: {np.std(np.asarray(lakeshore_temps[-120:]))}')
-                            caps = []
-                            while True:
-                                time.sleep(wait_time)
-                                caps.append(sc.get_cap())
-                                with open(filename1, 'a') as f1:
-                                    f1.write(str(format(float(time.time()-t0), '.5f')) + '\t' + str(sp) + '\t' +
-                                         str(format(float(cryo.get_platform_temperature()[1]), '.5f')) + '\t' +
-                                         str(format(float(ctrl.read_temperature()), '.5f')) + '\t' +
-                                         str(format(float(caps[-1]), '.5f')) + '\n')
-                                if len(caps)>300: # mininum soak time of 5 minutes
-                                    if (np.std(np.asarray(caps[-300:])) < cap_stability) or (len(caps) > 7200):
-                                        print('STD: '+str(np.std(np.asarray(caps[-300:]))))
-                                        if (np.std(np.asarray(caps[-300:])) < cap_stability):
-                                            print('Stdev below accepted value')
-                                        elif len(caps) > 7200: # maximum soak time of 2 hours
-                                            print('Exceeded maximum soak time')
-                                        print(f'Stabilized capacitance measurement, writing to file')
-                                        with open(filename2, 'a') as f2:
-                                            f2.write(str(format(float(cryo.get_platform_temperature()[1]), '.5f')) + '\t' +
-                                                 str(format(float(ctrl.read_temperature()), '.5f')) + '\t' +
-                                                 str(format(np.mean(caps[-15:]), '.5f')) + '\n')
-                                        break
-                                    elif (np.std(np.asarray(caps[-300:])) < cap_stability*1.1) and (len(caps) > 3600):
-                                        print('STD: '+str(np.std(np.asarray(caps[-300:]))))
-                                        print('Stdev within 10 percent of accepted value after 1 hour')
-                                        print(f'Stabilized capacitance measurement, writing to file')
-                                        with open(filename2, 'a') as f2:
-                                            f2.write(str(format(float(cryo.get_platform_temperature()[1]), '.5f')) + '\t' +
-                                                 str(format(float(ctrl.read_temperature()), '.5f')) + '\t' +
-                                                 str(format(np.mean(caps[-15:]), '.5f')) + '\n')
-                                        break
-                            break
+                print(f'Stabilized platform to base temperature.')
                 break
+        for sp in setpoints:
+            print(f'Setting setpoint to {sp} K')
+            ctrl.set_temperature(sp)
+            lakeshore_temps = []
+            while True:
+                time.sleep(wait_time)
+                lakeshore_temps.append(ctrl.read_temperature())
+                with open(filename1, 'a') as f1:
+                    f1.write(str(format(float(time.time()-t0), '.5f')) + '\t' + str(sp) + '\t' +
+                         str(format(float(cryo.get_platform_temperature()[1]), '.5f')) + '\t' +
+                         str(format(float(lakeshore_temps[-1]), '.5f')) + '\t' +
+                         str(format(float(sc.get_cap()), '.5f')) + '\n')
+                if len(lakeshore_temps) > 120:
+                    if (np.std(np.asarray(lakeshore_temps[-120:])) < lakeshore_stability) or (len(lakeshore_temps) > 7200):
+                        print(f'Stabilized Lakeshore temperature at {ctrl.read_temperature()} K')
+                        print(f'Lakeshore noise: {np.std(np.asarray(lakeshore_temps[-120:]))}')
+                        caps = []
+                        while True:
+                            time.sleep(wait_time)
+                            caps.append(sc.get_cap())
+                            with open(filename1, 'a') as f1:
+                                f1.write(str(format(float(time.time()-t0), '.5f')) + '\t' + str(sp) + '\t' +
+                                     str(format(float(cryo.get_platform_temperature()[1]), '.5f')) + '\t' +
+                                     str(format(float(ctrl.read_temperature()), '.5f')) + '\t' +
+                                     str(format(float(caps[-1]), '.5f')) + '\n')
+                            if len(caps)>300: # mininum soak time of 5 minutes
+                                if (np.std(np.asarray(caps[-300:])) < cap_stability) or (len(caps) > 7200):
+                                    print('STD: '+str(np.std(np.asarray(caps[-300:]))))
+                                    if (np.std(np.asarray(caps[-300:])) < cap_stability):
+                                        print('Stdev below accepted value')
+                                    elif len(caps) > 7200: # maximum soak time of 2 hours
+                                        print('Exceeded maximum soak time')
+                                    print(f'Stabilized capacitance measurement, writing to file')
+                                    with open(filename2, 'a') as f2:
+                                        f2.write(str(format(float(cryo.get_platform_temperature()[1]), '.5f')) + '\t' +
+                                             str(format(float(ctrl.read_temperature()), '.5f')) + '\t' +
+                                             str(format(np.mean(caps[-15:]), '.5f')) + '\n')
+                                    break
+                                elif (np.std(np.asarray(caps[-300:])) < cap_stability*1.1) and (len(caps) > 3600):
+                                    print('STD: '+str(np.std(np.asarray(caps[-300:]))))
+                                    print('Stdev within 10 percent of accepted value after 1 hour')
+                                    print(f'Stabilized capacitance measurement, writing to file')
+                                    with open(filename2, 'a') as f2:
+                                        f2.write(str(format(float(cryo.get_platform_temperature()[1]), '.5f')) + '\t' +
+                                             str(format(float(ctrl.read_temperature()), '.5f')) + '\t' +
+                                             str(format(np.mean(caps[-15:]), '.5f')) + '\n')
+                                    break
+                        break
+
+    if mode==2: # on cooldown, set cryostat target temperature and wait for lakeshore and capacitance
+        setpoint = np.flip(np.sort(temps)) # measure from high temp to low temp.
+        for sp in setpoints:
+            print(f'Setting setpoint to {sp} K')
+            if sp >= 10:
+                target_stability = cryo_stability_high
+            else:
+                target_stability = cryo_stability_low
+            cryo.set_platform_target_temperature(int(sp))
+            cryo.set_platform_stability_target(target_stability)
+            while True:
+                time.sleep(wait_time)
+                with open(filename1, 'a') as f1:
+                    f1.write(str(format(float(time.time()-t0), '.5f')) + '\t' + str(sp) + '\t' +
+                         str(format(float(cryo.get_platform_temperature()[1]), '.5f')) + '\t' +
+                         str(format(float(ctrl.read_temperature()), '.5f')) + '\t' + str(format(float(sc.get_cap()), '.5f')) + '\n')
+                stability_ok, is_stable = cryo.get_platform_temperature_stable()
+                if is_stable:
+                    print(f'Stabilized platform temperature at {cryo.get_platform_temperature()[1]} K')
+                    lakeshore_temps = []
+                    while True:
+                        time.sleep(wait_time)
+                        lakeshore_temps.append(ctrl.read_temperature())
+                        with open(filename1, 'a') as f1:
+                            f1.write(str(format(float(time.time()-t0), '.5f')) + '\t' + str(sp) + '\t' +
+                                 str(format(float(cryo.get_platform_temperature()[1]), '.5f')) + '\t' +
+                                 str(format(float(lakeshore_temps[-1]), '.5f')) + '\t' +
+                                 str(format(float(sc.get_cap()), '.5f')) + '\n')
+                        if len(lakeshore_temps) > 120:
+                            if (np.std(np.asarray(lakeshore_temps[-120:])) < lakeshore_stability) or (len(lakeshore_temps) > 7200):
+                                print(f'Stabilized Lakeshore temperature at {ctrl.read_temperature()} K')
+                                print(f'Lakeshore noise: {np.std(np.asarray(lakeshore_temps[-120:]))}')
+                                caps = []
+                                while True:
+                                    time.sleep(wait_time)
+                                    caps.append(sc.get_cap())
+                                    with open(filename1, 'a') as f1:
+                                        f1.write(str(format(float(time.time()-t0), '.5f')) + '\t' + str(sp) + '\t' +
+                                             str(format(float(cryo.get_platform_temperature()[1]), '.5f')) + '\t' +
+                                             str(format(float(ctrl.read_temperature()), '.5f')) + '\t' +
+                                             str(format(float(caps[-1]), '.5f')) + '\n')
+                                    if len(caps)>300: # mininum soak time of 5 minutes
+                                        if (np.std(np.asarray(caps[-300:])) < cap_stability) or (len(caps) > 7200):
+                                            print('STD: '+str(np.std(np.asarray(caps[-300:]))))
+                                            if (np.std(np.asarray(caps[-300:])) < cap_stability):
+                                                print('Stdev below accepted value')
+                                            elif len(caps) > 7200: # maximum soak time of 2 hours
+                                                print('Exceeded maximum soak time')
+                                            print(f'Stabilized capacitance measurement, writing to file')
+                                            with open(filename2, 'a') as f2:
+                                                f2.write(str(format(float(cryo.get_platform_temperature()[1]), '.5f')) + '\t' +
+                                                     str(format(float(ctrl.read_temperature()), '.5f')) + '\t' +
+                                                     str(format(np.mean(caps[-15:]), '.5f')) + '\n')
+                                            break
+                                        elif (np.std(np.asarray(caps[-300:])) < cap_stability*1.1) and (len(caps) > 3600):
+                                            print('STD: '+str(np.std(np.asarray(caps[-300:]))))
+                                            print('Stdev within 10 percent of accepted value after 1 hour')
+                                            print(f'Stabilized capacitance measurement, writing to file')
+                                            with open(filename2, 'a') as f2:
+                                                f2.write(str(format(float(cryo.get_platform_temperature()[1]), '.5f')) + '\t' +
+                                                     str(format(float(ctrl.read_temperature()), '.5f')) + '\t' +
+                                                     str(format(np.mean(caps[-15:]), '.5f')) + '\n')
+                                            break
+                                break
+                    break
+
+    cryo.warmup()
+    print('Warming up cryostat')
+
 
 def zero_strain_cell(sc, slew_rate=1, target_voltage=120, tol=0.1):
     '''

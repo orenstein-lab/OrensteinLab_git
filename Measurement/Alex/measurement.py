@@ -138,7 +138,7 @@ def strain_cell_temperature_calibration(fname1, fname2, filename_head, sc, cryo,
                                     break
                         break
 
-    if mode==2: # on cooldown, set cryostat target temperature and wait for lakeshore and capacitance
+    if mode==2: # on cooldown, set cryostat target temperature and wait for lakeshore and capacitance - this still needs some work to work around stability issues at 10-12K by switching the stability criteria for both cryostat and lakeshore.
         setpoint = np.flip(np.sort(temps)) # measure from high temp to low temp.
         for sp in setpoints:
             print(f'Setting setpoint to {sp} K')

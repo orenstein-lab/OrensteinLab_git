@@ -54,7 +54,7 @@ def measure_strain_cell_capacitor(fname, sc, num_points=1000, dt_min=0.1):
             t_old = t_new
     save_data_to_file(fname, np.transpose([t, cap]), ['Time', 'Cap'])
 
-def strain_cell_temperature_calibration(fname1, fname2, filename_head, sc, cryo, temps, wait_time=1):
+def strain_cell_temperature_calibration(fname1, fname2, filename_head, sc, cryo, temps, lakeshore_stability, cap_stability, target_stability_high, target_stability_low, wait_time=1):
     '''
     runs a cooldown and warmup of Montana CryoAdvance and monitors platform temperature vs strain cell capacitance. The strain cell should be loaded with a titanium dummy sample.
 
@@ -77,14 +77,12 @@ def strain_cell_temperature_calibration(fname1, fname2, filename_head, sc, cryo,
 
     setpoints = temps
     t0 = time.time()
-    lakeshore_stability = 0.01
-    cap_stability = 3.15e-05
     for sp in setpoints:
         print(f'Setting setpoint to {sp} K')
         if sp >= 10:
-            target_stability = 0.150
+            target_stability = target_stability_high
         else:
-            target_stability = 0.050
+            target_stability = target_stability_low
         cryo.set_platform_target_temperature(int(sp))
         cryo.set_platform_stability_target(target_stability)
         while True:

@@ -118,6 +118,7 @@ def strain_cell_temperature_calibration(fname1, fname2, filename_head, sc, cryo,
                         while True:
                             time.sleep(wait_time)
                             caps.append(sc.get_cap())
+                            lakeshore_temps.append(ctrl.read_temperature())
                             with open(filename1, 'a') as f1:
                                 f1.write(str(format(float(time.time()-t0), '.5f')) + '\t' + str(sp) + '\t' +
                                      str(format(float(cryo.get_platform_temperature()[1]), '.5f')) + '\t' +
@@ -133,7 +134,7 @@ def strain_cell_temperature_calibration(fname1, fname2, filename_head, sc, cryo,
                                     print(f'Stabilized capacitance measurement, writing to file')
                                     with open(filename2, 'a') as f2:
                                         f2.write(str(format(float(cryo.get_platform_temperature()[1]), '.5f')) + '\t' +
-                                             str(format(float(mean), '.5f')) + '\t' +
+                                             str(format(np.mean(lakeshore_temps[-15:]), '.5f')) + '\t' +
                                              str(format(np.mean(caps[-15:]), '.5f')) + '\n')
                                     break
                                 elif (np.std(np.asarray(caps[-300:])) < cap_stability*1.1) and (len(caps) > 3600):

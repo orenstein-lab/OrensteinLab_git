@@ -68,6 +68,7 @@ def strain_cell_temperature_calibration(fname1, fname2, filename_head, sc, cryo,
         - temps:            list of temperatures. Note that Montana seems to like integer values.
         - mode:             1 for keeping cryostat at base and using heater and 2 for changing cold plate temp
     '''
+    BASE_TEMP=4.7 # needs to actually reach base to read as stable in Montana software, so make a bit higher than base.
     filename1 = filename_head+'\\'+fname1+'.dat'
     filename2 = filename_head+'\\'+fname2+'.dat'
     with open(filename1, 'a') as f1:
@@ -83,9 +84,10 @@ def strain_cell_temperature_calibration(fname1, fname2, filename_head, sc, cryo,
         print('Measuring in mode 1.')
         setpoints = np.sort(temps) # measure from base to high temp.
         target_stability = cryo_stability_low
-        cryo.set_platform_target_temperature(4.63)
+        cryo.set_platform_target_temperature(BASE_TEMP)
         cryo.set_platform_stability_target(target_stability)
         ctrl.set_temperature(0)
+        ctrl.set_lakeshore_range(0)
         while True:
             time.sleep(wait_time)
             stability_ok, is_stable = cryo.get_platform_temperature_stable()
@@ -94,6 +96,12 @@ def strain_cell_temperature_calibration(fname1, fname2, filename_head, sc, cryo,
                 break
         cryo.set_platform_target_temperature(0)
         for sp in setpoints:
+            if sp < 9:
+                ctrl.set_lakeshore_range(1)
+            elif sp < 12 and sp > 9:
+                ctrl.set_lakeshore_range(2)
+            else:
+                ctrl.set_lakeshore_range(3)
             print(f'Setting setpoint to {sp} K')
             ctrl.set_temperature(sp)
             lakeshore_temps = []

@@ -83,7 +83,7 @@ def strain_cell_temperature_calibration(fname1, fname2, filename_head, sc, cryo,
         print('Measuring in mode 1.')
         setpoints = np.sort(temps) # measure from base to high temp.
         target_stability = cryo_stability_low
-        cryo.set_platform_target_temperature(3)
+        cryo.set_platform_target_temperature(4.63)
         cryo.set_platform_stability_target(target_stability)
         ctrl.set_temperature(0)
         while True:

@@ -92,6 +92,7 @@ def strain_cell_temperature_calibration(fname1, fname2, filename_head, sc, cryo,
             if is_stable:
                 print(f'Stabilized platform to base temperature.')
                 break
+        cryo.set_platform_target_temperature(0)
         for sp in setpoints:
             print(f'Setting setpoint to {sp} K')
             ctrl.set_temperature(sp)

@@ -98,7 +98,7 @@ def strain_cell_temperature_calibration(fname1, fname2, filename_head, sc, cryo,
         for sp in setpoints:
             if sp < 9:
                 ctrl.set_lakeshore_range(1)
-            elif sp < 12 and sp > 9:
+            elif sp < 11 and sp > 9:
                 ctrl.set_lakeshore_range(2)
             else:
                 ctrl.set_lakeshore_range(3)

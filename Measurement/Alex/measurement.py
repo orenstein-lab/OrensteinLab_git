@@ -108,9 +108,9 @@ def strain_cell_temperature_calibration(fname1, fname2, filename_head, sc, cryo,
                 if len(lakeshore_temps) > 120:
                     mean = np.mean(np.asarray(lakeshore_temps[-120:]))
                     std = np.std(np.asarray(lakeshore_temps[-120:]))
-                    if ((std < lakeshore_stability) or (len(lakeshore_temps) > 7200)) and ((mean > sp-0.1) and (mean < sp+0.1)):
+                    if ((std < lakeshore_stability) or (len(lakeshore_temps) > 7200)) and ((mean > sp-0.01) and (mean < sp+0.01)):
                         if std < lakeshore_stability:
-                            print(f'Stabilized Lakeshore temperature at {ctrl.read_temperature()} K')
+                            print(f'Stabilized Lakeshore temperature at {mean} K')
                         if len(lakeshore_temps) > 7200:
                             print('Exceeded maximum soak time')
                         print(f'Lakeshore noise: {std}')
@@ -133,7 +133,7 @@ def strain_cell_temperature_calibration(fname1, fname2, filename_head, sc, cryo,
                                     print(f'Stabilized capacitance measurement, writing to file')
                                     with open(filename2, 'a') as f2:
                                         f2.write(str(format(float(cryo.get_platform_temperature()[1]), '.5f')) + '\t' +
-                                             str(format(float(ctrl.read_temperature()), '.5f')) + '\t' +
+                                             str(format(float(mean), '.5f')) + '\t' +
                                              str(format(np.mean(caps[-15:]), '.5f')) + '\n')
                                     break
                                 elif (np.std(np.asarray(caps[-300:])) < cap_stability*1.1) and (len(caps) > 3600):

@@ -105,9 +105,14 @@ def strain_cell_temperature_calibration(fname1, fname2, filename_head, sc, cryo,
                          str(format(float(lakeshore_temps[-1]), '.5f')) + '\t' +
                          str(format(float(sc.get_cap()), '.5f')) + '\n')
                 if len(lakeshore_temps) > 120:
-                    if (np.std(np.asarray(lakeshore_temps[-120:])) < lakeshore_stability) or (len(lakeshore_temps) > 7200):
-                        print(f'Stabilized Lakeshore temperature at {ctrl.read_temperature()} K')
-                        print(f'Lakeshore noise: {np.std(np.asarray(lakeshore_temps[-120:]))}')
+                    mean = np.mean(np.asarray(lakeshore_temps[-120:]))
+                    std = np.std(np.asarray(lakeshore_temps[-120:]))
+                    if ((std < lakeshore_stability) or (len(lakeshore_temps) > 7200)) and ((mean > sp-0.1) and (mean < sp+0.1)):
+                        if std < lakeshore_stability:
+                            print(f'Stabilized Lakeshore temperature at {ctrl.read_temperature()} K')
+                        if len(lakeshore_temps) > 7200:
+                            print('Exceeded maximum soak time')
+                        print(f'Lakeshore noise: {std}')
                         caps = []
                         while True:
                             time.sleep(wait_time)

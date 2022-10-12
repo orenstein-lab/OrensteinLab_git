@@ -5,7 +5,7 @@ Main file for controlling lab equipment and orchestrating measurements
 get_ipython().run_line_magic('matplotlib', 'notebook')
 import zhinst.utils as ziutils
 import instruments.newport as newport
-import OrensteinLab.Instrument.OptiCool.OptiCool_Control as optc
+import OrensteinLab_git.Instrument.OptiCool.OptiCool_Control as optc
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
@@ -17,7 +17,7 @@ from IPython.display import clear_output
 import threading
 import ipywidgets as widgets
 from pyanc350.v2 import Positioner
-import OrensteinLab.Instrument.Lakeshore.Lakeshore335 as ls
+import OrensteinLab_git.Instrument.Lakeshore.Lakeshore335 as ls
 from strain_control.strain_client import StrainClient
 
 # confiure system based on config file
@@ -163,6 +163,22 @@ def set_temperature(temperature):
     temp=float(temperature)
     ls.set_ramp(lsobj, 1, 0, 0)
     ls.set_setpoint(lsobj, 1, temp)
+    ls.close_lakeshore335(lsobj)
+
+def set_lakeshore_range(range):
+    '''
+    sets lakeshore range (0=off, 1=Low, 2=Med, 3=High)
+
+    args:
+        - range(int)
+
+    returns: None
+    '''
+    range=int(range)
+    if range not in [0,1,2,3]:
+        raise ValueError(f'{range} is not a valid range. Please choose from (0=off, 1=Low, 2=Med, 3=High)')
+    lsobj = ls.initialization_lakeshore335()
+    ls.set_range(lsobj, 1, range)
     ls.close_lakeshore335(lsobj)
 
 def read_temperature():

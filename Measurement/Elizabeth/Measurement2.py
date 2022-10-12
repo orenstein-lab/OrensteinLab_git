@@ -473,7 +473,6 @@ def Lockin_time_record(channel_index, recording_time, time_constant, filename_he
             file.close()
     thread1.join()
 
-
 def Find_balance_angle(incident_pol_angle, axis_index, start_pos, step_size, num_of_steps, go_back, channel_index, time_constant, filename_head):
     #ESP301 initialization
     controller = newport.NewportESP301.open_serial(port=port_id, baud=921600)
@@ -3141,7 +3140,6 @@ def Corotate_map_thermal_coil(x_start, x_step, x_num, y_start, y_step, y_num, nu
 
     Corotate_map_scan(x_start, x_step, x_num, y_start, y_step, y_num, num_of_steps, axis_index_1, start_pos_1, step_size_1, go_back_1, axis_index_2, start_pos_2, go_back_2, channel_index, time_constant, filename_head, coil_filename)
 
-
 def Corotate_map_helper(num_of_steps, axis_index_1, start_pos_1, step_size_1, go_back_1, axis_index_2, start_pos_2, step_size_2, go_back_2, channel_index, time_constant, measurement_filename):
     #ESP301 initialization
     controller = newport.NewportESP301.open_serial(port=port_id, baud=921600)
@@ -3848,7 +3846,6 @@ def xscan_zdep(z_start, z_end, z_step, z_tol, x_start, x_end, x_step, x_tol, tim
     anc.close()
     print("Scan finished!")
     thread1.join()
-
 
 def Field_scan(set_points, ramp_rate, balance_axis_index, channel_index, time_constant, balance_channel_index, filename_head):
     set_points = np.array(set_points)

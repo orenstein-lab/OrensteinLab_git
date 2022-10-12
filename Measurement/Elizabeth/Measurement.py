@@ -216,7 +216,6 @@ def Lockin_time_record(channel_index, recording_time, time_constant, filename_he
             file.close()
     thread1.join()
 
-
 def Find_balance_angle(incident_pol_angle, axis_index, start_pos, step_size, num_of_steps, go_back, channel_index, time_constant, filename_head):
     #ESP301 initialization
     controller = newport.NewportESP301.open_serial(port=port_id, baud=921600)

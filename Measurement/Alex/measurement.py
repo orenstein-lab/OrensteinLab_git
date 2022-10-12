@@ -68,7 +68,7 @@ def strain_cell_temperature_calibration(fname1, fname2, filename_head, sc, cryo,
         - temps:            list of temperatures. Note that Montana seems to like integer values.
         - mode:             1 for keeping cryostat at base and using heater and 2 for changing cold plate temp
     '''
-    BASE_TEMP=4.7 # needs to actually reach base to read as stable in Montana software, so make a bit higher than base.
+    BASE_TEMP=12.0 # needs to actually reach base to read as stable in Montana software, so make a bit higher than base.
     filename1 = filename_head+'\\'+fname1+'.dat'
     filename2 = filename_head+'\\'+fname2+'.dat'
     with open(filename1, 'a') as f1:
@@ -130,10 +130,10 @@ def strain_cell_temperature_calibration(fname1, fname2, filename_head, sc, cryo,
                             with open(filename1, 'a') as f1:
                                 f1.write(str(format(float(time.time()-t0), '.5f')) + '\t' + str(sp) + '\t' +
                                      str(format(float(cryo.get_platform_temperature()[1]), '.5f')) + '\t' +
-                                     str(format(float(ctrl.read_temperature()), '.5f')) + '\t' +
+                                     str(format(float(lakeshore_temps[-1]), '.5f')) + '\t' +
                                      str(format(float(caps[-1]), '.5f')) + '\n')
                             if len(caps)>300: # mininum soak time of 5 minutes
-                                if (np.std(np.asarray(caps[-300:])) < cap_stability) or (len(caps) > 7200):
+                                if (np.std(np.asarray(caps[-300:])) < cap_stability) or (len(lakeshore_temps) > 7200 and len(caps) > 600):
                                     print('STD: '+str(np.std(np.asarray(caps[-300:]))))
                                     if (np.std(np.asarray(caps[-300:])) < cap_stability):
                                         print('Stdev below accepted value')

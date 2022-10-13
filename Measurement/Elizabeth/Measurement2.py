@@ -602,7 +602,6 @@ def Find_balance_angle(incident_pol_angle, axis_index, start_pos, step_size, num
                     dh.update(str(axis_rot.position))
     thread1.join()
 
-
 def Rotate_quick(num_of_steps, axis_index_rot, start_angle, step_size, go_back, axis_index_const, angle_const, channel_index, time_constant):
     #ESP301 initialization
     controller = newport.NewportESP301.open_serial(port=port_id, baud=921600)

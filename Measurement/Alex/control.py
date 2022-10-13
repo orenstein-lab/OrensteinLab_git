@@ -20,138 +20,155 @@ from pyanc350.v2 import Positioner
 import OrensteinLab_git.Instrument.Lakeshore.Lakeshore335 as ls
 from strain_control.strain_client import StrainClient
 
-# confiure system based on config file
+#####################
+### Configuration ###
+#####################
 with open(os.path.dirname(__file__)+ r'\..\..\Configuration.txt', "r") as f_conf:
     conf_info = f_conf.read()
     conf_info_split = conf_info.split('\n')
     device_id = conf_info_split[0].split('\t')[1]
     port_id = conf_info_split[1].split('\t')[1]
-
 channel_name = ['/%s/demods/0/sample','/%s/demods/1/sample','/%s/demods/2/sample','/%s/demods/3/sample']
 
-def move_x(position, tolerance=1, go_back=10):
+################
+### Medthods ###
+################
+
+def move_attocube(axis, position, torlerance=1, go_back=10, anc=None):
+    '''
+    utility to move attocube
+    '''
+
     # Attocube initialization
     ax = {'x':0, 'y':1, 'z':2}
-    anc = Positioner()
+    anc_passed = True
+    if anc==None:
+        anc = Positioner()
+        anc_passed = False
+
 
     pos = float(position)
     target = float(pos-go_back)
     tol = float(tolerance)
 
     # Move to go_back position to prevent hysteresis
-    anc.moveAbsolute(ax['x'], int(target*1000))
+    anc.moveAbsolute(ax[axis], int(target*1000))
     time.sleep(0.1)
-    error = np.abs(target-anc.getPosition(ax['x'])/1000)
+    error = np.abs(target-anc.getPosition(ax[axis])/1000)
     while (error >= tol):
-        anc.moveAbsolute(ax['x'], int(target*1000))
+        anc.moveAbsolute(ax[axis], int(target*1000))
         time.sleep(0.1)
-        error = np.abs(target-anc.getPosition(ax['x'])/1000)
+        error = np.abs(target-anc.getPosition(ax[axis])/1000)
+
     # Move to specified position
-    anc.moveAbsolute(ax['x'], int(pos*1000))
+    anc.moveAbsolute(ax[axis], int(pos*1000))
     time.sleep(0.1)
-    error = np.abs(pos-anc.getPosition(ax['x'])/1000)
+    error = np.abs(pos-anc.getPosition(ax[axis])/1000)
     while (error >= tol):
-        anc.moveAbsolute(ax['x'], int(pos*1000))
+        anc.moveAbsolute(ax[axis], int(pos*1000))
         time.sleep(0.1)
-        error = np.abs(pos-anc.getPosition(ax['x'])/1000)
+        error = np.abs(pos-anc.getPosition(ax[axis])/1000)
 
-    print(anc.getPosition(ax['x'])/1000)
-    anc.close()
+    # print and close only if another process hasn't passed anc object
+    if anc_passed == False:
+        print(anc.getPosition(ax[axis])/1000)
+        anc.close()
 
-def move_y(position, tolerance=1, go_back=10):
+def read_attocube(anc=None, print=True):
+    '''
+    Read all attocube positions, printing and returning as desired
+    '''
     # Attocube initialization
     ax = {'x':0, 'y':1, 'z':2}
-    anc = Positioner()
+    anc_passed = True
+    if anc==None:
+        anc = Positioner()
+        anc_passed = False
 
-    pos = float(position)
-    target = float(pos-go_back)
-    tol = float(tolerance)
-
-    # Move to go_back position to prevent hysteresis
-    anc.moveAbsolute(ax['y'], int(target*1000))
     time.sleep(0.1)
-    error = np.abs(target-anc.getPosition(ax['y'])/1000)
-    while (error >= tol):
-        anc.moveAbsolute(ax['y'], int(target*1000))
-        time.sleep(0.1)
-        error = np.abs(target-anc.getPosition(ax['y'])/1000)
-    # Move to specified position
-    anc.moveAbsolute(ax['y'], int(pos*1000))
-    time.sleep(0.1)
-    error = np.abs(pos-anc.getPosition(ax['y'])/1000)
-    while (error >= tol):
-        anc.moveAbsolute(ax['y'], int(pos*1000))
-        time.sleep(0.1)
-        error = np.abs(pos-anc.getPosition(ax['y'])/1000)
-
-    print(anc.getPosition(ax['y'])/1000)
-    anc.close()
-
-def move_z(position, tolerance=1, go_back=10):
-    # Attocube initialization
-    ax = {'x':0, 'y':1, 'z':2}
-    anc = Positioner()
-
-    pos = float(position)
-    target = float(pos-go_back)
-    tol = float(tolerance)
-
-    # Move to go_back position to prevent hysteresis
-    anc.moveAbsolute(ax['z'], int(target*1000))
-    time.sleep(0.1)
-    error = np.abs(target-anc.getPosition(ax['z'])/1000)
-    while (error >= tol):
-        anc.moveAbsolute(ax['z'], int(target*1000))
-        time.sleep(0.1)
-        error = np.abs(target-anc.getPosition(ax['z'])/1000)
-    # Move to specified position
-    anc.moveAbsolute(ax['z'], int(pos*1000))
-    time.sleep(0.1)
-    error = np.abs(pos-anc.getPosition(ax['z'])/1000)
-    while (error >= tol):
-        anc.moveAbsolute(ax['z'], int(pos*1000))
-        time.sleep(0.1)
-        error = np.abs(pos-anc.getPosition(ax['z'])/1000)
-
-    print(anc.getPosition(ax['z'])/1000)
-    anc.close()
-
-def read_position():
-    # Attocube initialization
-    ax = {'x':0, 'y':1, 'z':2}
-    anc = Positioner()
-
     x=anc.getPosition(ax['x'])/1000
     y=anc.getPosition(ax['y'])/1000
     z=anc.getPosition(ax['z'])/1000
 
-    print('x: '+str(x))
-    print('y: '+str(y))
-    print('z: '+str(z))
+    if print==True:
+        print('x: '+str(x))
+        print('y: '+str(y))
+        print('z: '+str(z))
 
-    anc.close()
+    # print and close only if another process hasn't passed anc object
+    if anc_passed == False:
+        print(anc.getPosition(ax[axis])/1000)
+        anc.close()
 
-def rotate_axis(angle, axis_index):
+    return x, y, z
+
+def move_x(position, tolerance=1, go_back=10, anc=None):
+    '''
+    wrapper to move attocube x positioner.
+    '''
+    move_attocube('x', position, tolerance, go_back, anc)
+
+def move_y(position, tolerance=1, go_back=10, anc==None):
+    '''
+    wrapper to move attocube y positioner.
+    '''
+    move_attocube('y', position, tolerance, go_back, anc)
+
+def move_z(position, tolerance=1, go_back=10):
+    '''
+    wrapper to move attocube z positioner.
+    '''
+    move_attocube('z', position, tolerance, go_back, anc)
+
+def rotate_axis(axis_index, angle, controller=None, axis_rot=None):
+    '''
+    rotate waveplate. I can now add any checks that have to happen typically.
+    '''
     #ESP301 initialization
-    controller = newport.NewportESP301.open_serial(port=port_id, baud=921600)
+    if controller==None:
+        controller = newport.NewportESP301.open_serial(port=port_id, baud=921600)
 
-    axis_rot = newport.NewportESP301Axis(controller,axis_index-1)
-    axis_rot.enable()
+    # initialize axis
+    if axis_rot==None:
+        axis_rot = newport.NewportESP301Axis(controller,axis_index-1)
+        axis_rot.enable()
 
     axis_rot.move(angle,absolute=True)
+    check_axis_stability(axis_rot)
 
-def read_angle(axis_index):
-    #ESP301 initialization
-    controller = newport.NewportESP301.open_serial(port=port_id, baud=921600)
-
-    axis_rot = newport.NewportESP301Axis(controller,axis_index-1)
-    axis_rot.enable()
-
-    print(axis_rot.position)
-
-def set_temperature(temperature):
+def check_axis_stability(axis_rot):
     '''
-    sets lakeshore setpoint
+    helper function for rotate_axis.
+    '''
+    while True:
+        time.sleep(0.03)
+        try:
+            if axis_rot.is_motion_done==True:
+                break
+        except ValueError:
+            pass
+
+def read_angle(axis_index, controller=None, axis_rot=None, print=True):
+    '''
+    read angle on an axis
+    '''
+    # ESP301 initialization
+    if controller==None:
+        controller = newport.NewportESP301.open_serial(port=port_id, baud=921600)
+
+    # initialize axis
+    if axis_rot==None:
+        axis_rot = newport.NewportESP301Axis(controller,axis_index-1)
+        axis_rot.enable()
+
+    pos = axis_rot.position
+    if print==True:
+        print(pos)
+    return pos
+
+def set_temperature(temperature, tolerance=0.01, wait_time=0, max_check=0, lsobj=None):
+    '''
+    sets lakeshore setpoint, waits until temperature is within tolerance of setpoint, and waits for soak time before returning.
 
     args:
         - temperature(float)
@@ -159,11 +176,27 @@ def set_temperature(temperature):
     returns: None
     '''
     # Lakeshore initialization
-    lsobj = ls.initialization_lakeshore335()
+    lsobj_passed=True
+    if lsobj==None:
+        lsobj = ls.initialization_lakeshore335()
+        lsobj_passed==False
     temp=float(temperature)
     ls.set_ramp(lsobj, 1, 0, 0)
     ls.set_setpoint(lsobj, 1, temp)
-    ls.close_lakeshore335(lsobj)
+    time.sleep(0.1)
+
+    # check for stability
+    current_temp = []
+    for m in range(max_check):
+        current_temp.append(ls.read_temperature(lsobj))
+        if m >= 2 and abs(np.mean(current_temp[-3:]) - temp) < 0.05:
+            time.sleep(wait_time)
+            break
+        else:
+            time.sleep(1)
+
+    if lsobj_passed==False:
+        ls.close_lakeshore335(lsobj)
 
 def set_lakeshore_range(range):
     '''
@@ -181,7 +214,7 @@ def set_lakeshore_range(range):
     ls.set_range(lsobj, 1, range)
     ls.close_lakeshore335(lsobj)
 
-def read_temperature():
+def read_temperature(lsobj=None):
     '''
     reads temperature from lakeshore controller
 
@@ -190,26 +223,17 @@ def read_temperature():
     returns:
         - temp(float):  read temperature
     '''
-    lsobj = ls.initialization_lakeshore335()
+    lsobj_passed = True
+    if lsobj==None:
+        lsobj = ls.initialization_lakeshore335()
+        lsobj_passed=False
     temp = ls.read_temperature(lsobj)
-    ls.close_lakeshore335(lsobj)
+    if lsobj_passed==False:
+        ls.close_lakeshore335(lsobj)
     return temp
 
-def z_scan(z_start, z_end, step_size):
-    pass
-
-def get_input():
-    global button
-    while True:
-        if button == False:
-            break
-        else:
-            newValue = input('Stop? (Y/N) ')
-            time.sleep(1)
-            if (newValue == 'Y'):
-                button = False
-            if (button == False):
-                break
+def set_coil():
+    return 1
 
 def get_temp_values(starttemp, endtemp, stepsize=0.):
     '''Returns an array of temperature values for a given starting temperature (starttemp), ending temperature (endtemp),
@@ -250,29 +274,6 @@ def get_angle_range(startangle, endangle, stepsize=0.):
         return np.linspace(startangle, newendangle, int(roundsteps)+1)
     else:
         return np.linspace(startangle, endangle, int(roundsteps)+1)
-
-def save_to_file(fname, data, header, metadata=None):
-    '''
-    utility function for saving data to a file, with optional metadata
-
-    args:
-        - fname(string):           full path to datafile
-        - data(array):             (n,m) array containing data
-        - header(array):           (m) array of strings labeling each column
-        - metadata(str):           in progress
-
-    returns: None
-    '''
-    if not(len(header) == len(data[0,:])):
-        raise ValueError('number of header items does not match number of data columns.')
-    with open(fname, 'w') as f:
-        for item in header:
-            f.write(str(item)+'\t')
-        f.write('\n')
-        for line in data:
-            for item in line:
-                f.write(str(item)+'\t')
-            f.write('\n')
 
 ''' a script I wrote for collecting data on capacitive sensor
 filename = 'G:/Shared drives/Orenstein Lab/Data/alex/20220818_strain_cell_capacitor_noise_25ft_coax_300kHz.txt'

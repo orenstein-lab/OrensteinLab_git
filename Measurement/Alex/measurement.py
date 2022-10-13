@@ -9,6 +9,34 @@ import time
 import numpy as np
 import matplotlib.pyplot as plt
 
+#####################
+### Configuration ###
+#####################
+with open(os.path.dirname(__file__)+ r'\..\..\Configuration.txt', "r") as f_conf:
+    conf_info = f_conf.read()
+    conf_info_split = conf_info.split('\n')
+    device_id = conf_info_split[0].split('\t')[1]
+    port_id = conf_info_split[1].split('\t')[1]
+channel_name = ['/%s/demods/0/sample','/%s/demods/1/sample','/%s/demods/2/sample','/%s/demods/3/sample']
+
+############################
+### Define System Motors ###
+############################
+motor_dict = {'x':ctrl.move_x, 'y':ctrl.move_y, 'z':ctrl.move_z, 'temp':ctrl.set_temperature, 'coil':ctrl.set_coil, 'axis_1':ctrl.rotate_axis_1, 'axis_2':ctrl.rotate_axis_2}
+
+################
+### Medthods ###
+################
+
+'''
+Features to add:
+    - finish corotate_map function to incorporate all possible motors.
+        - the challenge here is designing in such a way as to pass the correct initializations and kwargs to each motor control function.
+    - create a robust find_balance_angle function and any other utilities that would be useful to have written within this framwork.
+    - write robust motor control functions in control
+
+'''
+
 def save_data_to_file(fname, data, header, metadata=None):
     '''
     utility function for saving data to a file, with optional metadata
@@ -268,87 +296,148 @@ def zero_strain_cell(sc, slew_rate=1, target_voltage=120, tol=0.1):
         time.sleep(0.1)
     return cap/100
 
-'''
-Features to add:
-    - quick motor scanning functionality - ideally one tool
-    - measure power by averaging over lock-in.
-    - eliminate _quick functions - just make them one function with some flexible flags.
-    - change how points are chosen
-    - make code more readible.
-'''
-
-def Corotate_quick(num_of_steps, axis_index_1, start_pos_1, step_size_1, go_back_1, axis_index_2, start_pos_2, step_size_2, go_back_2, channel_index, time_constant):
-    #ESP301 initialization
-    controller = newport.NewportESP301.open_serial(port=port_id, baud=921600)
-
+def measure_lockin(recording_time, filename_head=None, filename=None, time_constant=0.3, channel_index=1):
+    '''
+    aquires data on the lockin over a specified length of time.
+    '''
     #Lock-in Amplifier initialization
     apilevel = 6
     (daq, device, props) = ziutils.create_api_session(device_id, apilevel)
+    # Set time constant as specified
+    daq.setDouble('/%s/demods/0/timeconstant' % device, time_constant)
+    # initialize data bins
+    time_record = np.array([])
+    demod_x = np.array([])
+    demod_y = np.array([])
+    demod_r = np.array([])
 
-    end_pos_1 = start_pos_1 + step_size_1 * (num_of_steps-1)
-    end_pos_2 = start_pos_2 + step_size_2 * (num_of_steps-1)
-    scan_range_1 = np.arange(start_pos_1, start_pos_1 + step_size_1 * num_of_steps, step_size_1)
-    scan_range_2 = np.arange(start_pos_2, start_pos_2 + step_size_2 * num_of_steps, step_size_2)
-    axis_rot_1 = newport.NewportESP301Axis(controller,axis_index_1-1)
-    axis_rot_1.enable()
-    axis_rot_2 = newport.NewportESP301Axis(controller,axis_index_2-1)
-    axis_rot_2.enable()
+    # setup plot
+    fig, axes = plt.figure((3,1), figsize=(8,10))
+    gs = fig.add_gridspec(3, 1)
+    y_labels = ['Demod x', 'Demod y', 'R']
+    for ii, ax in enumerate(axes):
+        ax.set_xlabel('Time (s)')
+        ax.set_ylabel(y_labels[ii])
+        ax.grid(True)
+    draw_x, = axes[0].plot([],'-o')
+    draw_y, = axes[1].plot([],'-o')
+    draw_r, = axes[2].plot([],'-o')
+    fig.canvas.draw()
+    fig.show()
 
-    global button
-    button = True
+    # setup file for writing
+    fname = str(filename_head)+str(filename)
+    if filename_head!=None and filename!=None:
+        header = ['Time (s)', 'Demod x', 'Demod y', 'R']
+        with open(fname,'w') as f:
+            for h in header:
+                f.write(f'{h}\t')
+            f.write('\n')
 
-    #Quantities to be measured
+    # loop
+    t_delay = 0
+    tic = time.perf_counter()
+    while (t_delay<recording_time):
+        time.sleep(time_constant*4)
+        toc = time.perf_counter()
+        t_delay = toc - tic
+        sample = daq.getSample(channel_name[channel_index-1] % device)
+        sample["R"] = np.abs(sample["x"] + 1j * sample["y"])
+        x = sample["x"][0]
+        y = sample["y"][0]
+        r = sample["R"][0]
+        time_record = np.append(time_record, t_delay)
+        demod_x = np.append(demod_x, x)
+        demod_y = np.append(demod_y, y)
+        demod_r = np.append(demod_r, r)
+        # update plot
+        draw_x.set_data(time_record-time_record[0],demod_x)
+        draw_y.set_data(time_record-time_record[0],demod_y)
+        draw_r.set_data(time_record-time_record[0],demod_r)
+        for ax in axes:
+            ax.relim()
+            ax.autoscale()
+        fig.canvas.draw()
+        fig.canvas.flush_events()
+        # update file
+        with open(fname, 'a') as f:
+            vars = [t_delay, x, y, r]
+            for var in vars:
+                f.write(f'{var}\t')
+            f.write('\n')
+
+# single axis rotate function
+# signle axis rotate mapping
+# single point mapping
+
+def corotate_scan(num_steps, start_angle, end_angle, angle_offset, filename_head=None, filename=None, axis_1_index=1, axis_2_index=2, time_constant=0.3, showplot=True, go_back_1=1, go_back_2=1, channel_index=1, R_channel_index=2, controller=None, daq_props=None, axis_rot_1=None, axis_rot_2=None):
+    '''
+    Takes a corotation scan moving axes 1 and 2, typically representing half wave plates.
+
+    To do: incorporate a rotate_axis function to simplify code.
+    '''
+
+    # ESP301 initialization
+    if controller==None:
+        controller = newport.NewportESP301.open_serial(port=port_id, baud=921600)
+
+    # Lock-in Amplifier initialization
+    if daq_props==None:
+        apilevel = 6
+        (daq, device, props) = ziutils.create_api_session(device_id, apilevel)
+    else:
+        (daq, device, props) = daq_prop
+
+    # initialize axes
+    if axis_rot_1 == None:
+        axis_rot_1 = newport.NewportESP301Axis(controller,axis_1_index-1)
+        axis_rot_1.enable()
+    if axis_rot_2 == None:
+        axis_rot_2 = newport.NewportESP301Axis(controller,axis_2_index-1)
+        axis_rot_2.enable()
+
+    # setup measureables
     position = np.array([])
     demod_x = np.array([])
     demod_y = np.array([])
     demod_r = np.array([])
 
-    fig = plt.figure(figsize=(8,10))
-    gs = fig.add_gridspec(3, 1)
-    ax1 = fig.add_subplot(gs[0, 0])
-    ax2 = fig.add_subplot(gs[1, 0])
-    ax3 = fig.add_subplot(gs[2, 0])
-    ax1.grid(True)
-    ax2.grid(True)
-    ax3.grid(True)
-    ax1.set_xlabel('Angle (deg)')
-    ax1.set_ylabel('Demod x')
-    ax2.set_xlabel('Angle (deg)')
-    ax2.set_ylabel('Demod y')
-    ax3.set_xlabel('Angle (deg)')
-    ax3.set_ylabel('R')
-    draw_x, = ax1.plot([],'-o')
-    draw_y, = ax2.plot([],'-o')
-    draw_r, = ax3.plot([],'-o')
-    fig.canvas.draw()
-    fig.show()
+    # convert input to angle lists and set scan direction for each axis - DO THIS RIGHT!
+    angles_1 = np.linspace(start_pos, end_pos, num_steps)
+    angles_2 = angles_1 + angle_offset
 
-    while True:
-        time.sleep(0.03)
-        try:
-            if axis_rot_1.is_motion_done==True and axis_rot_2.is_motion_done==True:
-                break
-        except ValueError:
-            pass
-    #Scan
-    for i in np.arange(0,len(scan_range_1),1):
-        if button == False:
-            break
-        pos_1 = scan_range_1[i]
-        pos_2 = scan_range_2[i]
-        if (pos_1 == start_pos_1):
-            axis_rot_1.move(pos_1-go_back_1,absolute=True)
-            axis_rot_2.move(pos_2-go_back_2,absolute=True)
-            while True:
-                time.sleep(0.03)
-                try:
-                    if axis_rot_1.is_motion_done==True and axis_rot_2.is_motion_done==True:
-                        break
-                except ValueError:
-                    pass
-        axis_rot_1.move(pos_1,absolute=True)
-        time.sleep(0.03)
-        axis_rot_2.move(pos_2,absolute=True)
+    # setup measureables
+    position = np.array([])
+    demod_x = np.array([])
+    demod_y = np.array([])
+    demod_r = np.array([])
+
+    # initialize file
+    fname = str(filename_head)+str(filename)
+    if filename_head!=None and filename!=None:
+        header = ['Angle_1 (deg)', 'Angle_2 (deg)', 'Demod x', 'Demod y', 'R']
+        with open(fname,'w') as f:
+            for h in header:
+                f.write(f'{h}\t')
+            f.write('\n')
+
+    # setup plot
+    if showplot==True:
+        fig, axes = plt.figure((3,1), figsize=(8,10))
+        gs = fig.add_gridspec(3, 1)
+        y_labels = ['Demod x', 'Demod y', 'R']
+        for ii, ax in enumerate(axes):
+            ax.set_xlabel('Angle_1 (deg)')
+            ax.set_ylabel(y_labels[ii])
+            ax.grid(True)
+        draw_x, = axes[0].plot([],'-o')
+        draw_y, = axes[1].plot([],'-o')
+        draw_r, = axes[2].plot([],'-o')
+        fig.canvas.draw()
+        fig.show()
+
+    # function for checking motor stability
+    def check_axis_motion():
         while True:
             time.sleep(0.03)
             try:
@@ -356,116 +445,20 @@ def Corotate_quick(num_of_steps, axis_index_1, start_pos_1, step_size_1, go_back
                     break
             except ValueError:
                 pass
-        time.sleep(time_constant*4)
-        sample = daq.getSample(channel_name[channel_index-1] % device)
-        sample["R"] = np.abs(sample["x"] + 1j * sample["y"])
-        x = sample["x"][0]
-        y = sample["y"][0]
-        r = sample["R"][0]
-        position = np.append(position, axis_rot_1.position)
-        demod_x = np.append(demod_x, x)
-        demod_y = np.append(demod_y, y)
-        demod_r = np.append(demod_r, r)
+    check_axis_motion()
 
-        #Plot
-        draw_x.set_data(position,demod_x)
-        draw_y.set_data(position,demod_y)
-        draw_r.set_data(position,demod_r)
-        ax1.relim()
-        ax1.autoscale()
-        ax2.relim()
-        ax2.autoscale()
-        ax3.relim()
-        ax3.autoscale()
-        fig.canvas.draw()
-        fig.canvas.flush_events()
-
-    axis_rot_1.move(start_pos_1,absolute=True)
-    axis_rot_2.move(start_pos_2,absolute=True)
-
-def Corotate(num_of_steps, axis_index_1, start_pos_1, step_size_1, go_back_1, axis_index_2, start_pos_2, step_size_2, go_back_2, channel_index, R_channel_index, time_constant, showplot, filename_head, filename):
-    #ESP301 initialization
-    controller = newport.NewportESP301.open_serial(port=port_id, baud=921600)
-
-    #Lock-in Amplifier initialization
-    apilevel = 6
-    (daq, device, props) = ziutils.create_api_session(device_id, apilevel)
-
-    totfilename = filename_head + '\\' + filename + '.dat'
-    file = open(totfilename,'a')
-    file.write("Angle_1 (deg)"+'\t'+"Angle_2 (deg)"+'\t'+"Demod x"+'\t'+"Demod y"+'\t'+"R"+'\n')
-    file.close()
-
-    end_pos_1 = start_pos_1 + step_size_1 * (num_of_steps-1)
-    end_pos_2 = start_pos_2 + step_size_2 * (num_of_steps-1)
-    scan_range_1 = np.arange(start_pos_1, start_pos_1 + step_size_1 * num_of_steps, step_size_1)
-    scan_range_2 = np.arange(start_pos_2, start_pos_2 + step_size_2 * num_of_steps, step_size_2)
-    axis_rot_1 = newport.NewportESP301Axis(controller,axis_index_1-1)
-    axis_rot_1.enable()
-    axis_rot_2 = newport.NewportESP301Axis(controller,axis_index_2-1)
-    axis_rot_2.enable()
-
-    global button
-    button = True
-    # thread1 = threading.Thread(target=get_input)
-    # thread1.start()
-
-    #Quantities to be measured
-    position = np.array([])
-    demod_x = np.array([])
-    demod_y = np.array([])
-    demod_r = np.array([])
-
-    if showplot == True:
-        fig = plt.figure(figsize=(8,10))
-        gs = fig.add_gridspec(3, 1)
-        ax1 = fig.add_subplot(gs[0, 0])
-        ax2 = fig.add_subplot(gs[1, 0])
-        ax3 = fig.add_subplot(gs[2, 0])
-        ax1.grid(True)
-        ax2.grid(True)
-        ax3.grid(True)
-        ax1.set_xlabel('Angle (deg)')
-        ax1.set_ylabel('Demod x')
-        ax2.set_xlabel('Angle (deg)')
-        ax2.set_ylabel('Demod y')
-        ax3.set_x
-
-        label('Angle (deg)')
-        ax3.set_ylabel('R')
-        draw_x, = ax1.plot([],'-o')
-        draw_y, = ax2.plot([],'-o')
-        draw_r, = ax3.plot([],'-o')
-        fig.canvas.draw()
-        fig.show()
-
-    #Scan
-    while (axis_rot_1.is_motion_done == False) or (axis_rot_2.is_motion_done == False):
-        time.sleep(0.1)
-
-    for i in np.arange(0,len(scan_range_1),1):
-        if button == False:
-            break
-        pos_1 = scan_range_1[i]
-        pos_2 = scan_range_2[i]
-        if (pos_1 == start_pos_1):
-            axis_rot_1.move(pos_1-go_back_1,absolute=True)
-            axis_rot_2.move(pos_2-go_back_2,absolute=True)
-            while True:
-                try:
-                    axis_rot_1.is_motion_done or axis_rot_2.is_motion_done
-                    break
-                except ValueError:
-                    pass
-        axis_rot_1.move(pos_1,absolute=True)
+    # scan
+    for ii, angle in angles_1:
+        angle_1 = angle
+        angle_2 = angles_2[ii]
+        if (angle_1 == start_angle):
+            axis_rot_1.move(angle_1-go_back_1,absolute=True)
+            axis_rot_2.move(angle_2-go_back_2,absolute=True)
+            check_axis_motion()
+        axis_rot_1.move(angle_1,absolute=True)
         time.sleep(0.03)
-        axis_rot_2.move(pos_2,absolute=True)
-        while True:
-            try:
-                axis_rot_1.is_motion_done or axis_rot_2.is_motion_done
-                break
-            except ValueError:
-                pass
+        axis_rot_2.move(angle_2,absolute=True)
+        check_axis_motion()
         time.sleep(time_constant*4)
         sample = daq.getSample(channel_name[channel_index-1] % device)
         sample["R"] = np.abs(sample["x"] + 1j * sample["y"])
@@ -483,50 +476,51 @@ def Corotate(num_of_steps, axis_index_1, start_pos_1, step_size_1, go_back_1, ax
         demod_y = np.append(demod_y, y)
         demod_r = np.append(demod_r, r)
 
-        #Plot
+        # update plot
         if showplot == True:
-            draw_x.set_data(position,demod_x)
-            draw_y.set_data(position,demod_y)
-            draw_r.set_data(position,demod_r)
-            ax1.relim()
-            ax1.autoscale()
-            ax2.relim()
-            ax2.autoscale()
-            ax3.relim()
-            ax3.autoscale()
+            draw_x.set_data(position, demod_x)
+            draw_y.set_data(position, demod_y)
+            draw_r.set_data(position, demod_r)
+            for ax in axes:
+                ax.relim()
+                ax.autoscale()
             fig.canvas.draw()
             fig.canvas.flush_events()
 
-        #Save file
-        file = open(totfilename,'a')
-        file.write(format(axis_rot_1.position,'.15f')+"\t"+format(axis_rot_2.position,'.15f')+"\t"+format(x,'.15f')+'\t'+format(y,'.15f')+'\t'+format(r,'.15f')+'\t'+format(x_R,'.15f')+'\t'+format(y_R,'.15f')+'\t'+format(r_R,'.15f')+'\n')
-        file.close()
-    #thread1.join()
-    axis_rot_1.move(start_pos_1,absolute=True)
-    axis_rot_2.move(start_pos_2,absolute=True)
+        # write to file
+        with open(fname, 'a') as f:
+            vars = [axis_rot_1.position, axis_rot_2.position, x, y, r, x_R, y_R, r_R]
+            for var in vars:
+                f.write(format(var,'.15f')+'\t')
+            f.write('\n')
 
-def Corotate_map_scan(x_start, x_step, x_num, y_start, y_step, y_num, num_of_steps, axis_index_1, start_pos_1, step_size_1, go_back_1, axis_index_2, start_pos_2, go_back_2, channel_index, time_constant, filename_head, filename):
-    #ESP301 initialization
+    # move motors back to original positions
+    axis_rot_1.move(start_angle,absolute=True)
+    axis_rot_2.move(start_angle+angle_offset,absolute=True)
+
+def corotate_map(map_dict, num_steps, start_angle, end_angle, angle_offset, filename_head=None, filename=None, axis_1_index=1, axis_2_index=2, time_constant=0.3, showplot=True, go_back_1=1, go_back_2=1, channel_index=1, R_channel_index=2):
+    '''
+    Takes a corotation scan at each point in a map specified by dictionary map_dict, which entries of the form 'axis':(start, end, num_steps, kwargs).
+    '''
+
+    # ESP301 initialization
     controller = newport.NewportESP301.open_serial(port=port_id, baud=921600)
 
-    #Lock-in Amplifier initialization
+    # Lock-in Amplifier initialization
     apilevel = 6
     (daq, device, props) = ziutils.create_api_session(device_id, apilevel)
 
-    #Attocube initialization
-    ax = {'x':0,'y':1,'z':2}
-    anc = Positioner()
-
-    end_pos_1 = start_pos_1 + step_size_1 * (num_of_steps-1)
-    scan_range_1 = np.arange(start_pos_1, start_pos_1 + step_size_1 * num_of_steps, step_size_1)
-    #scan_range_2 = np.arange(start_pos_2, start_pos_2 + step_size_2 * num_of_steps, step_size_2)
+    # initialize axes
     axis_rot_1 = newport.NewportESP301Axis(controller,axis_index_1-1)
     axis_rot_1.enable()
     axis_rot_2 = newport.NewportESP301Axis(controller,axis_index_2-1)
     axis_rot_2.enable()
-    start_pos = start_pos_1
-    end_pos = start_pos_1 + step_size_1 * (num_of_steps-1)
 
+    # Attocube initialization
+    ax = {'x':0,'y':1,'z':2}
+    anc = Positioner()
+
+    # parse motor dictionary input to get motor values
     x_end = x_start + x_step * x_num
     y_end = y_start + y_step * y_num
 
@@ -542,6 +536,8 @@ def Corotate_map_scan(x_start, x_step, x_num, y_start, y_step, y_num, num_of_ste
 
     for y_pos in y_range:
         for x_pos in x_range:
+
+            # move to motor positions
             if (x_pos == x_range[0] and y_pos == y_range[0]):
                 x_target = x_pos-go_back
                 y_target = y_pos-go_back
@@ -577,57 +573,11 @@ def Corotate_map_scan(x_start, x_step, x_num, y_start, y_step, y_num, num_of_ste
                     anc.moveAbsolute(ax['y'], int(y_pos*1000))
             print("moved to "+str(anc.getPosition(ax['x'])/1000)+","+str(anc.getPosition(ax['y'])/1000))
 
+            # setup each filename
+            totfilename = f'{filename_head}\{filename}_x{x_pos}_y{y_pos}.dat'
 
-            totfilename = filename_head + '\\'+ filename + '_x' + str(x_pos) + '_y' + str(y_pos) +'.dat'
-            file = open(totfilename,'a')
-            file.write("Angle 1 (deg)"+'\t'+"Angle 2 (deg)"+'\t'+"Demod x"+'\t'+"Demod y"+'\t'+"R"+'\n')
-            file.close()
-
-            #Quantities to be measured
-            position = np.array([])
-            demod_x = np.array([])
-            demod_y = np.array([])
-            demod_r = np.array([])
-
-            #Scan
-            for i in np.arange(0,len(scan_range_1),1):
-                pos_1 = scan_range_1[i]
-                pos_2 = scan_range_2[i]
-                if (pos_1 == start_pos_1):
-                    axis_rot_1.move(pos_1-go_back_1,absolute=True)
-                    axis_rot_2.move(pos_2-go_back_2,absolute=True)
-                    while True:
-                        time.sleep(0.03)
-                        try:
-                            if axis_rot_1.is_motion_done==True and axis_rot_2.is_motion_done==True:
-                                break
-                        except ValueError:
-                            pass
-                axis_rot_1.move(pos_1,absolute=True)
-                time.sleep(0.03)
-                axis_rot_2.move(pos_2,absolute=True)
-                while True:
-                    time.sleep(0.03)
-                    try:
-                        if axis_rot_1.is_motion_done==True and axis_rot_2.is_motion_done==True:
-                            break
-                    except ValueError:
-                        pass
-                time.sleep(time_constant*4)
-                sample = daq.getSample(channel_name[channel_index-1] % device)
-                sample["R"] = np.abs(sample["x"] + 1j * sample["y"])
-                x = sample["x"][0]
-                y = sample["y"][0]
-                r = sample["R"][0]
-                position = np.append(position, axis_rot_1.position)
-                demod_x = np.append(demod_x, x)
-                demod_y = np.append(demod_y, y)
-                demod_r = np.append(demod_r, r)
-
-                #Save file
-                file = open(totfilename,'a')
-                file.write(format(float(position[-1]), '.15f')+"\t"+format(float(position[-1]+start_pos_2), '.15f')+"\t"+format(x, '.15f')+'\t'+format(y, '.15f')+'\t'+format(r, '.15f')+'\n')
-                file.close()
+            # scan
+            corotate_scan(num_steps, start_angle, end_angle, angle_offset, filename_head=filename_head, filename=totfilename, axis_1_index=axis_1_index, axis_2_index=axis_2_index, time_constant=time_constant, showplot=False, go_back_1=go_back_1, go_back_2=go_back_2, channel_index=channel_index, R_channel_index=R_channel_index)
 
     anc.close()
 

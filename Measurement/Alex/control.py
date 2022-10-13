@@ -37,6 +37,7 @@ channel_name = ['/%s/demods/0/sample','/%s/demods/1/sample','/%s/demods/2/sample
 '''
 To do:
     - every motor takes arguments (setpoint, obj=None, kwargs)
+    - for each motor write an initialize function that returns an obj and a close function that closes that motor.
     - clean up rotate_axis and make rotate_axis_1 and 2 wrapper functions
     - write a set_coil function
     - anything else that seems fitting to go in here!

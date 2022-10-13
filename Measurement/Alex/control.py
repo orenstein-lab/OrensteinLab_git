@@ -19,6 +19,15 @@ import ipywidgets as widgets
 from pyanc350.v2 import Positioner
 import OrensteinLab_git.Instrument.Lakeshore.Lakeshore335 as ls
 from strain_control.strain_client import StrainClient
+'''
+To do:
+    - every motor move function takes arguments (setpoint, obj=None, kwargs)
+    - for each motor write an initialize function that returns an obj and a close function that closes that motor given an obj.
+    - clean up rotate_axis and make rotate_axis_1 and 2 wrapper functions
+    - write a set_coil function
+    - anything else that seems fitting to go in here!
+    - for all of these functions having nice printing feedback would be nice.
+'''
 
 #####################
 ### Configuration ###
@@ -33,16 +42,6 @@ channel_name = ['/%s/demods/0/sample','/%s/demods/1/sample','/%s/demods/2/sample
 ################
 ### Medthods ###
 ################
-
-'''
-To do:
-    - every motor move function takes arguments (setpoint, obj=None, kwargs)
-    - for each motor write an initialize function that returns an obj and a close function that closes that motor given an obj.
-    - clean up rotate_axis and make rotate_axis_1 and 2 wrapper functions
-    - write a set_coil function
-    - anything else that seems fitting to go in here!
-    - for all of these functions having nice printing feedback would be nice.
-'''
 
 def move_attocube(axis, position, torlerance=1, go_back=10, anc=None):
     '''

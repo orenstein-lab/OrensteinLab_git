@@ -8,6 +8,14 @@ import OrensteinLab_git.Instrument.montana.cryocore as cryocore
 import time
 import numpy as np
 import matplotlib.pyplot as plt
+'''
+Features to add:
+    - finish corotate_map function to incorporate all possible motors.
+        - the challenge here is designing in such a way as to pass the correct initializations and kwargs to each motor control function.
+    - create a robust find_balance_angle function and any other utilities that would be useful to have written within this framwork.
+    - write robust motor control functions in control
+
+'''
 
 #####################
 ### Configuration ###
@@ -28,15 +36,6 @@ motor_dict = {'x':ctrl.move_x, 'y':ctrl.move_y, 'z':ctrl.move_z, 'temp':ctrl.set
 ################
 ### Medthods ###
 ################
-
-'''
-Features to add:
-    - finish corotate_map function to incorporate all possible motors.
-        - the challenge here is designing in such a way as to pass the correct initializations and kwargs to each motor control function.
-    - create a robust find_balance_angle function and any other utilities that would be useful to have written within this framwork.
-    - write robust motor control functions in control
-
-'''
 
 def save_data_to_file(fname, data, header, metadata=None):
     '''

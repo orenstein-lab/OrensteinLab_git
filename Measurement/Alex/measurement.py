@@ -22,6 +22,7 @@ channel_name = ['/%s/demods/0/sample','/%s/demods/1/sample','/%s/demods/2/sample
 ############################
 ### Define System Motors ###
 ############################
+# entries of the form motor:(move_function, initialize_function, close_function)
 motor_dict = {'x':ctrl.move_x, 'y':ctrl.move_y, 'z':ctrl.move_z, 'temp':ctrl.set_temperature, 'coil':ctrl.set_coil, 'axis_1':ctrl.rotate_axis_1, 'axis_2':ctrl.rotate_axis_2}
 
 ################
@@ -503,6 +504,21 @@ def corotate_map(map_dict, num_steps, start_angle, end_angle, angle_offset, file
     Takes a corotation scan at each point in a map specified by dictionary map_dict, which entries of the form 'axis':(start, end, num_steps, kwargs).
     '''
 
+    # capture motor information and check for validity
+    motors = map_dict.items()
+    for m in motors:
+        valid_motors = motor_dict.items()
+        if m not in valid_motors:
+            raise ValueError(f'Invalid motor name. Please select motors from the list {valid_motors}.')
+
+    # initialize motors
+    mobj_dict = {}
+    for m in motors:
+        init_func = motor_dict[m][1]
+        mobj_dict[m] = init_func()
+
+    '''
+    # old initialization, these sort of things
     # ESP301 initialization
     controller = newport.NewportESP301.open_serial(port=port_id, baud=921600)
 
@@ -519,25 +535,34 @@ def corotate_map(map_dict, num_steps, start_angle, end_angle, angle_offset, file
     # Attocube initialization
     ax = {'x':0,'y':1,'z':2}
     anc = Positioner()
+    '''
 
-    # parse motor dictionary input to get motor values
-    x_end = x_start + x_step * x_num
-    y_end = y_start + y_step * y_num
+    # setup motor ranges and kwargs
+    mrange_dict = {}
+    mkwargs_dict = {}
+    for m in motors:
+        start = map_dict[m][0]
+        end = map_dict[m][1]
+        nstep = map_dict[m][2]
+        kwargs = map_dict[m][3]
+        range = np.linspace(start, end, nstep)
+        mrange_dict[m] = range
+        mkwargs_dict[m] = kwargs
 
-    x_range = np.arange(x_start, x_end, x_step)
-    y_range = np.arange(y_start, y_end, y_step)
-    go_back = 10
-    x_tor = 1
-    y_tor = 1
+    # nested loops - hmm how do you do this?
+    for m in motors:
+        for pos in mrange_dict[m]:
 
-    start_pos_2 = float(start_pos_2)
-    scan_range_2 = np.arange(start_pos_2, start_pos_2 + step_size_1 * num_of_steps, step_size_1)
-    end_pos_2 = start_pos_2 + step_size_1 * (num_of_steps-1)
+            # move motors - DO WE NEED TO CONSIDER BASELINE CASES? ALSO NOTE THAT IT IS THE RESPONSIBILITY OF THE MOVE FUNCTION TO MAKE SURE THE MOTOR IS STABILIZED BEFORE CONTINUING
+            for m in motors:
+                move_func = motor_dict[m][0]
+                obj = mobj_dict[m]
+                kwargs = mkwargs_dict[m]
+                move_func(pos, obj, kwargs) # how kwargs are called may need to be changed
+                print(f'Moved motor {m} to {pos}.')
 
-    for y_pos in y_range:
-        for x_pos in x_range:
-
-            # move to motor positions
+            '''
+            # old function for x-y scan. What will handle the boundary issues? are they really necessary?
             if (x_pos == x_range[0] and y_pos == y_range[0]):
                 x_target = x_pos-go_back
                 y_target = y_pos-go_back
@@ -572,6 +597,7 @@ def corotate_map(map_dict, num_steps, start_angle, end_angle, angle_offset, file
                 if (y_error >= y_tor):
                     anc.moveAbsolute(ax['y'], int(y_pos*1000))
             print("moved to "+str(anc.getPosition(ax['x'])/1000)+","+str(anc.getPosition(ax['y'])/1000))
+            '''
 
             # setup each filename
             totfilename = f'{filename_head}\{filename}_x{x_pos}_y{y_pos}.dat'
@@ -579,50 +605,8 @@ def corotate_map(map_dict, num_steps, start_angle, end_angle, angle_offset, file
             # scan
             corotate_scan(num_steps, start_angle, end_angle, angle_offset, filename_head=filename_head, filename=totfilename, axis_1_index=axis_1_index, axis_2_index=axis_2_index, time_constant=time_constant, showplot=False, go_back_1=go_back_1, go_back_2=go_back_2, channel_index=channel_index, R_channel_index=R_channel_index)
 
-    anc.close()
-
-def Corotate_map_Tdep(x_start_pos, x_step_size, x_num_steps, y_start_pos, y_step_size, y_num_steps, num_of_steps, axis_index_1, start_pos_1, step_size_1, go_back_1, axis_index_2, start_pos_2, go_back_2, start_temp, end_temp, temp_step_size, channel_index, time_constant, filename_head, filename):
-    # Lock-in Amplifier initialization
-    apilevel = 6
-    (daq, device, props) = ziutils.create_api_session(device_id, apilevel)
-
-    # Lakeshore initialization
-    import OrensteinLab.Instrument.Lakeshore.Lakeshore335 as ls
-    lsobj = ls.initialization_lakeshore335()
-    ls.set_ramp(lsobj, 1, 0, 0)
-
-    # Set time constant as specified
-    daq.setDouble('/%s/demods/0/timeconstant' % device, time_constant)
-
-    # List of temperatures to measure
-    Trange = get_temp_values(start_temp, end_temp, temp_step_size)
-
-    x_start = x_start_pos
-    x_step = x_step_size
-    x_num = x_num_steps
-    y_start = y_start_pos
-    y_step = y_step_size
-    y_num = y_num_steps
-    # num_of_steps = num_of_steps
-
-
-    for temp in Trange:
-        # Change temperature
-        ls.set_setpoint(lsobj, 1, temp)
-        time.sleep(0.1)
-        currT = []
-        for m in range(60):
-            currT.append(ls.read_temperature(lsobj))
-            if m >= 2 and abs(np.mean(currT[-3:]) - temp) < 0.05:
-                time.sleep(80)
-                break
-            else:
-                time.sleep(1)
-        print(ls.read_temperature(lsobj))
-
-        showplot = False
-        temp_filename = filename + '_' + str(temp)
-        Corotate_map_scan(x_start, x_step, x_num, y_start, y_step, y_num, num_of_steps, axis_index_1, start_pos_1, step_size_1, go_back_1, axis_index_2, start_pos_2, go_back_2, channel_index, time_constant, filename_head, temp_filename)
-
-    print("Scans finished!")
-    ls.close_lakeshore335(lsobj)
+    # close motors
+    for m in motors:
+        obj = mobj_dict[m]
+        close_func = motor_dict[m][2]
+        close_func(obj)

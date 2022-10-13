@@ -34,6 +34,14 @@ channel_name = ['/%s/demods/0/sample','/%s/demods/1/sample','/%s/demods/2/sample
 ### Medthods ###
 ################
 
+'''
+To do:
+    - every motor takes arguments (setpoint, obj=None, kwargs)
+    - clean up rotate_axis and make rotate_axis_1 and 2 wrapper functions
+    - write a set_coil function
+    - anything else that seems fitting to go in here!
+'''
+
 def move_attocube(axis, position, torlerance=1, go_back=10, anc=None):
     '''
     utility to move attocube

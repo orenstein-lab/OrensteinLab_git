@@ -22,13 +22,11 @@ from strain_control.strain_client import StrainClient
 '''
 To do:
     - every motor move function takes arguments (setpoint, obj=None, kwargs)
-    - for each motor write an initialize function that returns an obj and a close function that closes that motor given an obj.
     - clean up rotate_axis and make rotate_axis_1 and 2 wrapper functions
     - write a set_coil function
     - anything else that seems fitting to go in here!
     - for all of these functions having nice printing feedback would be nice.
-    - functions for initializing and closing lockin and ESP
-    - functions for reading lockin etc.
+    - function for reading lockin
 '''
 
 #####################
@@ -184,8 +182,9 @@ def set_temperature(temperature, tolerance=0.01, wait_time=0, max_check=0, lsobj
     # Lakeshore initialization
     lsobj_passed=True
     if lsobj==None:
-        lsobj = ls.initialization_lakeshore335()
+        lsobj = initialize_lakeshore()
         lsobj_passed==False
+
     temp=float(temperature)
     ls.set_ramp(lsobj, 1, 0, 0)
     ls.set_setpoint(lsobj, 1, temp)
@@ -202,7 +201,7 @@ def set_temperature(temperature, tolerance=0.01, wait_time=0, max_check=0, lsobj
             time.sleep(1)
 
     if lsobj_passed==False:
-        ls.close_lakeshore335(lsobj)
+        close_lakeshore(lsobj)
 
 def set_lakeshore_range(range):
     '''
@@ -268,12 +267,27 @@ def initialize_rot_axis_1():
 def initialize_rot_axis_2():
     return initialize_rotation_axis(2)
 
+def initialize_lakeshore():
+    return ls.initialization_lakeshore335()
+
 #####################
 ### Close Methods ###
 #####################
 
 def close_attocube(anc):
     anc.close()
+
+def close_lakeshore(obj):
+    ls.close_lakeshore335(obj)
+
+def close_rot_axis_1():
+    return 0
+
+def close_rot_axis_2():
+    return 0
+
+def close_lockin():
+    return 0
 
 
 

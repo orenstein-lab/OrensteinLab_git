@@ -45,6 +45,282 @@ motor_dict = {
 ### Medthods ###
 ################
 
+def measure_lockin(recording_time, filename_head=None, filename=None, time_constant=0.3, channel_index=1):
+    '''
+    aquires data on the lockin over a specified length of time.
+    '''
+    #Lock-in Amplifier initialization
+    apilevel = 6
+    (daq, device, props) = ziutils.create_api_session(device_id, apilevel)
+    # Set time constant as specified
+    daq.setDouble('/%s/demods/0/timeconstant' % device, time_constant)
+    # initialize data bins
+    time_record = np.array([])
+    demod_x = np.array([])
+    demod_y = np.array([])
+    demod_r = np.array([])
+
+    # setup plot
+    fig, axes = plt.figure((3,1), figsize=(8,10))
+    gs = fig.add_gridspec(3, 1)
+    y_labels = ['Demod x', 'Demod y', 'R']
+    for ii, ax in enumerate(axes):
+        ax.set_xlabel('Time (s)')
+        ax.set_ylabel(y_labels[ii])
+        ax.grid(True)
+    draw_x, = axes[0].plot([],'-o')
+    draw_y, = axes[1].plot([],'-o')
+    draw_r, = axes[2].plot([],'-o')
+    fig.canvas.draw()
+    fig.show()
+
+    # setup file for writing
+    fname = str(filename_head)+str(filename)
+    if filename_head!=None and filename!=None:
+        header = ['Time (s)', 'Demod x', 'Demod y', 'R']
+        with open(fname,'w') as f:
+            for h in header:
+                f.write(f'{h}\t')
+            f.write('\n')
+
+    # loop
+    t_delay = 0
+    tic = time.perf_counter()
+    while (t_delay<recording_time):
+        time.sleep(time_constant*4)
+        toc = time.perf_counter()
+        t_delay = toc - tic
+        sample = daq.getSample(channel_name[channel_index-1] % device)
+        sample["R"] = np.abs(sample["x"] + 1j * sample["y"])
+        x = sample["x"][0]
+        y = sample["y"][0]
+        r = sample["R"][0]
+        time_record = np.append(time_record, t_delay)
+        demod_x = np.append(demod_x, x)
+        demod_y = np.append(demod_y, y)
+        demod_r = np.append(demod_r, r)
+        # update plot
+        draw_x.set_data(time_record-time_record[0],demod_x)
+        draw_y.set_data(time_record-time_record[0],demod_y)
+        draw_r.set_data(time_record-time_record[0],demod_r)
+        for ax in axes:
+            ax.relim()
+            ax.autoscale()
+        fig.canvas.draw()
+        fig.canvas.flush_events()
+        # update file
+        with open(fname, 'a') as f:
+            vars = [t_delay, x, y, r]
+            for var in vars:
+                f.write(f'{var}\t')
+            f.write('\n')
+
+# single axis rotate function
+# signle axis rotate mapping
+# single point mapping
+
+def corotate_scan(num_steps, start_angle, end_angle, angle_offset, filename_head=None, filename=None, axis_1_index=1, axis_2_index=2, time_constant=0.3, showplot=True, go_back_1=1, go_back_2=1, channel_index=1, R_channel_index=2, controller=None, daq_objs=None, axis_rot_1=None, axis_rot_2=None):
+    '''
+    Takes a corotation scan moving axes 1 and 2, typically representing half wave plates.
+
+    To do: incorporate a rotate_axis function to simplify code.
+    '''
+
+    # ESP301 initialization
+    if controller==None:
+        controller = ctrl.initialize_esp()
+
+    # Lock-in Amplifier initialization
+    if daq_objs==None:
+        daq, device, props = ctrl.initialize_lockin()
+    else:
+        daq, device, props = daq_objs
+
+    # initialize axes
+    if axis_rot_1 == None:
+        axis_rot_1 = ctrl.initialize_rot_axis_1()
+    if axis_rot_2 == None:
+        axis_rot_2 = ctrl.initialize_rot_axis_2()
+
+    # setup measureables
+    position = np.array([])
+    demod_x = np.array([])
+    demod_y = np.array([])
+    demod_r = np.array([])
+
+    # convert input to angle lists and set scan direction for each axis - DO THIS RIGHT!
+    angles_1 = np.linspace(start_pos, end_pos, num_steps)
+    angles_2 = angles_1 + angle_offset
+
+    # setup measureables
+    position = np.array([])
+    demod_x = np.array([])
+    demod_y = np.array([])
+    demod_r = np.array([])
+
+    # initialize file
+    fname = str(filename_head)+str(filename)
+    if filename_head!=None and filename!=None:
+        header = ['Angle_1 (deg)', 'Angle_2 (deg)', 'Demod x', 'Demod y', 'R']
+        with open(fname,'w') as f:
+            for h in header:
+                f.write(f'{h}\t')
+            f.write('\n')
+
+    # setup plot
+    if showplot==True:
+        fig, axes = plt.figure((3,1), figsize=(8,10))
+        gs = fig.add_gridspec(3, 1)
+        y_labels = ['Demod x', 'Demod y', 'R']
+        for ii, ax in enumerate(axes):
+            ax.set_xlabel('Angle_1 (deg)')
+            ax.set_ylabel(y_labels[ii])
+            ax.grid(True)
+        draw_x, = axes[0].plot([],'-o')
+        draw_y, = axes[1].plot([],'-o')
+        draw_r, = axes[2].plot([],'-o')
+        fig.canvas.draw()
+        fig.show()
+
+    # function for checking motor stability
+    def check_axis_motion():
+        while True:
+            time.sleep(0.03)
+            try:
+                if axis_rot_1.is_motion_done==True and axis_rot_2.is_motion_done==True:
+                    break
+            except ValueError:
+                pass
+    check_axis_motion()
+
+    # scan
+    for ii, angle in angles_1:
+        angle_1 = angle
+        angle_2 = angles_2[ii]
+        if (angle_1 == start_angle):
+            axis_rot_1.move(angle_1-go_back_1,absolute=True)
+            axis_rot_2.move(angle_2-go_back_2,absolute=True)
+            check_axis_motion()
+        axis_rot_1.move(angle_1,absolute=True)
+        time.sleep(0.03)
+        axis_rot_2.move(angle_2,absolute=True)
+        check_axis_motion()
+        time.sleep(time_constant*4)
+        sample = daq.getSample(channel_name[channel_index-1] % device)
+        sample["R"] = np.abs(sample["x"] + 1j * sample["y"])
+        x = sample["x"][0]
+        y = sample["y"][0]
+        r = sample["R"][0]
+        sample_R = daq.getSample(channel_name[R_channel_index - 1] % device)
+        sample_R["R"] = np.abs(sample_R["x"] + 1j * sample_R["y"])
+        x_R = sample_R["x"][0]
+        y_R = sample_R["y"][0]
+        r_R = sample_R["R"][0]
+
+        position = np.append(position, axis_rot_1.position)
+        demod_x = np.append(demod_x, x)
+        demod_y = np.append(demod_y, y)
+        demod_r = np.append(demod_r, r)
+
+        # update plot
+        if showplot == True:
+            draw_x.set_data(position, demod_x)
+            draw_y.set_data(position, demod_y)
+            draw_r.set_data(position, demod_r)
+            for ax in axes:
+                ax.relim()
+                ax.autoscale()
+            fig.canvas.draw()
+            fig.canvas.flush_events()
+
+        # write to file
+        with open(fname, 'a') as f:
+            vars = [axis_rot_1.position, axis_rot_2.position, x, y, r, x_R, y_R, r_R]
+            for var in vars:
+                f.write(format(var,'.15f')+'\t')
+            f.write('\n')
+
+    # move motors back to original positions
+    axis_rot_1.move(start_angle,absolute=True)
+    axis_rot_2.move(start_angle+angle_offset,absolute=True)
+
+def corotate_map(map_dict, num_steps, start_angle, end_angle, angle_offset, filename_head=None, filename=None, axis_1_index=1, axis_2_index=2, time_constant=0.3, showplot=True, go_back_1=1, go_back_2=1, channel_index=1, R_channel_index=2):
+    '''
+    Takes a corotation scan at each point in a map specified by dictionary map_dict, which entries of the form 'axis':(start, end, num_steps, kwargs).
+    '''
+
+    # Lock-in Amplifier initialization
+    daq, device, props = ctrl.initialize_lockin()
+
+    # initialize axes
+    axis_rot_1 = ctrl.initialize_rot_axis_1()
+    axis_rot_2 = ctrl.initialize_rot_axis_2()
+
+    # capture motor information and check for validity
+    motors = map_dict.items()
+    for m in motors:
+        valid_motors = motor_dict.items()
+        if m not in valid_motors:
+            raise ValueError(f'Invalid motor name. Please select motors from the list {valid_motors}.')
+
+    # initialize motors
+    mobj_dict = {}
+    for m in motors:
+        init_func = motor_dict[m][1]
+        mobj_dict[m] = init_func()
+
+    # setup motor ranges and kwargs
+    mranges = []
+    mkwargs_dict = {}
+    for m in motors:
+        start = map_dict[m][0]
+        end = map_dict[m][1]
+        nstep = map_dict[m][2]
+        kwargs = map_dict[m][3]
+        range = np.linspace(start, end, nstep)
+        mranges.append(range)
+        mkwargs_dict[m] = kwargs
+
+    # generate positions recursively
+    positions = gen_positions_recurse(mranges, len(mranges)-1)
+
+    # move motors to start position
+    for ii, m in enumerate(motors):
+        p = positions[0][ii]
+        move_func = motor_dict[m][0]
+        obj = mobj_dict[m]
+        kwargs = mkwargs_dict[m]
+        move_func(p, obj, kwargs) # how kwargs are called may need to be changed
+        print(f'Moved motor {m} to {p}.')
+
+    # loop over positions, only moving a motor if its target position has changed.
+    current_pos = positions[0]
+    for pos in positions:
+
+            # move motors if position has changed - DO WE NEED TO CONSIDER BASELINE CASES? ALSO NOTE THAT IT IS THE RESPONSIBILITY OF THE MOVE FUNCTION TO MAKE SURE THE MOTOR IS STABILIZED BEFORE CONTINUING
+            for ii, m in enumerate(motors):
+                p_old = current_pos[ii]
+                p_new = pos[ii]
+                if p_new!=p_old:
+                    move_func = motor_dict[m][0]
+                    obj = mobj_dict[m]
+                    kwargs = mkwargs_dict[m]
+                    move_func(p_new, obj, kwargs) # how kwargs are called may need to be changed
+                    current_pos[ii] = p_new
+                    print(f'Moved motor {m} to {p_new}.')
+
+            # setup each filename
+            totfilename = f'{filename_head}\{filename}_x{x_pos}_y{y_pos}.dat'
+
+            # scan
+            corotate_scan(num_steps, start_angle, end_angle, angle_offset, filename_head=filename_head, filename=totfilename, axis_1_index=axis_1_index, axis_2_index=axis_2_index, time_constant=time_constant, showplot=False, go_back_1=go_back_1, go_back_2=go_back_2, channel_index=channel_index, R_channel_index=R_channel_index)
+
+    # close motors
+    for m in motors:
+        obj = mobj_dict[m]
+        close_func = motor_dict[m][2]
+        close_func(obj)
+
 def save_data_to_file(fname, data, header, metadata=None):
     '''
     utility function for saving data to a file, with optional metadata
@@ -72,6 +348,10 @@ def save_data_to_file(fname, data, header, metadata=None):
             for item in line:
                 f.write(str(item)+'\t')
             f.write('\n')
+
+###########################
+### Strain Cell Methods ### # perhaps move these to another file?
+###########################
 
 def measure_strain_cell_capacitor(fname, sc, num_points=1000, dt_min=0.1):
     '''
@@ -304,270 +584,29 @@ def zero_strain_cell(sc, slew_rate=1, target_voltage=120, tol=0.1):
         time.sleep(0.1)
     return cap/100
 
-def measure_lockin(recording_time, filename_head=None, filename=None, time_constant=0.3, channel_index=1):
+######################
+### Helper Methods ###
+######################
+
+def gen_positions_recurse(range_list, n, pos_list=[], current_pos=None):
+    '''    given an empty pos_list, and a range_list, recursively generates a list of positions that span the spacce in range_list. Note that positions are written from first entry in range_list to last.
+
+    args:
+        - range_list:       a list of np arrays, where each array is a range of interest.
+        - n:                max index of arrays in range_list, needed for recursion
+        - post_list:        should be an empty list which the function will append to
+        - current_pos:      n+1 dim array that carries around the positions to append for each recursive iteration.
+
+    returns:
+        - post_list
     '''
-    aquires data on the lockin over a specified length of time.
-    '''
-    #Lock-in Amplifier initialization
-    apilevel = 6
-    (daq, device, props) = ziutils.create_api_session(device_id, apilevel)
-    # Set time constant as specified
-    daq.setDouble('/%s/demods/0/timeconstant' % device, time_constant)
-    # initialize data bins
-    time_record = np.array([])
-    demod_x = np.array([])
-    demod_y = np.array([])
-    demod_r = np.array([])
-
-    # setup plot
-    fig, axes = plt.figure((3,1), figsize=(8,10))
-    gs = fig.add_gridspec(3, 1)
-    y_labels = ['Demod x', 'Demod y', 'R']
-    for ii, ax in enumerate(axes):
-        ax.set_xlabel('Time (s)')
-        ax.set_ylabel(y_labels[ii])
-        ax.grid(True)
-    draw_x, = axes[0].plot([],'-o')
-    draw_y, = axes[1].plot([],'-o')
-    draw_r, = axes[2].plot([],'-o')
-    fig.canvas.draw()
-    fig.show()
-
-    # setup file for writing
-    fname = str(filename_head)+str(filename)
-    if filename_head!=None and filename!=None:
-        header = ['Time (s)', 'Demod x', 'Demod y', 'R']
-        with open(fname,'w') as f:
-            for h in header:
-                f.write(f'{h}\t')
-            f.write('\n')
-
-    # loop
-    t_delay = 0
-    tic = time.perf_counter()
-    while (t_delay<recording_time):
-        time.sleep(time_constant*4)
-        toc = time.perf_counter()
-        t_delay = toc - tic
-        sample = daq.getSample(channel_name[channel_index-1] % device)
-        sample["R"] = np.abs(sample["x"] + 1j * sample["y"])
-        x = sample["x"][0]
-        y = sample["y"][0]
-        r = sample["R"][0]
-        time_record = np.append(time_record, t_delay)
-        demod_x = np.append(demod_x, x)
-        demod_y = np.append(demod_y, y)
-        demod_r = np.append(demod_r, r)
-        # update plot
-        draw_x.set_data(time_record-time_record[0],demod_x)
-        draw_y.set_data(time_record-time_record[0],demod_y)
-        draw_r.set_data(time_record-time_record[0],demod_r)
-        for ax in axes:
-            ax.relim()
-            ax.autoscale()
-        fig.canvas.draw()
-        fig.canvas.flush_events()
-        # update file
-        with open(fname, 'a') as f:
-            vars = [t_delay, x, y, r]
-            for var in vars:
-                f.write(f'{var}\t')
-            f.write('\n')
-
-# single axis rotate function
-# signle axis rotate mapping
-# single point mapping
-
-def corotate_scan(num_steps, start_angle, end_angle, angle_offset, filename_head=None, filename=None, axis_1_index=1, axis_2_index=2, time_constant=0.3, showplot=True, go_back_1=1, go_back_2=1, channel_index=1, R_channel_index=2, controller=None, daq_objs=None, axis_rot_1=None, axis_rot_2=None):
-    '''
-    Takes a corotation scan moving axes 1 and 2, typically representing half wave plates.
-
-    To do: incorporate a rotate_axis function to simplify code.
-    '''
-
-    # ESP301 initialization
-    if controller==None:
-        controller = ctrl.initialize_esp()
-
-    # Lock-in Amplifier initialization
-    if daq_objs==None:
-        daq, device, props = ctrl.initialize_lockin()
+    if n==len(range_list)-1:
+        current_pos = np.asarray(range_list)[:,0]
+    if n>=0:
+        for i in range_list[n]:
+            current_pos[n] = i
+            pos_list = gen_positions_recurse(range_list, n-1, pos_list, current_pos)
     else:
-        daq, device, props = daq_objs
+        pos_list.append(np.copy(current_pos))
 
-    # initialize axes
-    if axis_rot_1 == None:
-        axis_rot_1 = newport.NewportESP301Axis(controller,axis_1_index-1)
-        axis_rot_1.enable()
-    if axis_rot_2 == None:
-        axis_rot_2 = newport.NewportESP301Axis(controller,axis_2_index-1)
-        axis_rot_2.enable()
-
-    # setup measureables
-    position = np.array([])
-    demod_x = np.array([])
-    demod_y = np.array([])
-    demod_r = np.array([])
-
-    # convert input to angle lists and set scan direction for each axis - DO THIS RIGHT!
-    angles_1 = np.linspace(start_pos, end_pos, num_steps)
-    angles_2 = angles_1 + angle_offset
-
-    # setup measureables
-    position = np.array([])
-    demod_x = np.array([])
-    demod_y = np.array([])
-    demod_r = np.array([])
-
-    # initialize file
-    fname = str(filename_head)+str(filename)
-    if filename_head!=None and filename!=None:
-        header = ['Angle_1 (deg)', 'Angle_2 (deg)', 'Demod x', 'Demod y', 'R']
-        with open(fname,'w') as f:
-            for h in header:
-                f.write(f'{h}\t')
-            f.write('\n')
-
-    # setup plot
-    if showplot==True:
-        fig, axes = plt.figure((3,1), figsize=(8,10))
-        gs = fig.add_gridspec(3, 1)
-        y_labels = ['Demod x', 'Demod y', 'R']
-        for ii, ax in enumerate(axes):
-            ax.set_xlabel('Angle_1 (deg)')
-            ax.set_ylabel(y_labels[ii])
-            ax.grid(True)
-        draw_x, = axes[0].plot([],'-o')
-        draw_y, = axes[1].plot([],'-o')
-        draw_r, = axes[2].plot([],'-o')
-        fig.canvas.draw()
-        fig.show()
-
-    # function for checking motor stability
-    def check_axis_motion():
-        while True:
-            time.sleep(0.03)
-            try:
-                if axis_rot_1.is_motion_done==True and axis_rot_2.is_motion_done==True:
-                    break
-            except ValueError:
-                pass
-    check_axis_motion()
-
-    # scan
-    for ii, angle in angles_1:
-        angle_1 = angle
-        angle_2 = angles_2[ii]
-        if (angle_1 == start_angle):
-            axis_rot_1.move(angle_1-go_back_1,absolute=True)
-            axis_rot_2.move(angle_2-go_back_2,absolute=True)
-            check_axis_motion()
-        axis_rot_1.move(angle_1,absolute=True)
-        time.sleep(0.03)
-        axis_rot_2.move(angle_2,absolute=True)
-        check_axis_motion()
-        time.sleep(time_constant*4)
-        sample = daq.getSample(channel_name[channel_index-1] % device)
-        sample["R"] = np.abs(sample["x"] + 1j * sample["y"])
-        x = sample["x"][0]
-        y = sample["y"][0]
-        r = sample["R"][0]
-        sample_R = daq.getSample(channel_name[R_channel_index - 1] % device)
-        sample_R["R"] = np.abs(sample_R["x"] + 1j * sample_R["y"])
-        x_R = sample_R["x"][0]
-        y_R = sample_R["y"][0]
-        r_R = sample_R["R"][0]
-
-        position = np.append(position, axis_rot_1.position)
-        demod_x = np.append(demod_x, x)
-        demod_y = np.append(demod_y, y)
-        demod_r = np.append(demod_r, r)
-
-        # update plot
-        if showplot == True:
-            draw_x.set_data(position, demod_x)
-            draw_y.set_data(position, demod_y)
-            draw_r.set_data(position, demod_r)
-            for ax in axes:
-                ax.relim()
-                ax.autoscale()
-            fig.canvas.draw()
-            fig.canvas.flush_events()
-
-        # write to file
-        with open(fname, 'a') as f:
-            vars = [axis_rot_1.position, axis_rot_2.position, x, y, r, x_R, y_R, r_R]
-            for var in vars:
-                f.write(format(var,'.15f')+'\t')
-            f.write('\n')
-
-    # move motors back to original positions
-    axis_rot_1.move(start_angle,absolute=True)
-    axis_rot_2.move(start_angle+angle_offset,absolute=True)
-
-def corotate_map(map_dict, num_steps, start_angle, end_angle, angle_offset, filename_head=None, filename=None, axis_1_index=1, axis_2_index=2, time_constant=0.3, showplot=True, go_back_1=1, go_back_2=1, channel_index=1, R_channel_index=2):
-    '''
-    Takes a corotation scan at each point in a map specified by dictionary map_dict, which entries of the form 'axis':(start, end, num_steps, kwargs).
-    '''
-
-    # ESP301 initialization
-    controller = newport.NewportESP301.open_serial(port=port_id, baud=921600)
-
-    # Lock-in Amplifier initialization
-    apilevel = 6
-    (daq, device, props) = ziutils.create_api_session(device_id, apilevel)
-
-    # initialize axes
-    axis_rot_1 = newport.NewportESP301Axis(controller,axis_index_1-1)
-    axis_rot_1.enable()
-    axis_rot_2 = newport.NewportESP301Axis(controller,axis_index_2-1)
-    axis_rot_2.enable()
-
-    # capture motor information and check for validity
-    motors = map_dict.items()
-    for m in motors:
-        valid_motors = motor_dict.items()
-        if m not in valid_motors:
-            raise ValueError(f'Invalid motor name. Please select motors from the list {valid_motors}.')
-
-    # initialize motors
-    mobj_dict = {}
-    for m in motors:
-        init_func = motor_dict[m][1]
-        mobj_dict[m] = init_func()
-
-    # setup motor ranges and kwargs
-    mrange_dict = {}
-    mkwargs_dict = {}
-    for m in motors:
-        start = map_dict[m][0]
-        end = map_dict[m][1]
-        nstep = map_dict[m][2]
-        kwargs = map_dict[m][3]
-        range = np.linspace(start, end, nstep)
-        mrange_dict[m] = range
-        mkwargs_dict[m] = kwargs
-
-    # nested loops - hmm how do you do this?
-    for m in motors:
-        for pos in mrange_dict[m]:
-
-            # move motors - DO WE NEED TO CONSIDER BASELINE CASES? ALSO NOTE THAT IT IS THE RESPONSIBILITY OF THE MOVE FUNCTION TO MAKE SURE THE MOTOR IS STABILIZED BEFORE CONTINUING
-            for m in motors:
-                move_func = motor_dict[m][0]
-                obj = mobj_dict[m]
-                kwargs = mkwargs_dict[m]
-                move_func(pos, obj, kwargs) # how kwargs are called may need to be changed
-                print(f'Moved motor {m} to {pos}.')
-
-            # setup each filename
-            totfilename = f'{filename_head}\{filename}_x{x_pos}_y{y_pos}.dat'
-
-            # scan
-            corotate_scan(num_steps, start_angle, end_angle, angle_offset, filename_head=filename_head, filename=totfilename, axis_1_index=axis_1_index, axis_2_index=axis_2_index, time_constant=time_constant, showplot=False, go_back_1=go_back_1, go_back_2=go_back_2, channel_index=channel_index, R_channel_index=R_channel_index)
-
-    # close motors
-    for m in motors:
-        obj = mobj_dict[m]
-        close_func = motor_dict[m][2]
-        close_func(obj)
+    return pos_list

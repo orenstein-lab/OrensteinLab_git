@@ -370,7 +370,7 @@ def measure_lockin(recording_time, filename_head=None, filename=None, time_const
 # signle axis rotate mapping
 # single point mapping
 
-def corotate_scan(num_steps, start_angle, end_angle, angle_offset, filename_head=None, filename=None, axis_1_index=1, axis_2_index=2, time_constant=0.3, showplot=True, go_back_1=1, go_back_2=1, channel_index=1, R_channel_index=2, controller=None, daq_props=None, axis_rot_1=None, axis_rot_2=None):
+def corotate_scan(num_steps, start_angle, end_angle, angle_offset, filename_head=None, filename=None, axis_1_index=1, axis_2_index=2, time_constant=0.3, showplot=True, go_back_1=1, go_back_2=1, channel_index=1, R_channel_index=2, controller=None, daq_objs=None, axis_rot_1=None, axis_rot_2=None):
     '''
     Takes a corotation scan moving axes 1 and 2, typically representing half wave plates.
 
@@ -379,14 +379,13 @@ def corotate_scan(num_steps, start_angle, end_angle, angle_offset, filename_head
 
     # ESP301 initialization
     if controller==None:
-        controller = newport.NewportESP301.open_serial(port=port_id, baud=921600)
+        controller = ctrl.initialize_esp()
 
     # Lock-in Amplifier initialization
-    if daq_props==None:
-        apilevel = 6
-        (daq, device, props) = ziutils.create_api_session(device_id, apilevel)
+    if daq_objs==None:
+        daq, device, props = ctrl.initialize_lockin()
     else:
-        (daq, device, props) = daq_prop
+        daq, device, props = daq_objs
 
     # initialize axes
     if axis_rot_1 == None:
@@ -503,21 +502,6 @@ def corotate_map(map_dict, num_steps, start_angle, end_angle, angle_offset, file
     Takes a corotation scan at each point in a map specified by dictionary map_dict, which entries of the form 'axis':(start, end, num_steps, kwargs).
     '''
 
-    # capture motor information and check for validity
-    motors = map_dict.items()
-    for m in motors:
-        valid_motors = motor_dict.items()
-        if m not in valid_motors:
-            raise ValueError(f'Invalid motor name. Please select motors from the list {valid_motors}.')
-
-    # initialize motors
-    mobj_dict = {}
-    for m in motors:
-        init_func = motor_dict[m][1]
-        mobj_dict[m] = init_func()
-
-    '''
-    # old initialization, these sort of things
     # ESP301 initialization
     controller = newport.NewportESP301.open_serial(port=port_id, baud=921600)
 
@@ -531,10 +515,18 @@ def corotate_map(map_dict, num_steps, start_angle, end_angle, angle_offset, file
     axis_rot_2 = newport.NewportESP301Axis(controller,axis_index_2-1)
     axis_rot_2.enable()
 
-    # Attocube initialization
-    ax = {'x':0,'y':1,'z':2}
-    anc = Positioner()
-    '''
+    # capture motor information and check for validity
+    motors = map_dict.items()
+    for m in motors:
+        valid_motors = motor_dict.items()
+        if m not in valid_motors:
+            raise ValueError(f'Invalid motor name. Please select motors from the list {valid_motors}.')
+
+    # initialize motors
+    mobj_dict = {}
+    for m in motors:
+        init_func = motor_dict[m][1]
+        mobj_dict[m] = init_func()
 
     # setup motor ranges and kwargs
     mrange_dict = {}
@@ -559,44 +551,6 @@ def corotate_map(map_dict, num_steps, start_angle, end_angle, angle_offset, file
                 kwargs = mkwargs_dict[m]
                 move_func(pos, obj, kwargs) # how kwargs are called may need to be changed
                 print(f'Moved motor {m} to {pos}.')
-
-            '''
-            # old function for x-y scan. What will handle the boundary issues? are they really necessary?
-            if (x_pos == x_range[0] and y_pos == y_range[0]):
-                x_target = x_pos-go_back
-                y_target = y_pos-go_back
-                anc.moveAbsolute(ax['x'], int(x_target*1000))
-                anc.moveAbsolute(ax['y'], int(y_target*1000))
-                x_error = np.abs(x_target-anc.getPosition(ax['x'])/1000)
-                y_error = np.abs(y_target-anc.getPosition(ax['y'])/1000)
-                while (x_error >= x_tor) or (y_error >= y_tor):
-                    time.sleep(0.1)
-                    x_error = np.abs(x_target-anc.getPosition(ax['x'])/1000)
-                    y_error = np.abs(y_target-anc.getPosition(ax['y'])/1000)
-                    if (x_error >= x_tor):
-                        anc.moveAbsolute(ax['x'], int(x_target*1000))
-                    if (y_error >= y_tor):
-                        anc.moveAbsolute(ax['y'], int(y_target*1000))
-            anc.moveAbsolute(ax['x'], int(x_pos*1000))
-            x_error = np.abs(x_pos-anc.getPosition(ax['x'])/1000)
-            while (x_error >= x_tor):
-                time.sleep(0.1)
-                #clear_output(wait=True)
-                x_error = np.abs(x_pos-anc.getPosition(ax['x'])/1000)
-                #print(x_error)
-                if (x_error >= x_tor):
-                    anc.moveAbsolute(ax['x'], int(x_pos*1000))
-            anc.moveAbsolute(ax['y'], int(y_pos*1000))
-            y_error = np.abs(y_pos-anc.getPosition(ax['y'])/1000)
-            while (y_error >= y_tor):
-                time.sleep(0.1)
-                #clear_output(wait=True)
-                y_error = np.abs(y_pos-anc.getPosition(ax['y'])/1000)
-                #print(y_error)
-                if (y_error >= y_tor):
-                    anc.moveAbsolute(ax['y'], int(y_pos*1000))
-            print("moved to "+str(anc.getPosition(ax['x'])/1000)+","+str(anc.getPosition(ax['y'])/1000))
-            '''
 
             # setup each filename
             totfilename = f'{filename_head}\{filename}_x{x_pos}_y{y_pos}.dat'

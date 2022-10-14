@@ -43,6 +43,10 @@ channel_name = ['/%s/demods/0/sample','/%s/demods/1/sample','/%s/demods/2/sample
 ### Move and Read Methods ###
 #############################
 
+def read_lockin():
+    # basically should return lockin values and can handle either initializing lockin or taking a daq object.
+    return 1
+
 def move_attocube(axis, position, torlerance=1, go_back=10, anc=None):
     '''
     utility to move attocube
@@ -253,6 +257,7 @@ def initialize_esp():
     return newport.NewportESP301.open_serial(port=port_id, baud=921600)
 
 def initialize_attocube():
+    # can this function check if the attocube has already been initialized?
     return Positioner()
 
 def initialize_rotation_axis(index):

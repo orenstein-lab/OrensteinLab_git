@@ -119,7 +119,7 @@ def measure_lockin(recording_time, filename_head=None, filename=None, time_const
 # signle axis rotate mapping
 # single point mapping
 
-def corotate_scan(num_steps, start_angle, end_angle, angle_offset, filename_head=None, filename=None, axis_1_index=1, axis_2_index=2, time_constant=0.3, showplot=True, go_back_1=1, go_back_2=1, channel_index=1, R_channel_index=2, controller=None, daq_objs=None, axis_rot_1=None, axis_rot_2=None):
+def corotate_scan(num_steps, start_angle, end_angle, angle_offset, filename_head=None, filename=None, time_constant=0.3, showplot=True, go_back_1=1, go_back_2=1, channel_index=1, R_channel_index=2, controller=None, daq_objs=None, axis_rot_1=None, axis_rot_2=None):
     '''
     Takes a corotation scan moving axes 1 and 2, typically representing half wave plates.
 
@@ -244,7 +244,7 @@ def corotate_scan(num_steps, start_angle, end_angle, angle_offset, filename_head
     axis_rot_1.move(start_angle,absolute=True)
     axis_rot_2.move(start_angle+angle_offset,absolute=True)
 
-def corotate_map(map_dict, num_steps, start_angle, end_angle, angle_offset, filename_head=None, filename=None, axis_1_index=1, axis_2_index=2, time_constant=0.3, showplot=True, go_back_1=1, go_back_2=1, channel_index=1, R_channel_index=2):
+def corotate_map(map_dict, num_steps, start_angle, end_angle, angle_offset, filename_head=None, filename=None, time_constant=0.3, showplot=True, go_back_1=1, go_back_2=1, channel_index=1, R_channel_index=2):
     '''
     Takes a corotation scan at each point in a map specified by dictionary map_dict, which entries of the form 'axis':(start, end, num_steps, kwargs).
     '''
@@ -306,14 +306,15 @@ def corotate_map(map_dict, num_steps, start_angle, end_angle, angle_offset, file
                     obj = mobj_dict[m]
                     kwargs = mkwargs_dict[m]
                     move_func(p_new, obj, kwargs) # how kwargs are called may need to be changed
-                    current_pos[ii] = p_new
                     print(f'Moved motor {m} to {p_new}.')
 
             # setup each filename
             totfilename = f'{filename_head}\{filename}_x{x_pos}_y{y_pos}.dat'
 
             # scan
-            corotate_scan(num_steps, start_angle, end_angle, angle_offset, filename_head=filename_head, filename=totfilename, axis_1_index=axis_1_index, axis_2_index=axis_2_index, time_constant=time_constant, showplot=False, go_back_1=go_back_1, go_back_2=go_back_2, channel_index=channel_index, R_channel_index=R_channel_index)
+            corotate_scan(num_steps, start_angle, end_angle, angle_offset, filename_head=filename_head, filename=totfilename, time_constant=time_constant, showplot=False, go_back_1=go_back_1, go_back_2=go_back_2, channel_index=channel_index, R_channel_index=R_channel_index)
+
+            current_pos = pos
 
     # close motors
     for m in motors:

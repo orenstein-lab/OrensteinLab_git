@@ -31,7 +31,7 @@ channel_name = ['/%s/demods/0/sample','/%s/demods/1/sample','/%s/demods/2/sample
 ### Define System Motors ###
 ############################
 # entries of the form motor:(move_function, initialize_function, close_function)
-motor_dict = {'x':ctrl.move_x, 'y':ctrl.move_y, 'z':ctrl.move_z, 'temp':ctrl.set_temperature, 'coil':ctrl.set_coil, 'axis_1':ctrl.rotate_axis_1, 'axis_2':ctrl.rotate_axis_2}
+motor_dict = {'x':(ctrl.move_x, 'y':ctrl.move_y, 'z':ctrl.move_z, 'temp':ctrl.set_temperature, 'coil':ctrl.set_coil, 'axis_1':ctrl.rotate_axis_1, 'axis_2':ctrl.rotate_axis_2}
 
 ################
 ### Medthods ###

@@ -14,6 +14,9 @@ Features to add:
         - the challenge here is designing in such a way as to pass the correct initializations and kwargs to each motor control function.
     - create a robust find_balance_angle function and any other utilities that would be useful to have written within this framwork.
     - write robust motor control functions in control
+    - metadata recording capabilities.
+    - first thing is to test motor dict
+    - fix file writing in corotation scan
 
 '''
 
@@ -123,7 +126,10 @@ def corotate_scan(num_steps, start_angle, end_angle, angle_offset, filename_head
     '''
     Takes a corotation scan moving axes 1 and 2, typically representing half wave plates.
 
-    To do: incorporate a rotate_axis function to simplify code.
+    To do:
+        - incorporate a rotate_axis function to simplify code.
+        - build in ability to change scan direction
+
     '''
 
     # ESP301 initialization
@@ -308,7 +314,7 @@ def corotate_map(map_dict, num_steps, start_angle, end_angle, angle_offset, file
                     move_func(p_new, obj, kwargs) # how kwargs are called may need to be changed
                     print(f'Moved motor {m} to {p_new}.')
 
-            # setup each filename
+            # setup each filename - Needs work.
             totfilename = f'{filename_head}\{filename}_x{x_pos}_y{y_pos}.dat'
 
             # scan

@@ -86,7 +86,7 @@ def measure_lockin(recording_time, filename_head=None, filename=None, time_const
     fig.show()
 
     # setup file for writing
-    fname = '\\'+str(filename_head)+str(filename)
+    fname = f'{filename_head}\{filename}.dat'
     if filename_head!=None and filename!=None:
         header = ['Time (s)', 'Demod x', 'Demod y', 'R']
         with open(fname,'w') as f:

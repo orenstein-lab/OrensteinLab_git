@@ -187,7 +187,7 @@ def corotate_scan(num_steps, start_angle, end_angle, angle_offset, filename_head
     demod_r = np.array([])
 
     # initialize file
-    fname = '\\'+str(filename_head)+str(filename)
+    fname = f'{filename_head}\{filename}.dat'
     if filename_head!=None and filename!=None:
         header = ['Angle_1 (deg)', 'Angle_2 (deg)', 'Demod x', 'Demod y', 'R']
         with open(fname,'w') as f:

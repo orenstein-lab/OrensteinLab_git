@@ -196,7 +196,7 @@ def check_axis_stability(axis):
         try:
             if axis.is_motion_done==True:
                 break
-        except ValueError:
+        except:
             pass
 
 def rotate_axis_1(angle, axis=None):

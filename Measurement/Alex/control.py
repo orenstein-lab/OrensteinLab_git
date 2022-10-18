@@ -182,7 +182,14 @@ def read_axis(axis_index, axis=None, print_flag=True):
     if axis==None:
         axis = initialize_rotation_axis(axis_index)
 
-    pos = axis.position
+    while True:
+        time.sleep(0.03)
+        try:
+            pos = axis.position
+            break
+        except:
+            pass
+
     if print_flag==True:
         print(pos)
     return pos

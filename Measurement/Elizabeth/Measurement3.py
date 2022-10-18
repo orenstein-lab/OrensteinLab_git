@@ -924,15 +924,10 @@ def Corotate(num_of_steps, axis_index_1, start_pos_1, step_size_1, go_back_1, ax
     end_pos_2 = start_pos_2 + step_size_2 * (num_of_steps-1)
     scan_range_1 = np.arange(start_pos_1, start_pos_1 + step_size_1 * num_of_steps, step_size_1)
     scan_range_2 = np.arange(start_pos_2, start_pos_2 + step_size_2 * num_of_steps, step_size_2)
-    while True:
-        try:
-            axis_rot_1 = newport.NewportESP301Axis(controller,axis_index_1-1)
-            axis_rot_1.enable()
-            axis_rot_2 = newport.NewportESP301Axis(controller,axis_index_2-1)
-            axis_rot_2.enable()
-            break
-        except:
-            pass
+    axis_rot_1 = newport.NewportESP301Axis(controller,axis_index_1-1)
+    axis_rot_1.enable()
+    axis_rot_2 = newport.NewportESP301Axis(controller,axis_index_2-1)
+    axis_rot_2.enable()
 
     global button
     button = True
@@ -967,46 +962,31 @@ def Corotate(num_of_steps, axis_index_1, start_pos_1, step_size_1, go_back_1, ax
         fig.show()
 
     #Scan
-    i = 0
-    while True:
-        time.sleep(0.03)
-        i+=1
-        try:
-            if i%100==0:
-                print(type(axis_rot_1))
-            if axis_rot_1.is_motion_done==True and axis_rot_2.is_motion_done==True:
-                break
-        except:
-            pass
+    while (axis_rot_1.is_motion_done == False) or (axis_rot_2.is_motion_done == False):
+        time.sleep(0.1)
 
     for i in np.arange(0,len(scan_range_1),1):
         if button == False:
             break
         pos_1 = scan_range_1[i]
         pos_2 = scan_range_2[i]
+        if (pos_1 == start_pos_1):
+            axis_rot_1.move(pos_1-go_back_1,absolute=True)
+            axis_rot_2.move(pos_2-go_back_2,absolute=True)
+            while True:
+                try:
+                    axis_rot_1.is_motion_done or axis_rot_2.is_motion_done
+                    break
+                except ValueError:
+                    pass
+        axis_rot_1.move(pos_1,absolute=True)
+        time.sleep(0.03)
+        axis_rot_2.move(pos_2,absolute=True)
         while True:
             try:
-                if (pos_1 == start_pos_1):
-                    axis_rot_1.move(pos_1-go_back_1,absolute=True)
-                    axis_rot_2.move(pos_2-go_back_2,absolute=True)
-                    while True:
-                        try:
-                            if axis_rot_1.is_motion_done and axis_rot_2.is_motion_done:
-                                break
-                        except:
-                            pass
-                axis_rot_1.move(pos_1,absolute=True)
-                time.sleep(0.03)
-                axis_rot_2.move(pos_2,absolute=True)
-                while True:
-                    time.sleep(0.03)
-                    try:
-                        if axis_rot_1.is_motion_done==True and axis_rot_2.is_motion_done==True:
-                            break
-                    except:
-                        pass
+                axis_rot_1.is_motion_done or axis_rot_2.is_motion_done
                 break
-            except:
+            except ValueError:
                 pass
         time.sleep(time_constant*4)
         sample = daq.getSample(channel_name[channel_index-1] % device)
@@ -1163,12 +1143,12 @@ def Pump_probe_tempdep_quick(start_temp, end_temp, step_size, channel_index=1, t
 
     # Attocube initialization
     ax = {'x':0, 'y':1, 'z':2}
-    anc = Positioner()
+    # anc = Positioner()
 
     # Lakeshore initialization
     import OrensteinLab.Instrument.Lakeshore.Lakeshore335 as ls
-    lsobj = ls.initialization_lakeshore335()
-    ls.set_ramp(lsobj, 1, 0, 0)
+    # lsobj = ls.initialization_lakeshore335()
+    # ls.set_ramp(lsobj, 1, 0, 0)
 
     # Set time constant as specified
     daq.setDouble('/%s/demods/0/timeconstant' % device, time_constant)
@@ -1209,21 +1189,30 @@ def Pump_probe_tempdep_quick(start_temp, end_temp, step_size, channel_index=1, t
 
     for temp in Trange:
         # Change temperature
-        ls.set_setpoint(lsobj, 1, temp)
-        time.sleep(0.1)
-        currT = []
-        for m in range(60):
-            currT.append(ls.read_temperature(lsobj))
-            if m >= 2 and abs(np.mean(currT[-3:]) - temp) < 0.05:
-                time.sleep(wait_time)
-                break
-            else:
-                time.sleep(1)
+        try:
+            anc = Positioner()
 
-        temperature = np.append(temperature, ls.read_temperature(lsobj))
-        x_position = np.append(x_position, anc.getPosition(ax['x'])/1000)
-        y_position = np.append(y_position, anc.getPosition(ax['y'])/1000)
-        z_position = np.append(z_position, anc.getPosition(ax['z'])/1000)
+            lsobj = ls.initialization_lakeshore335()
+            ls.set_ramp(lsobj, 1, 0, 0)
+
+            ls.set_setpoint(lsobj, 1, temp)
+            time.sleep(0.1)
+            currT = []
+            for m in range(60):
+                currT.append(ls.read_temperature(lsobj))
+                if m >= 2 and abs(np.mean(currT[-3:]) - temp) < 0.05:
+                    time.sleep(wait_time)
+                    break
+                else:
+                    time.sleep(1)
+
+            temperature = np.append(temperature, ls.read_temperature(lsobj))
+            x_position = np.append(x_position, anc.getPosition(ax['x'])/1000)
+            y_position = np.append(y_position, anc.getPosition(ax['y'])/1000)
+            z_position = np.append(z_position, anc.getPosition(ax['z'])/1000)
+        except:
+            ls.close_lakeshore335(lsobj)
+            anc.close()
 
         sample = daq.getSample(channel_name[channel_index-1] % device)
         sample["R"] = np.abs(sample["x"] + 1j * sample["y"])
@@ -1248,8 +1237,8 @@ def Pump_probe_tempdep_quick(start_temp, end_temp, step_size, channel_index=1, t
         fig.canvas.flush_events()
 
     print("Scan finished!")
-    ls.close_lakeshore335(lsobj)
-    anc.close()
+    # ls.close_lakeshore335(lsobj)
+    # anc.close()
 
 def Pump_probe_tempdep(start_temp, end_temp, step_size, channel_index, R_channel_index, time_constant, showplot, filename_head, filename, wait_time=0):
     # Lock-in Amplifier initialization
@@ -1909,189 +1898,6 @@ def Pump_probe_corotate_WP_tempdep(axis_index_1, axis_index_2, start_angle, end_
             file = open(totfilename,'a')
             file.write(format(float(WP1_angle[-1]),'.15f')+"\t"+format(float(WP2_angle[-1]),'.15f')+"\t"+format(x,'.15f')+'\t'+format(y,'.15f')+'\t'+format(r,'.15f')+'\n')
             file.close()
-
-        axis_rot_1.move(start_angle,absolute=True)
-        axis_rot_2.move(start_angle+offset,absolute=True)
-
-    print("Scan finished!")
-    anc.close()
-    ls.close_lakeshore335(lsobj)
-    button = False
-    # thread1.join()
-
-def Pump_probe_corotate_WP_tempdep_strain(axis_index_1, axis_index_2, start_angle, end_angle, angle_step_size, go_back, offset, start_temp, end_temp, temp_step_size, channel_index, time_constant, showplot, filename_head, filename, sc, wait_time=0):
-
-    print(sc.get_cap())
-
-    # ESP301 initialization
-    controller = newport.NewportESP301.open_serial(port=port_id, baud=921600)
-
-    # Lock-in Amplifier initialization
-    apilevel = 6
-    (daq, device, props) = ziutils.create_api_session(device_id, apilevel)
-
-    # Attocube initialization
-    ax = {'x':0, 'y':1, 'z':2}
-    anc = Positioner()
-
-    # Lakeshore initialization
-    import OrensteinLab.Instrument.Lakeshore.Lakeshore335 as ls
-    lsobj = ls.initialization_lakeshore335()
-    ls.set_ramp(lsobj, 1, 0, 0)
-
-    # Set time constant as specified
-    daq.setDouble('/%s/demods/0/timeconstant' % device, time_constant)
-
-    # List of temperatures to measure
-    Trange = get_temp_values(start_temp, end_temp, temp_step_size)
-
-    # Enable Newport rotation stages
-
-    axis_rot_1 = newport.NewportESP301Axis(controller,axis_index_1-1)
-    axis_rot_1.enable()
-    axis_rot_2 = newport.NewportESP301Axis(controller,axis_index_2-1)
-    axis_rot_2.enable()
-
-    scan_range_1 = get_angle_range(start_angle, end_angle, angle_step_size)
-    scan_range_2 = get_angle_range(start_angle, end_angle, angle_step_size) + offset
-
-    global button
-    button = True
-    # thread1 = threading.Thread(target=get_input)
-    # thread1.start()
-
-    temperature = np.array([])
-    x_position = np.array([])
-    y_position = np.array([])
-    z_position = np.array([])
-
-    if showplot == True:
-        fig = plt.figure(figsize=(8,10))
-        gs = fig.add_gridspec(3, 1)
-        ax1 = fig.add_subplot(gs[0, 0])
-        ax2 = fig.add_subplot(gs[1, 0])
-        ax3 = fig.add_subplot(gs[2, 0])
-        ax1.grid(True)
-        ax2.grid(True)
-        ax3.grid(True)
-        ax1.set_xlabel('Angle (deg)')
-        ax1.set_ylabel('Demod x')
-        ax2.set_xlabel('Angle (deg)')
-        ax2.set_ylabel('Demod y')
-        ax3.set_xlabel('Angle (deg)')
-        ax3.set_ylabel('R')
-        draw_x, = ax1.plot([],'-o')
-        draw_y, = ax2.plot([],'-o')
-        draw_r, = ax3.plot([],'-o')
-        fig.canvas.draw()
-        fig.show()
-
-    for temp in Trange:
-        if button == False:
-            break
-        # Change temperature
-        ls.set_setpoint(lsobj, 1, temp)
-        time.sleep(0.1)
-        currT = []
-        for m in range(60):
-            if button == False:
-                break
-            currT.append(ls.read_temperature(lsobj))
-            if m >= 2 and abs(np.mean(currT[-3:]) - temp) < 0.05:
-                time.sleep(wait_time) # wait for specified amount of time after ATSM setpoint is reached to allow for heat transfer between ATSM and sample
-                break
-            else:
-                time.sleep(1)
-
-        WP1_angle = np.array([])
-        WP2_angle = np.array([])
-        demod_x = np.array([])
-        demod_y = np.array([])
-        demod_r = np.array([])
-
-        temperature = np.append(temperature, ls.read_temperature(lsobj))
-        x_position = np.append(x_position, anc.getPosition(ax['x'])/1000)
-        y_position = np.append(y_position, anc.getPosition(ax['y'])/1000)
-        z_position = np.append(z_position, anc.getPosition(ax['z'])/1000)
-
-        # Filename & title
-        totfilename=add_unique_postfix(filename_head + '\\' + filename + '_' + str(temp) + 'K' + '.dat')
-        # totfilename = filename_head + '\\' + filename + '_' + str(temp) + 'K' + '.dat'
-        with open(totfilename,'a') as file:
-            file.write('Temperature (K): '+format(temperature[-1], '.3f')+'\n')
-            file.write('Capacitance (pF): '+format(sc.get_cap(), '.3f')+'\n')
-            file.write('Voltage 1 (V): '+format(sc.get_voltage(1), '.3f')+'\n')
-            file.write('Voltage 2 (V): '+format(sc.get_voltage(2), '.3f')+'\n')
-            file.write('x (um): '+format(x_position[-1], '.3f')+'\n')
-            file.write('y (um): '+format(y_position[-1], '.3f')+'\n')
-            file.write('z (um): '+format(z_position[-1], '.3f')+'\n')
-            file.write("Waveplate 1 angle (deg)"+'\t'+"Waveplate 2 angle (deg)"+'\t'+"Demod x"+'\t'+"Demod y"+'\t'+"R"+"\t"+"Capacitance (pF)"+"\t"+"Voltage 1 (V)"+"\t"+"Voltage 2 (V)"+'\n')
-        # file.close()
-
-        #Scan
-        while True:
-            time.sleep(0.03)
-            try:
-                if axis_rot_1.is_motion_done==True and axis_rot_2.is_motion_done==True:
-                    break
-            except:  # ValueError
-                pass
-
-        for i in np.arange(0,len(scan_range_1),1):
-            if button == False:
-                break
-            pos_1 = scan_range_1[i]
-            pos_2 = scan_range_2[i]
-            if (pos_1 == start_angle):
-                axis_rot_1.move(pos_1-go_back,absolute=True)
-                axis_rot_2.move(pos_2-go_back,absolute=True)
-                while True:
-                    time.sleep(0.03)
-                    try:
-                        if axis_rot_1.is_motion_done==True and axis_rot_2.is_motion_done==True:
-                            break
-                    except ValueError:
-                        pass
-            axis_rot_1.move(pos_1,absolute=True)
-            time.sleep(0.03)
-            axis_rot_2.move(pos_2,absolute=True)
-            while True:
-                time.sleep(0.03)
-                try:
-                    if axis_rot_1.is_motion_done==True and axis_rot_2.is_motion_done==True:
-                        break
-                except ValueError:
-                    pass
-            time.sleep(time_constant*4)
-            sample = daq.getSample(channel_name[channel_index-1] % device)
-            sample["R"] = np.abs(sample["x"] + 1j * sample["y"])
-            x = sample["x"][0]
-            y = sample["y"][0]
-            r = sample["R"][0]
-
-            WP1_angle = np.append(WP1_angle, axis_rot_1.position)
-            WP2_angle = np.append(WP2_angle, axis_rot_2.position)
-            demod_x = np.append(demod_x, x)
-            demod_y = np.append(demod_y, y)
-            demod_r = np.append(demod_r, r)
-
-            #Plot
-            if showplot == True:
-                draw_x.set_data(WP1_angle,demod_x)
-                draw_y.set_data(WP1_angle,demod_y)
-                draw_r.set_data(WP1_angle,demod_r)
-                ax1.relim()
-                ax1.autoscale()
-                ax2.relim()
-                ax2.autoscale()
-                ax3.relim()
-                ax3.autoscale()
-                fig.canvas.draw()
-                fig.canvas.flush_events()
-
-            with open(totfilename,'a') as file:
-                file.write(format(float(WP1_angle[-1]),'.15f')+"\t"+format(float(WP2_angle[-1]),'.15f')+"\t"+format(x,'.15f')+'\t'+format(y,'.15f')+'\t'+format(r,'.15f')+'\t'+format(sc.get_cap(),'.15f')+'\t'+format(sc.get_voltage(1),'.15f')+'\t'+format(sc.get_voltage(2),'.15f')+'\n')
-            # file.close()
 
         axis_rot_1.move(start_angle,absolute=True)
         axis_rot_2.move(start_angle+offset,absolute=True)
@@ -3297,7 +3103,7 @@ def Corotate_map_scan(x_start, x_step, x_num, y_start, y_step, y_num, num_of_ste
                     try:
                         if axis_rot_1.is_motion_done==True and axis_rot_2.is_motion_done==True:
                             break
-                    except: #ValueError:
+                    except ValueError:
                         pass
                 time.sleep(time_constant*4)
                 sample = daq.getSample(channel_name[channel_index-1] % device)

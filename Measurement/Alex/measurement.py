@@ -8,6 +8,7 @@ import OrensteinLab_git.Instrument.montana.cryocore as cryocore
 import time
 import numpy as np
 import matplotlib.pyplot as plt
+import os
 '''
 Features to add:
     - finish corotate_map function to incorporate all possible motors.
@@ -34,12 +35,12 @@ channel_name = ['/%s/demods/0/sample','/%s/demods/1/sample','/%s/demods/2/sample
 ### Define System Motors ###
 ############################
 # entries of the form motor:(move_function, initialize_function, close_function)
+#'coil':(ctrl.set_coil, ctrl.initialize_coil, ctrl.close_coil),
 motor_dict = {
 'x':(ctrl.move_x, ctrl.initialize_attocube, ctrl.close_attocube),
 'y':(ctrl.move_y, ctrl.initialize_attocube, ctrl.close_attocube),
 'z':(ctrl.move_z, ctrl.initialize_attocube, ctrl.close_attocube),
 'temp':(ctrl.set_temperature, ctrl.initialize_lakeshore, ctrl.close_lakeshore),
-'coil':(ctrl.set_coil, ctrl.initialize_coil, ctrl.close_coil),
 'axis_1':(ctrl.rotate_axis_1, ctrl.initialize_rot_axis_1, ctrl.close_rot_axis_1),
 'axis_2':(ctrl.rotate_axis_2, ctrl.initialize_rot_axis_2, ctrl.close_rot_axis_2)
 }
@@ -122,7 +123,7 @@ def measure_lockin(recording_time, filename_head=None, filename=None, time_const
 # signle axis rotate mapping
 # single point mapping
 
-def corotate_scan(num_steps, start_angle, end_angle, angle_offset, filename_head=None, filename=None, time_constant=0.3, showplot=True, go_back_1=1, go_back_2=1, channel_index=1, R_channel_index=2, controller=None, daq_objs=None, axis_rot_1=None, axis_rot_2=None):
+def corotate_scan(num_steps, start_angle, end_angle, angle_offset, filename_head=None, filename=None, time_constant=0.3, showplot=True, go_back_1=1, go_back_2=1, channel_index=1, R_channel_index=1, controller=None, daq_objs=None, axis_rot_1=None, axis_rot_2=None):
     '''
     Takes a corotation scan moving axes 1 and 2, typically representing half wave plates.
 
@@ -155,7 +156,7 @@ def corotate_scan(num_steps, start_angle, end_angle, angle_offset, filename_head
     demod_r = np.array([])
 
     # convert input to angle lists and set scan direction for each axis - DO THIS RIGHT!
-    angles_1 = np.linspace(start_pos, end_pos, num_steps)
+    angles_1 = np.linspace(start_angle, end_angle, num_steps)
     angles_2 = angles_1 + angle_offset
 
     # setup measureables
@@ -175,8 +176,7 @@ def corotate_scan(num_steps, start_angle, end_angle, angle_offset, filename_head
 
     # setup plot
     if showplot==True:
-        fig, axes = plt.figure((3,1), figsize=(8,10))
-        gs = fig.add_gridspec(3, 1)
+        fig, axes = plt.subplots(3, 1, figsize=(8,10))
         y_labels = ['Demod x', 'Demod y', 'R']
         for ii, ax in enumerate(axes):
             ax.set_xlabel('Angle_1 (deg)')
@@ -200,7 +200,7 @@ def corotate_scan(num_steps, start_angle, end_angle, angle_offset, filename_head
     check_axis_motion()
 
     # scan
-    for ii, angle in angles_1:
+    for ii, angle in enumerate(angles_1):
         angle_1 = angle
         angle_2 = angles_2[ii]
         if (angle_1 == start_angle):

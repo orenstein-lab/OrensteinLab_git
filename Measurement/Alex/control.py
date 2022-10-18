@@ -121,13 +121,13 @@ def move_x(position, tolerance=1, go_back=10, anc=None):
     '''
     move_attocube('x', position, tolerance, go_back, anc)
 
-def move_y(position, tolerance=1, go_back=10, anc==None):
+def move_y(position, tolerance=1, go_back=10, anc=None):
     '''
     wrapper to move attocube y positioner.
     '''
     move_attocube('y', position, tolerance, go_back, anc)
 
-def move_z(position, tolerance=1, go_back=10):
+def move_z(position, tolerance=1, go_back=10, anc=None):
     '''
     wrapper to move attocube z positioner.
     '''
@@ -143,6 +143,12 @@ def rotate_axis(axis_index, angle, axis_rot=None):
 
     axis_rot.move(angle,absolute=True)
     check_axis_stability(axis_rot)
+
+def rotate_axis_1(angle, axis_rot=None):
+    rotate_axis(1, angle, axis_rot)
+
+def rotate_axis_2(angle, axis_rot=None):
+    rotate_axis(2, angle, axis_rot)
 
 def check_axis_stability(axis_rot):
     '''

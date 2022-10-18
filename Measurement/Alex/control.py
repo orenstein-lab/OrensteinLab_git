@@ -39,15 +39,37 @@ with open(os.path.dirname(__file__)+ r'\..\..\Configuration.txt', "r") as f_conf
     port_id = conf_info_split[1].split('\t')[1]
 channel_name = ['/%s/demods/0/sample','/%s/demods/1/sample','/%s/demods/2/sample','/%s/demods/3/sample']
 
-#############################
-### Move and Read Methods ###
-#############################
+###############################
+### Instrument Read Methods ###
+###############################
 
-def read_lockin():
-    # basically should return lockin values and can handle either initializing lockin or taking a daq object.
-    return 1
+def read_zurich_lockin(daq_objs=None, time_constant=0.3, channel_index=1, R_channel_index=1):
 
-def move_attocube(axis, position, torlerance=1, go_back=10, anc=None):
+    # initialize
+    if daq_objs==None:
+        daq, device, props = ctrl.initialize_zurich_lockin()
+    else:
+        daq, device, props = daq_objs
+
+    time.sleep(time_constant*4)
+    sample = daq.getSample(channel_name[channel_index-1] % device)
+    sample["R"] = np.abs(sample["x"] + 1j * sample["y"])
+    x = sample["x"][0]
+    y = sample["y"][0]
+    r = sample["R"][0]
+    sample_R = daq.getSample(channel_name[R_channel_index - 1] % device)
+    sample_R["R"] = np.abs(sample_R["x"] + 1j * sample_R["y"])
+    x_R = sample_R["x"][0]
+    y_R = sample_R["y"][0]
+    r_R = sample_R["R"][0]
+
+    return x, y, r, x_R, y_R, r_R
+
+###################################
+### Motor Move and Read Methods ###
+###################################
+
+def move_attocube(axis, position, anc=None, torlerance=1, go_back=10):
     '''
     utility to move attocube
     '''
@@ -87,100 +109,109 @@ def move_attocube(axis, position, torlerance=1, go_back=10, anc=None):
         print(anc.getPosition(ax[axis])/1000)
         close_attocube(anc)
 
-def read_attocube(anc=None, print=True):
+def read_attocube(axis, anc=None, print_flag=True):
     '''
     Read all attocube positions, printing and returning as desired
     '''
     # Attocube initialization
-    ax = {'x':0, 'y':1, 'z':2}
+    ax_dict = {'x':0, 'y':1, 'z':2}
     anc_passed = True
     if anc==None:
         anc = initialize_attocube()
         anc_passed = False
 
-    time.sleep(0.1)
-    x=anc.getPosition(ax['x'])/1000
-    y=anc.getPosition(ax['y'])/1000
-    z=anc.getPosition(ax['z'])/1000
+    if axis not in ax_dict.items():
+        raise ValueError('Invalid axis, please choose from ["x", "y", "z"].')
 
-    if print==True:
-        print('x: '+str(x))
-        print('y: '+str(y))
-        print('z: '+str(z))
+    time.sleep(0.1)
+    pos=anc.getPosition(ax_dict[axis])/1000
+
+    if print_flag==True:
+        print(f'{axis}: {pos}')
 
     # print and close only if another process hasn't passed anc object
     if anc_passed == False:
-        print(anc.getPosition(ax[axis])/1000)
+        print(pos)
         close_attocube(anc)
 
-    return x, y, z
+    return pos
 
-def move_x(position, tolerance=1, go_back=10, anc=None):
+def move_x(position,  anc=None, tolerance=1, go_back=10):
     '''
     wrapper to move attocube x positioner.
     '''
     move_attocube('x', position, tolerance, go_back, anc)
 
-def move_y(position, tolerance=1, go_back=10, anc=None):
+def move_y(position,  anc=None, tolerance=1, go_back=10):
     '''
     wrapper to move attocube y positioner.
     '''
     move_attocube('y', position, tolerance, go_back, anc)
 
-def move_z(position, tolerance=1, go_back=10, anc=None):
+def move_z(position,  anc=None, tolerance=1, go_back=10):
     '''
     wrapper to move attocube z positioner.
     '''
     move_attocube('z', position, tolerance, go_back, anc)
 
-def rotate_axis(axis_index, angle, axis_rot=None):
+def read_x(anc=None, print_flag=True):
+    return read_attocube('x', anc, print_flag)
+
+def read_y(anc=None, print_flag=True):
+    return read_attocube('y', anc, print_flag)
+
+def read_z(anc=None, print_flag=True):
+    return read_attocube('z', anc, print_flag)
+
+def rotate_axis(axis_index, angle, axis):
     '''
     rotate waveplate. I can now add any checks that have to happen typically.
     '''
     # initialize axis
-    if axis_rot==None:
-        axis_rot = initialize_rotation_axis(axis_index)
+    if axis==None:
+        axis = initialize_rotation_axis(axis_index)
 
-    axis_rot.move(angle,absolute=True)
-    check_axis_stability(axis_rot)
+    axis.move(angle,absolute=True)
+    check_axis_stability(axis)
 
-def rotate_axis_1(angle, axis_rot=None):
-    rotate_axis(1, angle, axis_rot)
+def read_axis(axis_index, axis=None, print_flag=True):
+    '''
+    read angle on an axis
+    '''
+    # initialize axis
+    if axis==None:
+        axis = initialize_rotation_axis(axis_index)
 
-def rotate_axis_2(angle, axis_rot=None):
-    rotate_axis(2, angle, axis_rot)
+    pos = axis.position
+    if print_flag==True:
+        print(pos)
+    return pos
 
-def check_axis_stability(axis_rot):
+def check_axis_stability(axis):
     '''
     helper function for rotate_axis.
     '''
     while True:
         time.sleep(0.03)
         try:
-            if axis_rot.is_motion_done==True:
+            if axis.is_motion_done==True:
                 break
         except ValueError:
             pass
 
-def read_angle(axis_index, controller=None, axis_rot=None, print=True):
-    '''
-    read angle on an axis
-    '''
-    # ESP301 initialization
-    if controller==None:
-        controller = newport.NewportESP301.open_serial(port=port_id, baud=921600)
+def rotate_axis_1(angle, axis=None):
+    rotate_axis(1, angle, axis)
 
-    # initialize axis
-    if axis_rot==None:
-        axis_rot = newport.NewportESP301Axis(controller,axis_index-1)
-        axis_rot.enable()
+def rotate_axis_2(angle, axis=None):
+    rotate_axis(2, angle, axis=None)
 
-    pos = axis_rot.position
-    if print==True:
-        print(pos)
-    return pos
+def read_axis_1(axis=None, print_flag=True):
+    return read_axis(1, axis, print_flag)
 
-def set_temperature(temperature, tolerance=0.01, wait_time=0, max_check=0, lsobj=None):
+def read_axis_2(axis=None, print_flag=True):
+    return read_axis(2, axis, print_flag)
+
+def set_temperature(temperature, lsobj=None, tolerance=0.01, wait_time=0, max_check=0):
     '''
     sets lakeshore setpoint, waits until temperature is within tolerance of setpoint, and waits for soak time before returning.
 
@@ -250,11 +281,14 @@ def read_temperature(lsobj=None):
 def set_coil():
     return 1
 
+def read_coil():
+    return 1
+
 ###############################
 ### Initialization Medthods ###
 ###############################
 
-def initialize_lockin():
+def initialize_zurich_lockin():
     apilevel=6
     (daq, device, props) = ziutils.create_api_session(device_id, apilevel)
     return daq, device, props
@@ -299,9 +333,6 @@ def close_rot_axis_2():
 
 def close_lockin():
     return 0
-
-
-
 
 ''' a script I wrote for collecting data on capacitive sensor
 filename = 'G:/Shared drives/Orenstein Lab/Data/alex/20220818_strain_cell_capacitor_noise_25ft_coax_300kHz.txt'

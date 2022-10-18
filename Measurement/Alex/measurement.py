@@ -31,18 +31,25 @@ with open(os.path.dirname(__file__)+ r'\..\..\Configuration.txt', "r") as f_conf
     port_id = conf_info_split[1].split('\t')[1]
 channel_name = ['/%s/demods/0/sample','/%s/demods/1/sample','/%s/demods/2/sample','/%s/demods/3/sample']
 
-############################
-### Define System Motors ###
-############################
-# entries of the form motor:(move_function, initialize_function, close_function)
+#####################
+### System Motors ###
+#####################
+# entries of the form motor:{'move':move_function, 'read':read_function, 'init':initialize_function, 'close':close_function}
 #'coil':(ctrl.set_coil, ctrl.initialize_coil, ctrl.close_coil),
 motor_dict = {
-'x':(ctrl.move_x, ctrl.initialize_attocube, ctrl.close_attocube),
-'y':(ctrl.move_y, ctrl.initialize_attocube, ctrl.close_attocube),
-'z':(ctrl.move_z, ctrl.initialize_attocube, ctrl.close_attocube),
-'temp':(ctrl.set_temperature, ctrl.initialize_lakeshore, ctrl.close_lakeshore),
-'axis_1':(ctrl.rotate_axis_1, ctrl.initialize_rot_axis_1, ctrl.close_rot_axis_1),
-'axis_2':(ctrl.rotate_axis_2, ctrl.initialize_rot_axis_2, ctrl.close_rot_axis_2)
+'x':{'move':ctrl.move_x, 'read':ctrl.read_x, 'init':ctrl.initialize_attocube, 'close':ctrl.close_attocube, 'move_back':10},
+'y':{'move':ctrl.move_y, 'read':ctrl.read_y, 'init':ctrl.initialize_attocube, 'close':ctrl.close_attocube, 'move_back':10},
+'z':{'move':ctrl.move_z, 'read':ctrl.read_z, 'init':ctrl.initialize_attocube, 'close':ctrl.close_attocube, 'move_back':10},
+'temp':{'move':ctrl.set_temperature, 'read':ctrl.read_temperature, 'init':ctrl.initialize_lakeshore, 'close':ctrl.close_lakeshore, 'move_back':0},
+'axis_1':{'move':ctrl.rotate_axis_1, 'read':ctrl.read_axis_1, 'init':ctrl.initialize_rot_axis_1, 'close':ctrl.close_rot_axis_1, 'move_back':1},
+'axis_2':{'move':ctrl.rotate_axis_2, 'read':ctrl.read_axis_2, 'init':ctrl.initialize_rot_axis_2, 'close':ctrl.close_rot_axis_2, 'move_back':1}
+}
+
+##########################
+### System Instruments ###
+##########################
+instrument_dict = {
+'zurich_lockin':{'read':ctrl.read_zurich_lockin, 'init':ctrl.initialize_zurich_lockin}
 }
 
 ################
@@ -79,7 +86,7 @@ def measure_lockin(recording_time, filename_head=None, filename=None, time_const
     fig.show()
 
     # setup file for writing
-    fname = str(filename_head)+str(filename)
+    fname = '\\'+str(filename_head)+str(filename)
     if filename_head!=None and filename!=None:
         header = ['Time (s)', 'Demod x', 'Demod y', 'R']
         with open(fname,'w') as f:
@@ -123,7 +130,7 @@ def measure_lockin(recording_time, filename_head=None, filename=None, time_const
 # signle axis rotate mapping
 # single point mapping
 
-def corotate_scan(num_steps, start_angle, end_angle, angle_offset, filename_head=None, filename=None, time_constant=0.3, showplot=True, go_back_1=1, go_back_2=1, channel_index=1, R_channel_index=1, controller=None, daq_objs=None, axis_rot_1=None, axis_rot_2=None):
+def corotate_scan(num_steps, start_angle, end_angle, angle_offset, filename_head=None, filename=None, showplot=True, time_constant=0.3, channel_index=1, R_channel_index=1, daq_objs=None, axis_1=None, axis_2=None):
     '''
     Takes a corotation scan moving axes 1 and 2, typically representing half wave plates.
 
@@ -132,7 +139,7 @@ def corotate_scan(num_steps, start_angle, end_angle, angle_offset, filename_head
         - build in ability to change scan direction
 
     '''
-
+    '''
     # ESP301 initialization
     if controller==None:
         controller = ctrl.initialize_esp()
@@ -142,12 +149,26 @@ def corotate_scan(num_steps, start_angle, end_angle, angle_offset, filename_head
         daq, device, props = ctrl.initialize_lockin()
     else:
         daq, device, props = daq_objs
+    '''
+    # initialize zurich lockin and setup read function
+    if daq_objs==None:
+        init_func = instrument_dict['zurich_lockin']['init']
+        daq_objs = init_func()
+    read_lockin = instrument_dict['zurich_lockin']['read']
 
-    # initialize axes
-    if axis_rot_1 == None:
-        axis_rot_1 = ctrl.initialize_rot_axis_1()
-    if axis_rot_2 == None:
-        axis_rot_2 = ctrl.initialize_rot_axis_2()
+    # initialize axes and setup move functions
+    if axis_1 == None:
+        init_func = motor_dict['axis_1']['init']
+        axis_1 = init_func()
+    if axis_2 == None:
+        init_func = motor_dict['axis_2']['init']
+        axis_2 = init_func()
+    move_axis_1 = motor_dict['axis_1']['move']
+    move_axis_2 = motor_dict['axis_1']['move']
+    read_axis_1 = motor_dict['axis_1']['read']
+    read_axis_2 = motor_dict['axis_1']['read']
+    move_back_1 = motor_dict['axis_1']['move_back']
+    move_back_2 = motor_dict['axis_2']['move_back']
 
     # setup measureables
     position = np.array([])
@@ -166,7 +187,7 @@ def corotate_scan(num_steps, start_angle, end_angle, angle_offset, filename_head
     demod_r = np.array([])
 
     # initialize file
-    fname = str(filename_head)+str(filename)
+    fname = '\\'+str(filename_head)+str(filename)
     if filename_head!=None and filename!=None:
         header = ['Angle_1 (deg)', 'Angle_2 (deg)', 'Demod x', 'Demod y', 'R']
         with open(fname,'w') as f:
@@ -188,42 +209,24 @@ def corotate_scan(num_steps, start_angle, end_angle, angle_offset, filename_head
         fig.canvas.draw()
         fig.show()
 
-    # function for checking motor stability
-    def check_axis_motion():
-        while True:
-            time.sleep(0.03)
-            try:
-                if axis_rot_1.is_motion_done==True and axis_rot_2.is_motion_done==True:
-                    break
-            except ValueError:
-                pass
-    check_axis_motion()
-
     # scan
     for ii, angle in enumerate(angles_1):
         angle_1 = angle
         angle_2 = angles_2[ii]
         if (angle_1 == start_angle):
-            axis_rot_1.move(angle_1-go_back_1,absolute=True)
-            axis_rot_2.move(angle_2-go_back_2,absolute=True)
-            check_axis_motion()
-        axis_rot_1.move(angle_1,absolute=True)
+            move_axis_1(angle_1-move_back_1, axis=axis_1)
+            move_axis_2(angle_2-move_back_2, axis=axis_2)
+        move_axis_1(angle_1, axis=axis_1)
         time.sleep(0.03)
-        axis_rot_2.move(angle_2,absolute=True)
-        check_axis_motion()
-        time.sleep(time_constant*4)
-        sample = daq.getSample(channel_name[channel_index-1] % device)
-        sample["R"] = np.abs(sample["x"] + 1j * sample["y"])
-        x = sample["x"][0]
-        y = sample["y"][0]
-        r = sample["R"][0]
-        sample_R = daq.getSample(channel_name[R_channel_index - 1] % device)
-        sample_R["R"] = np.abs(sample_R["x"] + 1j * sample_R["y"])
-        x_R = sample_R["x"][0]
-        y_R = sample_R["y"][0]
-        r_R = sample_R["R"][0]
+        move_axis_2(angle_2, axis=axis_2)
+        time.sleep(0.03)
 
-        position = np.append(position, axis_rot_1.position)
+        # read lockin and rotators
+        x, y, r, x_R, y_R, r_R = read_lockin(time_constant=0.3, channel_index=1, R_channel_index=1, daq_objs=daq_objs)
+        angle_pos_1 = read_axis_1(axis=axis_1)
+        angle_pos_2 = read_axis_2(axis=axis_2)
+
+        position = np.append(position, angle_pos_1)
         demod_x = np.append(demod_x, x)
         demod_y = np.append(demod_y, y)
         demod_r = np.append(demod_r, r)
@@ -241,26 +244,29 @@ def corotate_scan(num_steps, start_angle, end_angle, angle_offset, filename_head
 
         # write to file
         with open(fname, 'a') as f:
-            vars = [axis_rot_1.position, axis_rot_2.position, x, y, r, x_R, y_R, r_R]
+            vars = [angle_pos_1, angle_pos_2, x, y, r, x_R, y_R, r_R]
             for var in vars:
                 f.write(format(var,'.15f')+'\t')
             f.write('\n')
 
     # move motors back to original positions
-    axis_rot_1.move(start_angle,absolute=True)
-    axis_rot_2.move(start_angle+angle_offset,absolute=True)
+    move_axis_1(start_angle, axis=axis_1)
+    move_axis_2(start_angle+angle_offset, axis=axis_1)
 
-def corotate_map(map_dict, num_steps, start_angle, end_angle, angle_offset, filename_head=None, filename=None, time_constant=0.3, showplot=True, go_back_1=1, go_back_2=1, channel_index=1, R_channel_index=2):
+def corotate_map(map_dict, num_steps, start_angle, end_angle, angle_offset, filename_head=None, filename=None, time_constant=0.3, showplot=True, channel_index=1, R_channel_index=2):
     '''
-    Takes a corotation scan at each point in a map specified by dictionary map_dict, which entries of the form 'axis':(start, end, num_steps, kwargs).
+    Takes a corotation scan at each point in a map specified by dictionary map_dict, which entries of the form 'axis':(start, end, num_steps, kwargs), where kwargs is a dictionary of key/value pairs appropriate for each motor 'move' function. For example, a temperature map might take the following map dictionary:
+
+    map_dict = {'temp':(10,20,10,{'tolerance':0.01, 'wait_time':30})}
+
     '''
 
     # Lock-in Amplifier initialization
-    daq, device, props = ctrl.initialize_lockin()
+    daq_objs = instrument_dict['zurich_lockin']['init']()
 
     # initialize axes
-    axis_rot_1 = ctrl.initialize_rot_axis_1()
-    axis_rot_2 = ctrl.initialize_rot_axis_2()
+    axis_1 = motor_dict['axis_1']['init']()
+    axis_2 = motor_dict['axis_1']['init']()
 
     # capture motor information and check for validity
     motors = map_dict.items()
@@ -272,10 +278,10 @@ def corotate_map(map_dict, num_steps, start_angle, end_angle, angle_offset, file
     # initialize motors
     mobj_dict = {}
     for m in motors:
-        init_func = motor_dict[m][1]
+        init_func = motor_dict[m]['init']
         mobj_dict[m] = init_func()
 
-    # setup motor ranges and kwargs
+    # setup motor ranges and kwargs - DO THIS RIGHT!
     mranges = []
     mkwargs_dict = {}
     for m in motors:
@@ -290,20 +296,21 @@ def corotate_map(map_dict, num_steps, start_angle, end_angle, angle_offset, file
     # generate positions recursively
     positions = gen_positions_recurse(mranges, len(mranges)-1)
 
-    # move motors to start position
+    # move motors to start position, using move_back to handle initial case
     for ii, m in enumerate(motors):
-        p = positions[0][ii]
-        move_func = motor_dict[m][0]
+        move_back = motor_dict[m]['move_back']
+        p = positions[0][ii] - move_back
+        move_func = motor_dict[m]['move']
         obj = mobj_dict[m]
         kwargs = mkwargs_dict[m]
-        move_func(p, obj, kwargs) # how kwargs are called may need to be changed
+        move_func(p, obj, **kwargs)
         print(f'Moved motor {m} to {p}.')
 
     # loop over positions, only moving a motor if its target position has changed.
     current_pos = positions[0]
     for pos in positions:
 
-            # move motors if position has changed - DO WE NEED TO CONSIDER BASELINE CASES? ALSO NOTE THAT IT IS THE RESPONSIBILITY OF THE MOVE FUNCTION TO MAKE SURE THE MOTOR IS STABILIZED BEFORE CONTINUING
+            # move motors if position has changed
             for ii, m in enumerate(motors):
                 p_old = current_pos[ii]
                 p_new = pos[ii]
@@ -311,21 +318,21 @@ def corotate_map(map_dict, num_steps, start_angle, end_angle, angle_offset, file
                     move_func = motor_dict[m][0]
                     obj = mobj_dict[m]
                     kwargs = mkwargs_dict[m]
-                    move_func(p_new, obj, kwargs) # how kwargs are called may need to be changed
+                    move_func(p_new, obj, **kwargs)
                     print(f'Moved motor {m} to {p_new}.')
 
-            # setup each filename - Needs work.
+            # setup each filename - DO THIS RIGHT!
             totfilename = f'{filename_head}\{filename}_x{x_pos}_y{y_pos}.dat'
 
             # scan
-            corotate_scan(num_steps, start_angle, end_angle, angle_offset, filename_head=filename_head, filename=totfilename, time_constant=time_constant, showplot=False, go_back_1=go_back_1, go_back_2=go_back_2, channel_index=channel_index, R_channel_index=R_channel_index)
+            corotate_scan(num_steps, start_angle, end_angle, angle_offset, filename_head=filename_head, filename=totfilename, time_constant=time_constant, showplot=False, channel_index=channel_index, R_channel_index=R_channel_index, daq_objs=daq_objs, axis_1=axis_1, axis_2=axis_2)
 
             current_pos = pos
 
     # close motors
     for m in motors:
         obj = mobj_dict[m]
-        close_func = motor_dict[m][2]
+        close_func = motor_dict[m]['close']
         close_func(obj)
 
 def save_data_to_file(fname, data, header, metadata=None):

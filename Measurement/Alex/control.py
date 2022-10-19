@@ -124,7 +124,7 @@ def read_attocube(axis, anc=None, print_flag=True):
     time.sleep(0.1)
     pos=anc.getPosition(ax_dict[axis])/1000
 
-    if print_flag==True:
+    if print_flag==True and anc_passed==False:
         print(f'{axis}: {pos}')
 
     # print and close only if another process hasn't passed anc object
@@ -177,8 +177,10 @@ def read_axis(axis_index, axis=None, print_flag=True):
     read angle on an axis
     '''
     # initialize axis
+    obj_passed = True
     if axis==None:
         axis = initialize_rotation_axis(axis_index)
+        obj_passed = False
 
     while True:
         time.sleep(0.03)
@@ -188,7 +190,7 @@ def read_axis(axis_index, axis=None, print_flag=True):
         except:
             pass
 
-    if print_flag==True:
+    if print_flag==True and obj_passed==False:
         print(pos)
     return pos
 
@@ -216,7 +218,7 @@ def read_axis_1(axis=None, print_flag=True):
 def read_axis_2(axis=None, print_flag=True):
     return read_axis(2, axis, print_flag)
 
-def set_temperature(temperature, lsobj=None, tolerance=0.01, wait_time=0, max_check=0):
+def set_temperature(temperature, lsobj=None, tolerance=0.01, wait_time=0, max_check=60):
     '''
     sets lakeshore setpoint, waits until temperature is within tolerance of setpoint, and waits for soak time before returning.
 
@@ -330,13 +332,13 @@ def close_attocube(anc):
 def close_lakeshore(obj):
     ls.close_lakeshore335(obj)
 
-def close_rot_axis_1():
+def close_rot_axis_1(obj):
     return 0
 
-def close_rot_axis_2():
+def close_rot_axis_2(obj):
     return 0
 
-def close_lockin():
+def close_lockin(obj):
     return 0
 
 ''' a script I wrote for collecting data on capacitive sensor

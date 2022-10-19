@@ -205,6 +205,7 @@ def rotate_scan(start_angle, end_angle, step_size, filename_head=None, filename=
         if (angle == start_angle):
             move_axis(angle-move_back, axis=axis)
             move_other_axis(angle-move_other_back, axis=other_axis)
+            move_other_axis(angle, axis=other_axis)
         move_axis(angle, axis=axis)
         time.sleep(0.03)
 

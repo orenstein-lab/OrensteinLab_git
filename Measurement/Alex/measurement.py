@@ -15,6 +15,8 @@ Features to add:
     - plotting for motor_scan
     - generalize handling of writing files (headers, metadata, etc) using motor names and other such features that can be easily set at the top of the file.
 
+    - immediate: (1) setup metadata in file write and wrap into a function to write file header
+
 '''
 
 #####################
@@ -246,6 +248,8 @@ def rotate_scan(start_angle, end_angle, step_size, axis_index=1, filename_head=N
     move_axis(start_angle, axis=axis)
     move_other_axis(start_angle, axis=other_axis)
 
+    return position, demod_x, demod_y, demod_r
+
 def corotate_scan(start_angle, end_angle, step_size, angle_offset, filename_head=None, filename=None, showplot=True, time_constant=0.3, channel_index=1, R_channel_index=1, daq_objs=None, axis_1=None, axis_2=None):
     '''
     Takes a corotation scan moving axes 1 and 2, typically representing half wave plates.
@@ -356,6 +360,8 @@ def corotate_scan(start_angle, end_angle, step_size, angle_offset, filename_head
     # move motors back to original positions
     move_axis_1(start_angle, axis=axis_1)
     move_axis_2(start_angle+angle_offset, axis=axis_2)
+
+    return position, demod_x, demod_y, demod_r
 
 def motor_scan(map_dict, filename_head=None, filename=None, showplot=True, time_constant=0.3, channel_index=1, R_channel_index=1):
     '''
@@ -498,6 +504,50 @@ def corotate_map(map_dict, start_angle, end_angle, step_size, angle_offset, file
 
     # close motors
     close_motors(motors, mobj_dict)
+
+def find_balance_angle(start_angle, end_angle, step_size, go_to_balance_angle=True, axis_index=2):
+    '''
+    Assuming we are measuring in DC mode above a transition or on GaAs, carries out a rotate_scan. Find angle by carrying out a linear fit, such that the angle range should be taken to be very small.
+
+    By default, moves axis 2 to find balance angle.
+
+    If go_to_balance_angle is set to true, moves stages to
+    '''
+
+    # initialize axes
+    axis_1 = motor_dict['axis_1']['init']()
+    axis_2 = motor_dict['axis_2']['init']()
+    move_axis_1 = motor_dict['axis_1']['move']
+    move_axis_2 = motor_dict['axis_2']['move']
+
+    # move both motors to 0
+    move_axis_1(0)
+    move_axis_2(0)
+
+    positions, demod_x, demod_y, demod_r = rotate_scan(start_angle, end_angle, step_size, axis_index=axis_index)
+
+    # linear fit
+    fit_params = np.polyfit(positions, demod_x, 1)
+    balance_angle = -fit_params[1]/fit_params[0]
+    angles_vect = np.linspace(start_angle, end_angle, 1000)
+    fit = fit_params[0]*angles_vect + fit_params[1]
+
+    # display result
+    fig, ax = plt.subplots(1)
+    ax.set_ylabel('Angle (deg)')
+    ax.set_ylabel('Demod X')
+    ax.plot(positions, demod_x, 'o', ms=5, color='blue')
+    ax.plot(angles_vect, fit, '-', color='black')
+
+    if go_to_balance_angle: # is there a good way to automatically re-zero zero?
+        if axis_index==1:
+            move_axis_1(balance_angle)
+        else:
+            move_axis_2(balance_angle)
+
+    print(f'Balance angle: {balance_angle}')
+    return balance_angle
+
 
 ###########################
 ### Strain Cell Methods ### # perhaps move these to another file?

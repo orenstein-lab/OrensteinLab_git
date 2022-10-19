@@ -128,7 +128,7 @@ def lockin_time_series(recording_time, filename_head=None, filename=None, time_c
                 f.write(f'{var}\t')
             f.write('\n')
 
-def rotate_scan(start_angle, end_angle, num_steps, axis_index=1, filename_head=None, filename=None, showplot=True, time_constant=0.3, channel_index=1, R_channel_index=1, daq_objs=None, axis_1=None, axis_2=None):
+def rotate_scan(start_angle, end_angle, step_size, axis_index=1, filename_head=None, filename=None, showplot=True, time_constant=0.3, channel_index=1, R_channel_index=1, daq_objs=None, axis_1=None, axis_2=None):
 
     # initialize zurich lockin and setup read function
     if daq_objs==None:
@@ -170,8 +170,8 @@ def rotate_scan(start_angle, end_angle, num_steps, axis_index=1, filename_head=N
     demod_y = np.array([])
     demod_r = np.array([])
 
-    # convert input to angle lists and set scan direction for each axis - DO THIS RIGHT!
-    angles = np.linspace(start_angle, end_angle, num_steps)
+    # convert input to angle lists
+    angles = get_motor_range(start_angle, end_angle, step_size)
 
     # setup measureables
     position = np.array([])
@@ -180,9 +180,9 @@ def rotate_scan(start_angle, end_angle, num_steps, axis_index=1, filename_head=N
     demod_r = np.array([])
 
     # initialize file
-    fname = f'{filename_head}\{filename}.dat'
+    fname = add_unique_postfix(filename_head, filename)
     if filename_head!=None and filename!=None:
-        header = ['Angle_1 (deg)', 'Angle_2 (deg)', 'Demod x', 'Demod y', 'R']
+        header = ['Angle 1 (deg)', 'Angle 2 (deg)', 'Demod x', 'Demod y', 'R', 'Demod x_R', 'Demod y_R', 'R_R']
         with open(fname,'w') as f:
             for h in header:
                 f.write(f'{h}\t')
@@ -246,7 +246,7 @@ def rotate_scan(start_angle, end_angle, num_steps, axis_index=1, filename_head=N
     move_axis(start_angle, axis=axis)
     move_other_axis(start_angle, axis=other_axis)
 
-def corotate_scan(start_angle, end_angle, num_steps, angle_offset, filename_head=None, filename=None, showplot=True, time_constant=0.3, channel_index=1, R_channel_index=1, daq_objs=None, axis_1=None, axis_2=None):
+def corotate_scan(start_angle, end_angle, step_size, angle_offset, filename_head=None, filename=None, showplot=True, time_constant=0.3, channel_index=1, R_channel_index=1, daq_objs=None, axis_1=None, axis_2=None):
     '''
     Takes a corotation scan moving axes 1 and 2, typically representing half wave plates.
 
@@ -280,8 +280,8 @@ def corotate_scan(start_angle, end_angle, num_steps, angle_offset, filename_head
     demod_y = np.array([])
     demod_r = np.array([])
 
-    # convert input to angle lists and set scan direction for each axis - DO THIS RIGHT!
-    angles_1 = np.linspace(start_angle, end_angle, num_steps)
+    # convert input to angle lists
+    angles_1 = get_motor_range(start_angle, end_angle, step_size)
     angles_2 = angles_1 + angle_offset
 
     # setup measureables
@@ -291,7 +291,6 @@ def corotate_scan(start_angle, end_angle, num_steps, angle_offset, filename_head
     demod_r = np.array([])
 
     # initialize file
-    # fname = f'{filename_head}\{filename}.dat'
     fname = add_unique_postfix(filename_head, filename)
     if filename_head!=None and filename!=None:
         header = ['Angle 1 (deg)', 'Angle 2 (deg)', 'Demod x', 'Demod y', 'R', 'Demod x_R', 'Demod y_R', 'R_R']
@@ -412,7 +411,7 @@ def motor_scan(map_dict, filename_head=None, filename=None, showplot=True, time_
     # close motors
     close_motors(motors, mobj_dict)
 
-def rotate_map(map_dict, start_angle, end_angle, num_steps, axis_index=1, filename_head=None, filename=None, showplot=True, time_constant=0.3, channel_index=1, R_channel_index=1, daq_objs=None, axis_1=None, axis_2=None):
+def rotate_map(map_dict, start_angle, end_angle, step_size, axis_index=1, filename_head=None, filename=None, showplot=True, time_constant=0.3, channel_index=1, R_channel_index=1, daq_objs=None, axis_1=None, axis_2=None):
 
     # Lock-in Amplifier initialization
     daq_objs = instrument_dict['zurich_lockin']['init']()
@@ -446,18 +445,18 @@ def rotate_map(map_dict, start_angle, end_angle, num_steps, axis_index=1, filena
             totfilename = totfilename+'.dat'
 
             # scan
-            rotate_scan(start_angle, end_angle, num_steps, axis_index=axis_index, filename_head=filename_head, filename=totfilename, time_constant=time_constant, showplot=False, channel_index=channel_index, R_channel_index=R_channel_index, daq_objs=daq_objs, axis_1=axis_1, axis_2=axis_2)
+            rotate_scan(start_angle, end_angle, step_size, axis_index=axis_index, filename_head=filename_head, filename=totfilename, time_constant=time_constant, showplot=False, channel_index=channel_index, R_channel_index=R_channel_index, daq_objs=daq_objs, axis_1=axis_1, axis_2=axis_2)
 
             current_pos = pos
 
     # close motors
     close_motors(motors, mobj_dict)
 
-def corotate_map(map_dict, start_angle, end_angle, num_steps, angle_offset, filename_head=None, filename=None, showplot=True, time_constant=0.3, channel_index=1, R_channel_index=1):
+def corotate_map(map_dict, start_angle, end_angle, step_size, angle_offset, filename_head=None, filename=None, showplot=True, time_constant=0.3, channel_index=1, R_channel_index=1):
     '''
-    Takes a corotation scan at each point in a map specified by dictionary map_dict, which entries of the form 'axis':(start, end, num_steps, kwargs), where kwargs is a dictionary of key/value pairs appropriate for each motor 'move' function. For example, a temperature map might take the following map dictionary:
+    Takes a corotation scan at each point in a map specified by dictionary map_dict, which entries of the form 'axis':(start, end, step_size, kwargs), where kwargs is a dictionary of key/value pairs appropriate for each motor 'move' function. For example, a temperature map might take the following map dictionary:
 
-    map_dict = {'temp':(10,20,10,{'tolerance':0.01, 'wait_time':30})}
+    map_dict = {'temp':(10,20,1,{'tolerance':0.01, 'wait_time':30})}
 
     '''
 
@@ -493,7 +492,7 @@ def corotate_map(map_dict, start_angle, end_angle, num_steps, angle_offset, file
             totfilename = totfilename+'.dat'
 
             # scan
-            corotate_scan(start_angle, end_angle, num_steps, angle_offset, filename_head=filename_head, filename=totfilename, time_constant=time_constant, showplot=False, channel_index=channel_index, R_channel_index=R_channel_index, daq_objs=daq_objs, axis_1=axis_1, axis_2=axis_2)
+            corotate_scan(start_angle, end_angle, step_size, angle_offset, filename_head=filename_head, filename=totfilename, time_constant=time_constant, showplot=False, channel_index=channel_index, R_channel_index=R_channel_index, daq_objs=daq_objs, axis_1=axis_1, axis_2=axis_2)
 
             current_pos = pos
 
@@ -739,6 +738,20 @@ def zero_strain_cell(sc, slew_rate=1, target_voltage=120, tol=0.1):
 ### Helper Methods ###
 ######################
 
+def get_motor_range(start, end, step_size):
+    '''
+    helper function for returning a numpy array of positions corresponding to input. The convention is that step_size is always a positive number and that the motor moves from start to end.
+    '''
+    step_size=abs(step_size)
+    if start < end:
+        dir = 1
+    else:
+        dir = -1
+    list1 = np.arange(start, end, dir*step_size)
+    list2 = np.array([end])
+    range = np.concatenate((list1, list2))
+    return range
+    
 def capture_motor_information(map_dict):
 
     motors = map_dict.items()
@@ -752,9 +765,9 @@ def capture_motor_information(map_dict):
             raise ValueError(f'Invalid motor name. Please select motors from the list {valid_motors}.')
         start = map_dict[m][0]
         end = map_dict[m][1]
-        nstep = map_dict[m][2]
+        step_size = map_dict[m][2]
         kwargs = map_dict[m][3]
-        range = np.linspace(start, end, nstep)
+        range = get_motor_range(start, end, step_size)
         mranges.append(range)
         mkwargs_dict[m] = kwargs
 
@@ -801,27 +814,6 @@ def read_motors(motors, mobj_dict):
         read_func = motor_dict[m]['read']
         pos_dict[m] = read_func(mobj)
     return pos_dict
-    
-def add_unique_postfix(filename_head, filename):
-    fname = f'{filename_head}\{filename}.dat'
-    if not os.path.exists(fname):
-        return fname
-
-    path, name = os.path.split(fname)
-    name, ext = os.path.splitext(name)
-
-    make_fn = lambda i: os.path.join(path, '%s_%s%s' % (name, i, ext))
-
-    # dir
-    # for fname in dir:
-    #     if filename==fname:
-    #         match = re.match(filename, fname)
-    #         int(bool(match))
-
-    for i in range(1, 1000):
-        uni_fn = make_fn(i)
-        if not os.path.exists(uni_fn):
-            return uni_fn
 
 def gen_positions_recurse(range_list, n, pos_list=[], current_pos=None):
     '''    given an empty pos_list, and a range_list, recursively generates a list of positions that span the spacce in range_list. Note that positions are written from first entry in range_list to last.
@@ -845,6 +837,27 @@ def gen_positions_recurse(range_list, n, pos_list=[], current_pos=None):
         pos_list.append(np.copy(current_pos))
 
     return pos_list
+
+def add_unique_postfix(filename_head, filename):
+    fname = f'{filename_head}\{filename}.dat'
+    if not os.path.exists(fname):
+        return fname
+
+    path, name = os.path.split(fname)
+    name, ext = os.path.splitext(name)
+
+    make_fn = lambda i: os.path.join(path, '%s_%s%s' % (name, i, ext))
+
+    # dir
+    # for fname in dir:
+    #     if filename==fname:
+    #         match = re.match(filename, fname)
+    #         int(bool(match))
+
+    for i in range(1, 1000):
+        uni_fn = make_fn(i)
+        if not os.path.exists(uni_fn):
+            return uni_fn
 
 def save_data_to_file(fname, data, header, metadata=None):
     '''

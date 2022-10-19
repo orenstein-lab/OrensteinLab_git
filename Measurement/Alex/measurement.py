@@ -13,7 +13,7 @@ import os
 Features to add:
     - create a robust find_balance_angle function and any other utilities that would be useful to have written within this framwork.
     - plotting for motor_scan
-    - generalize handling of writing files (headers, metadata, etc)
+    - generalize handling of writing files (headers, metadata, etc) using motor names and other such features that can be easily set at the top of the file.
 
 '''
 
@@ -182,7 +182,7 @@ def rotate_scan(start_angle, end_angle, step_size, axis_index=1, filename_head=N
     # initialize file
     fname = add_unique_postfix(filename_head, filename)
     if filename_head!=None and filename!=None:
-        header = ['Angle 1 (deg)', 'Angle 2 (deg)', 'Demod x', 'Demod y', 'R', 'Demod x_R', 'Demod y_R', 'R_R']
+        header = header = [motor_dict['axis_1']['name'], motor_dict['axis_2']['name']]+lockin_header
         with open(fname,'w') as f:
             for h in header:
                 f.write(f'{h}\t')
@@ -293,7 +293,7 @@ def corotate_scan(start_angle, end_angle, step_size, angle_offset, filename_head
     # initialize file
     fname = add_unique_postfix(filename_head, filename)
     if filename_head!=None and filename!=None:
-        header = ['Angle 1 (deg)', 'Angle 2 (deg)', 'Demod x', 'Demod y', 'R', 'Demod x_R', 'Demod y_R', 'R_R']
+        header = [motor_dict['axis_1']['name'], motor_dict['axis_2']['name']]+lockin_header
         with open(fname,'w') as f:
             for h in header[:-1]:
                 f.write(f'{h}\t')
@@ -751,7 +751,7 @@ def get_motor_range(start, end, step_size):
     list2 = np.array([end])
     range = np.concatenate((list1, list2))
     return range
-    
+
 def capture_motor_information(map_dict):
 
     motors = map_dict.items()

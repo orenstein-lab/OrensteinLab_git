@@ -187,13 +187,14 @@ def corotate_scan(num_steps, start_angle, end_angle, angle_offset, filename_head
     demod_r = np.array([])
 
     # initialize file
-    fname = f'{filename_head}\{filename}.dat'
+    # fname = f'{filename_head}\{filename}.dat'
+    fname = add_unique_postfix(filename_head, filename)
     if filename_head!=None and filename!=None:
-        header = ['Angle_1 (deg)', 'Angle_2 (deg)', 'Demod x', 'Demod y', 'R']
+        header = ['Angle 1 (deg)', 'Angle 2 (deg)', 'Demod x', 'Demod y', 'R', 'Demod x_R', 'Demod y_R', 'R_R']
         with open(fname,'w') as f:
-            for h in header:
+            for h in header[:-1]:
                 f.write(f'{h}\t')
-            f.write('\n')
+            f.write(f'{header[-1]}\n')
 
     # setup plot
     if showplot==True:
@@ -223,8 +224,8 @@ def corotate_scan(num_steps, start_angle, end_angle, angle_offset, filename_head
 
         # read lockin and rotators
         x, y, r, x_R, y_R, r_R = read_lockin(time_constant=0.3, channel_index=1, R_channel_index=1, daq_objs=daq_objs)
-        angle_pos_1 = read_axis_1(axis=axis_1)
-        angle_pos_2 = read_axis_2(axis=axis_2)
+        angle_pos_1 = read_axis_1(axis=axis_1, print_flag=False)
+        angle_pos_2 = read_axis_2(axis=axis_2, print_flag=False)
 
         position = np.append(position, angle_pos_1)
         demod_x = np.append(demod_x, x)
@@ -245,9 +246,9 @@ def corotate_scan(num_steps, start_angle, end_angle, angle_offset, filename_head
         # write to file
         with open(fname, 'a') as f:
             vars = [angle_pos_1, angle_pos_2, x, y, r, x_R, y_R, r_R]
-            for var in vars:
+            for var in vars[:-1]:
                 f.write(format(var,'.15f')+'\t')
-            f.write('\n')
+            f.write(f'{vars[-1]}\n')
 
     # move motors back to original positions
     move_axis_1(start_angle, axis=axis_1)
@@ -601,6 +602,27 @@ def zero_strain_cell(sc, slew_rate=1, target_voltage=120, tol=0.1):
 ######################
 ### Helper Methods ###
 ######################
+
+def add_unique_postfix(filename_head, filename):
+    fname = f'{filename_head}\{filename}.dat'
+    if not os.path.exists(fname):
+        return fname
+
+    path, name = os.path.split(fname)
+    name, ext = os.path.splitext(name)
+
+    make_fn = lambda i: os.path.join(path, '%s_%s%s' % (name, i, ext))
+
+    # dir
+    # for fname in dir:
+    #     if filename==fname:
+    #         match = re.match(filename, fname)
+    #         int(bool(match))
+
+    for i in range(1, 1000):
+        uni_fn = make_fn(i)
+        if not os.path.exists(uni_fn):
+            return uni_fn
 
 def gen_positions_recurse(range_list, n, pos_list=[], current_pos=None):
     '''    given an empty pos_list, and a range_list, recursively generates a list of positions that span the spacce in range_list. Note that positions are written from first entry in range_list to last.

@@ -185,7 +185,7 @@ def read_axis(axis_index, axis=None, print_flag=True):
     while True:
         time.sleep(0.03)
         try:
-            pos = axis.position
+            pos = float(axis.position)
             break
         except:
             pass

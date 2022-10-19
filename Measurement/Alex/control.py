@@ -21,12 +21,10 @@ import OrensteinLab_git.Instrument.Lakeshore.Lakeshore335 as ls
 from strain_control.strain_client import StrainClient
 '''
 To do:
+    - clean up printing to eliminate erroneous prints/only print when called from the command line or when we intuitively want it to print
     - every motor move function takes arguments (setpoint, obj=None, kwargs)
-    - clean up rotate_axis and make rotate_axis_1 and 2 wrapper functions
     - write a set_coil function
     - anything else that seems fitting to go in here!
-    - for all of these functions having nice printing feedback would be nice.
-    - function for reading lockin
 '''
 
 #####################

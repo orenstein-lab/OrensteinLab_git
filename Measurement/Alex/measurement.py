@@ -11,11 +11,8 @@ import matplotlib.pyplot as plt
 import os
 '''
 Features to add:
-    - create a robust find_balance_angle function and any other utilities that would be useful to have written within this framwork.
     - plotting for motor_scan
     - generalize handling of writing files (headers, metadata, etc) using motor names and other such features that can be easily set at the top of the file.
-
-    - immediate: (1) setup metadata in file write and wrap into a function to write file header
 
 '''
 
@@ -60,15 +57,14 @@ instrument_dict = {
 ### Medthods ###
 ################
 
-def lockin_time_series(recording_time, filename_head=None, filename=None, time_constant=0.3, channel_index=1):
+def lockin_time_series(recording_time, filename_head=None, filename=None, time_constant=0.3, channel_index=1, R_channel_index=1):
     '''
     aquires data on the lockin over a specified length of time.
     '''
-    #Lock-in Amplifier initialization
-    apilevel = 6
-    (daq, device, props) = ziutils.create_api_session(device_id, apilevel)
-    # Set time constant as specified
-    daq.setDouble('/%s/demods/0/timeconstant' % device, time_constant)
+    # initialize zurich lockin and setup read function
+    daq_objs  = instrument_dict['zurich_lockin']['init']()
+    read_lockin = instrument_dict['zurich_lockin']['read']
+
     # initialize data bins
     time_record = np.array([])
     demod_x = np.array([])
@@ -76,8 +72,7 @@ def lockin_time_series(recording_time, filename_head=None, filename=None, time_c
     demod_r = np.array([])
 
     # setup plot
-    fig, axes = plt.figure((3,1), figsize=(8,10))
-    gs = fig.add_gridspec(3, 1)
+    fig, axes = plt.subplots((3,1), figsize=(8,10))
     y_labels = ['Demod x', 'Demod y', 'R']
     for ii, ax in enumerate(axes):
         ax.set_xlabel('Time (s)')
@@ -90,13 +85,10 @@ def lockin_time_series(recording_time, filename_head=None, filename=None, time_c
     fig.show()
 
     # setup file for writing
-    fname = f'{filename_head}\{filename}.dat'
     if filename_head!=None and filename!=None:
+        fname = get_unique_filename(filename_head, filename)
         header = ['Time (s)', 'Demod x', 'Demod y', 'R']
-        with open(fname,'w') as f:
-            for h in header:
-                f.write(f'{h}\t')
-            f.write('\n')
+        write_file_header(fname, header)
 
     # loop
     t_delay = 0
@@ -105,15 +97,14 @@ def lockin_time_series(recording_time, filename_head=None, filename=None, time_c
         time.sleep(time_constant*4)
         toc = time.perf_counter()
         t_delay = toc - tic
-        sample = daq.getSample(channel_name[channel_index-1] % device)
-        sample["R"] = np.abs(sample["x"] + 1j * sample["y"])
-        x = sample["x"][0]
-        y = sample["y"][0]
-        r = sample["R"][0]
+
+        x, y, r, x_R, y_R, r_R = read_lockin(daq_objs, time_constant=0.3, channel_index=1, R_channel_index=1)
+
         time_record = np.append(time_record, t_delay)
         demod_x = np.append(demod_x, x)
         demod_y = np.append(demod_y, y)
         demod_r = np.append(demod_r, r)
+
         # update plot
         draw_x.set_data(time_record-time_record[0],demod_x)
         draw_y.set_data(time_record-time_record[0],demod_y)
@@ -123,12 +114,13 @@ def lockin_time_series(recording_time, filename_head=None, filename=None, time_c
             ax.autoscale()
         fig.canvas.draw()
         fig.canvas.flush_events()
+
         # update file
-        with open(fname, 'a') as f:
+        if filename_head!=None and filename!=None:
             vars = [t_delay, x, y, r]
-            for var in vars:
-                f.write(f'{var}\t')
-            f.write('\n')
+            append_data_to_file(fname, vars)
+
+    return time_record, demod_x, demod_y, demod_r
 
 def rotate_scan(start_angle, end_angle, step_size, axis_index=1, filename_head=None, filename=None, showplot=True, time_constant=0.3, channel_index=1, R_channel_index=1, daq_objs=None, axis_1=None, axis_2=None):
 
@@ -182,13 +174,10 @@ def rotate_scan(start_angle, end_angle, step_size, axis_index=1, filename_head=N
     demod_r = np.array([])
 
     # initialize file
-    fname = add_unique_postfix(filename_head, filename)
     if filename_head!=None and filename!=None:
+        fname = get_unique_filename(filename_head, filename)
         header = header = [motor_dict['axis_1']['name'], motor_dict['axis_2']['name']]+lockin_header
-        with open(fname,'w') as f:
-            for h in header:
-                f.write(f'{h}\t')
-            f.write('\n')
+        write_file_header(fname, header)
 
     # setup plot
     if showplot==True:
@@ -238,11 +227,9 @@ def rotate_scan(start_angle, end_angle, step_size, axis_index=1, filename_head=N
             fig.canvas.flush_events()
 
         # write to file
-        with open(fname, 'a') as f:
+        if filename_head!=None and filename!=None:
             vars = [angle_pos_1, angle_pos_2, x, y, r, x_R, y_R, r_R]
-            for var in vars:
-                f.write(format(var,'.15f')+'\t')
-            f.write('\n')
+            append_data_to_file(fname, vars)
 
     # move motors back to original positions
     move_axis(start_angle, axis=axis)
@@ -295,13 +282,10 @@ def corotate_scan(start_angle, end_angle, step_size, angle_offset, filename_head
     demod_r = np.array([])
 
     # initialize file
-    fname = add_unique_postfix(filename_head, filename)
     if filename_head!=None and filename!=None:
-        header = [motor_dict['axis_1']['name'], motor_dict['axis_2']['name']]+lockin_header
-        with open(fname,'w') as f:
-            for h in header[:-1]:
-                f.write(f'{h}\t')
-            f.write(f'{header[-1]}\n')
+        fname = get_unique_filename(filename_head, filename)
+        header = header = [motor_dict['axis_1']['name'], motor_dict['axis_2']['name']]+lockin_header
+        write_file_header(fname, header)
 
     # setup plot
     if showplot==True:
@@ -351,11 +335,9 @@ def corotate_scan(start_angle, end_angle, step_size, angle_offset, filename_head
             fig.canvas.flush_events()
 
         # write to file
-        with open(fname, 'a') as f:
+        if filename_head!=None and filename!=None:
             vars = [angle_pos_1, angle_pos_2, x, y, r, x_R, y_R, r_R]
-            for var in vars[:-1]:
-                f.write(format(var,'.15f')+'\t')
-            f.write(f'{vars[-1]}\n')
+            append_data_to_file(fname, vars)
 
     # move motors back to original positions
     move_axis_1(start_angle, axis=axis_1)
@@ -380,13 +362,10 @@ def motor_scan(map_dict, filename_head=None, filename=None, showplot=True, time_
     positions = gen_positions_recurse(mranges, len(mranges)-1)
 
     # setup file with header
-    fullpath = f'{filename_head}/{filename}.dat'
-    with open(fullpath, 'w') as file:
-        for m in motors:
-            file.write(f'{motor_dict[m]['name']}\t')
-        for i in lockin_header[:-1]:
-            file.write(f'{i}\t')
-        file.write(f'{lockin_header[-1]\n'})
+    if filename_head!=None and filename!=None:
+        fname = get_unique_filename(filename_head, filename)
+        header = [motor_dict[m]['name'] for m in motors]+lockin_header
+        write_file_header(fname, header)
 
     # move motors to start position, using move_back to handle initial case
     move_motors_to_start(motors, mkwargs_dict, mobj_dict, positions)
@@ -402,15 +381,12 @@ def motor_scan(map_dict, filename_head=None, filename=None, showplot=True, time_
             lockin_meas = read_lockin(daq_objs, time_constant, channel_index, R_channel_index)
 
             # read actual motor positions
-            real_positions = read_motors(motors, mobj_dict)
+            real_positions_dict = read_motors(motors, mobj_dict)
+            real_positions = [real_positions_dict[m] for m in motors]
 
             # add to file
-            with open(fullpath, 'a') as file:
-                for m in motors:
-                    file.write(f'{m}\t')
-                for i in lockin_meas[:-1]:
-                    file.write(f'{i}\t')
-                file.write(f'{lockin_meas[-1]}\n')
+            if filename_head!=None and filename!=None:
+                append_data_to_file(fname, real_positions+lockin_meas)
 
             current_pos = pos
 
@@ -888,7 +864,7 @@ def gen_positions_recurse(range_list, n, pos_list=[], current_pos=None):
 
     return pos_list
 
-def add_unique_postfix(filename_head, filename):
+def get_unique_filename(filename_head, filename):
     fname = f'{filename_head}\{filename}.dat'
     if not os.path.exists(fname):
         return fname
@@ -908,6 +884,41 @@ def add_unique_postfix(filename_head, filename):
         uni_fn = make_fn(i)
         if not os.path.exists(uni_fn):
             return uni_fn
+
+def write_file_header(fname, header, metadata=None):
+    '''
+    Helper function that takes in metadata (a dictionary) and header (a list of strings) and writes data in the form:
+
+    [Metadata]
+    key: value
+    [Data]
+    header
+
+    '''
+    with open(fname, 'w') as file:
+        if metadata is not None:
+            file.write(f'[Metadata]\n')
+            for key in metadata:
+                file.write(f'{key}:\t{metadata[key]}\n)
+            file.write(f'[Data]\n')
+        for h in header[-1]:
+            file.write(f'{h}\t')
+        file.write(f'{header[-1]}\n')
+
+def append_data_to_file(fname, values):
+    '''
+    helper function to add a line to a file given a list of values
+    '''
+    with open(fname, 'a') as file:
+        for val in values[:-1]:
+            file.write(f'{format(val, '.15f')}\t')
+        file.write(f'{format(values[-1], '.15f')}\n')
+
+def get_all_motor_positions():
+    '''
+    helper function that reads all positions of motors in motor_dict. For use in making metada.
+    '''
+    return 1
 
 def save_data_to_file(fname, data, header, metadata=None):
     '''

@@ -370,6 +370,64 @@ def motor_scan(map_dict, filename_head=None, filename=None, showplot=True, time_
     # move motors to start position, using move_back to handle initial case
     move_motors_to_start(motors, mkwargs_dict, mobj_dict, positions)
 
+    # setup measureables
+    if len(map_dict)==1:
+        positions = np.array([])
+    else:
+        positions = [np.array([]) for i in range(len(map_dict))]
+    demod_x = np.array([])
+    demod_y = np.array([])
+    demod_r = np.array([])
+
+    # setup plots
+    if showplot==True:
+        if len(map_dict)==1:
+
+            fig, axes = plt.subplots(3, 1, figsize=(8,10))
+            x_label = motor_dict[motors[0]]['name']
+            y_labels = ['Demod x', 'Demod y', 'R']
+            for ii, ax in enumerate(axes):
+                ax.set_xlabel(x_label)
+                ax.set_ylabel(y_labels[ii])
+                ax.grid(True)
+            draw_x, = axes[0].plot([],'-o')
+            draw_y, = axes[1].plot([],'-o')
+            draw_r, = axes[2].plot([],'-o')
+            fig.canvas.draw()
+            fig.show()
+
+        elif len(map_dict)==2:
+
+            # setup measureables
+            xrange = mranges[0]
+            yrange = mranges[1]
+            x_num = len(xrange)
+            y_num = len(yrange)
+            demod_x0 = np.zeros((y_num, x_num))
+            demod_y0 = np.zeros((y_num, x_num))
+            demod_r0 = np.zeros((y_num, x_num))
+            X_coor, Y_coor = np.meshgrid(xrange, yrange)
+
+            fig, axes = plt.subplots(3, 1, figsize=(8,10))
+            x_label = map_dict[motors[0]]['name']
+            y_label = map_dict[motors[1]]['name']
+            for ii, ax in enumerate(axes):
+                ax.set_xlabel(x_label)
+                ax.set_ylabel(y_label)
+                ax.grid(True)
+            mapx = ax[0].imshow(demod_x0,cmap="bwr",origin='lower',extent=extent,norm = colors.TwoSlopeNorm(0))
+            mapy = ax[1].imshow(demod_y0,cmap="bwr",origin='lower',extent=extent,norm = colors.TwoSlopeNorm(0))
+            mapr = ax[2].imshow(demod_r0,cmap="bwr",origin='lower',extent=extent,norm = colors.TwoSlopeNorm(0))
+            fig.colorbar(mapx, ax=ax[0])
+            fig.colorbar(mapy, ax=ax[1])
+            fig.colorbar(mapr, ax=ax[2])
+            fig.canvas.draw()
+            fig.tight_layout()
+            fig.show()
+
+        else:
+            print('Cannot plot scans that are greater than 2 dimensions.')
+
     # loop over positions, only moving a motor if its target position has changed.
     current_pos = positions[0]
     for pos in positions:
@@ -384,9 +442,52 @@ def motor_scan(map_dict, filename_head=None, filename=None, showplot=True, time_
             real_positions_dict = read_motors(motors, mobj_dict)
             real_positions = [real_positions_dict[m] for m in motors]
 
+            # update measurable
+            if len(map_dict)==1:
+                positions = np.append(positions, real_positions[0])
+            else:
+                for ii, p in enumerate(real_positions):
+                    positions[ii] = np.append(positions[ii], p)
+            demod_x = np.append(demod_x, x)
+            demod_y = np.append(demod_y, y)
+            demod_r = np.append(demod_r, r)
+
             # add to file
             if filename_head!=None and filename!=None:
                 append_data_to_file(fname, real_positions+lockin_meas)
+
+            # update plots
+            if showplot==True:
+                if len(map_dict)==1:
+                    draw_x.set_data(real_positions[0], demod_x)
+                    draw_y.set_data(real_positions[0], demod_y)
+                    draw_r.set_data(real_positions[0], demod_r)
+                    for ax in axes:
+                        ax.relim()
+                        ax.autoscale()
+                    fig.canvas.draw()
+                    fig.canvas.flush_events()
+
+                elif len(map_dict)==2:
+                    length = len(demod_x)
+                    y_num0 = length//x_num
+                    x_num0 = length-y_num0*x_num
+                    demod_x0[:y_num0, :] = np.reshape(demod_x[:y_num0*x_num], (y_num0, x_num))
+                    demod_y0[:y_num0, :] = np.reshape(demod_y[:y_num0*x_num], (y_num0, x_num))
+                    demod_r0[:y_num0, :] = np.reshape(demod_r[:y_num0*x_num], (y_num0, x_num))
+                    if (y_num0 < y_num):
+                        demod_x0[y_num0, :x_num0] = demod_x[y_num0*x_num:length]
+                        demod_y0[y_num0, :x_num0] = demod_y[y_num0*x_num:length]
+                        demod_r0[y_num0, :x_num0] = demod_r[y_num0*x_num:length]
+
+                    mapx.set_data(demod_x0)
+                    mapx.set_clim(vmin = demod_x0.min(), vmax = demod_x0.max())
+                    mapy.set_data(demod_y0)
+                    mapy.set_clim(vmin = demod_y0.min(), vmax = demod_y0.max())
+                    mapr.set_data(demod_r0)
+                    mapr.set_clim(vmin = demod_r0.min(), vmax = demod_r0.max())
+                    fig.canvas.draw()
+                    fig.canvas.flush_events()
 
             current_pos = pos
 

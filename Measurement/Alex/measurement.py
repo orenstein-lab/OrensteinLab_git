@@ -14,6 +14,9 @@ import os
 Features to add:
     - plotting for motor_scan
     - generalize handling of writing files (headers, metadata, etc) using motor names and other such features that can be easily set at the top of the file.
+    - lockin_time_series can read motors and add to the file/plots
+    - add strain cell as a motor - needs some thought
+    - default kwargs for each motor when running from meas.
 
 '''
 

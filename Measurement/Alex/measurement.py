@@ -461,7 +461,7 @@ def motor_scan(map_dict, filename_head=None, filename=None, showplot=True, time_
 
             # add to file
             if filename_head!=None and filename!=None:
-                append_data_to_file(fname, real_positions+list(lockin_meas))
+                append_data_to_file(fname, list(real_positions)+list(lockin_meas))
 
             # update plots
             if showplot==True:

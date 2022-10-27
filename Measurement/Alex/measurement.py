@@ -917,14 +917,14 @@ def initialize_motors(motors):
     return mobj_dict
 
 def close_motors(mobj_dict):
-    motors = mobj_dict.items()
+    motors = list(mobj_dict.keys())
     for m in motors:
         obj = mobj_dict[m]
         close_func = motor_dict[m]['close']
         close_func(obj)
 
 def move_motors_to_start(mobj_dict, mkwargs_dict, positions):
-    motors = mobj_dict.items()
+    motors = list(mobj_dict.keys())
     for ii, m in enumerate(motors):
         move_back = motor_dict[m]['move_back']
         p = positions[0][ii] - move_back
@@ -935,7 +935,7 @@ def move_motors_to_start(mobj_dict, mkwargs_dict, positions):
         print(f'Moved motor {m} to {p}.')
 
 def move_motors(mobj_dict, mkwargs_dict, current_pos, new_pos):
-    motors = mobj_dict.item()
+    motors = list(mobj_dict.keys())
     for ii, m in enumerate(motors):
         p_old = current_pos[ii]
         p_new = new_pos[ii]
@@ -947,7 +947,7 @@ def move_motors(mobj_dict, mkwargs_dict, current_pos, new_pos):
             print(f'Moved motor {m} to {p_new}.')
 
 def read_motors(mobj_dict):
-    motors = mobj_dict.items()
+    motors = list(mobj_dict.keys())
     pos_dict = {}
     for ii, m in enumerate(motors):
         mobj = mobj_dict[m]

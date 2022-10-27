@@ -37,7 +37,6 @@ with open(os.path.dirname(__file__)+ r'\..\..\Configuration.txt', "r") as f_conf
     device_id = conf_info_split[0].split('\t')[1]
     port_id = conf_info_split[1].split('\t')[1]
 channel_name = ['/%s/demods/0/sample','/%s/demods/1/sample','/%s/demods/2/sample','/%s/demods/3/sample']
-ATTOCUBE_INITIALIZED_FNAME = f'{os.path.dirname(__file__)}\\..\\..\\attocube_initialized'
 ATTOCUBE_HANDLE_FNAME = f'{os.path.dirname(__file__)}\\..\\..\\attocube_handle'
 
 ###############################
@@ -308,15 +307,11 @@ def initialize_esp():
 
 def initialize_attocube():
     # can this function check if the attocube has already been initialized?
-    with open(ATTOCUBE_INITIALIZED_FNAME, 'r') as f:
-        attocube_initialized = bool(int(f.readline()))
-    if attocube_initialized==False:
+    try: # if there is already a connection, this fails and we search for the handle in file.
         anc = Positioner()
-        with open(ATTOCUBE_INITIALIZED_FNAME, 'w') as f:
-            f.write('1')
         with open(ATTOCUBE_HANDLE_FNAME, 'wb') as f:
             pickle.dump(anc, f)
-    else:
+    except:
         with open(ATTOCUBE_HANDLE_FNAME, 'rb') as f:
             anc = pickle.load(f)
     return anc
@@ -341,13 +336,9 @@ def initialize_lakeshore():
 #####################
 
 def close_attocube(anc):
-    with open(ATTOCUBE_INITIALIZED_FNAME, 'r') as f:
-        attocube_initialized = bool(int(f.readline()))
-    if attocube_initialized==True:
+    try:
         anc.close()
-        with open(ATTOCUBE_INITIALIZED_FNAME, 'w') as f:
-            f.write('0')
-    else:
+    except:
         return 0
 
 def close_lakeshore(obj):

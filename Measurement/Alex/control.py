@@ -13,6 +13,7 @@ import os.path
 import time
 import datetime
 import math
+import pickle
 from IPython.display import clear_output
 import threading
 import ipywidgets as widgets
@@ -36,6 +37,8 @@ with open(os.path.dirname(__file__)+ r'\..\..\Configuration.txt', "r") as f_conf
     device_id = conf_info_split[0].split('\t')[1]
     port_id = conf_info_split[1].split('\t')[1]
 channel_name = ['/%s/demods/0/sample','/%s/demods/1/sample','/%s/demods/2/sample','/%s/demods/3/sample']
+ATTOCUBE_INITIALIZED_FNAME = f'{os.path.dirname(__file__)}\..\..\attocube_initialized'
+ATTOCUBE_HANDLE_FNAME = f'{os.path.dirname(__file__)}\..\..\attocube_handle'
 
 ###############################
 ### Instrument Read Methods ###
@@ -305,12 +308,17 @@ def initialize_esp():
 
 def initialize_attocube():
     # can this function check if the attocube has already been initialized?
+    with open(ATTOCUBE_INITIALIZED_FNAME, 'r') as f:
+        attocube_initizlied = bool(f.readline())
     if attocube_initialized==False:
         anc = Positioner()
-        attocube_initialized = True
-        attocube_handle = anc
+        with open(ATTOCUBE_INITIALIZED_FNAME, 'w') as f:
+            f.write(True)
+        with open(ATTOCUBE_HANDLE_FNAME, 'wb') as f:
+            pickle.dump(anc, f)
     else:
-        anc = attocube_handle
+        with open(ATTOCUBE_HANDLE_FNAME, 'rb') as f:
+            anc = pickle.load(f)
     return anc
 
 def initialize_rotation_axis(index):
@@ -333,10 +341,12 @@ def initialize_lakeshore():
 #####################
 
 def close_attocube(anc):
+    with open(ATTOCUBE_INITIALIZED_FNAME, 'r') as f:
+        attocube_initizlied = bool(f.readline())
     if attocube_initialized==True:
         anc.close()
-        attocube_initialized = False
-        attocube_handle = None
+        with open(ATTOCUBE_INITIALIZED_FNAME, 'w') as f:
+            f.write(False)
     else:
         return 0
 

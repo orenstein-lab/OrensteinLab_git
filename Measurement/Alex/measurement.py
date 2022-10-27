@@ -380,7 +380,7 @@ def motor_scan(map_dict, filename_head=None, filename=None, showplot=True, time_
         write_file_header(fname, header)
 
     # move motors to start position, using move_back to handle initial case
-    move_motors_to_start(motors, mkwargs_dict, mobj_dict, positions)
+    move_motors_to_start(mobj_dict, mkwargs_dict, positions)
 
     # setup measureables
     recorded_positions = [np.array([]) for i in range(len(map_dict))]
@@ -441,15 +441,16 @@ def motor_scan(map_dict, filename_head=None, filename=None, showplot=True, time_
     for pos in positions:
 
             # move motors if position has changed
-            move_motors(motors, mkwargs_dict, mobj_dict, current_pos, pos)
+            move_motors(mobj_dict, mkwargs_dict, current_pos, pos)
 
             # acquire data
             lockin_meas = read_lockin(daq_objs, time_constant, channel_index, R_channel_index)
             x, y, r, x_R, y_R, r_R = lockin_meas
 
             # read actual motor positions
-            real_positions_dict = read_motors(motors, mobj_dict)
-            real_positions = [real_positions_dict[m] for m in motors]
+            real_positions_dict = read_motors(mobj_dict)
+            #real_positions = [real_positions_dict[m] for m in motors]
+            real_positions = pos
 
             # update measurable
             for ii, p in enumerate(real_positions):
@@ -503,7 +504,7 @@ def motor_scan(map_dict, filename_head=None, filename=None, showplot=True, time_
             current_pos = pos
 
     # close motors
-    close_motors(motors, mobj_dict)
+    close_motors(mobj_dict)
 
 def rotate_map(map_dict, start_angle, end_angle, step_size, filename_head=None, filename=None, axis_index=1, showplot=True, time_constant=0.3, channel_index=1, R_channel_index=1, daq_objs=None, axis_1=None, axis_2=None):
 
@@ -522,14 +523,14 @@ def rotate_map(map_dict, start_angle, end_angle, step_size, filename_head=None, 
     positions = gen_positions_recurse(mranges, len(mranges)-1)
 
     # move motors to start position, using move_back to handle initial case
-    move_motors_to_start(motors, mkwargs_dict, mobj_dict, positions)
+    move_motors_to_start(mobj_dict, mkwargs_dict, positions)
 
     # loop over positions, only moving a motor if its target position has changed.
     current_pos = positions[0]
     for pos in positions:
 
             # move motors if position has changed
-            move_motors(motors, mkwargs_dict, mobj_dict, current_pos, pos)
+            move_motors(mobj_dict, mkwargs_dict, current_pos, pos)
 
             # setup each filename
             expanded_filename = filename
@@ -543,7 +544,7 @@ def rotate_map(map_dict, start_angle, end_angle, step_size, filename_head=None, 
             current_pos = pos
 
     # close motors
-    close_motors(motors, mobj_dict)
+    close_motors(mobj_dict)
 
 def corotate_map(map_dict, start_angle, end_angle, step_size, angle_offset, filename_head=None, filename=None, showplot=True, time_constant=0.3, channel_index=1, R_channel_index=1):
     '''
@@ -568,14 +569,14 @@ def corotate_map(map_dict, start_angle, end_angle, step_size, angle_offset, file
     positions = gen_positions_recurse(mranges, len(mranges)-1)
 
     # move motors to start position, using move_back to handle initial case
-    move_motors_to_start(motors, mkwargs_dict, mobj_dict, positions)
+    move_motors_to_start(mobj_dict, mkwargs_dict, positions)
 
     # loop over positions, only moving a motor if its target position has changed.
     current_pos = positions[0]
     for pos in positions:
 
             # move motors if position has changed
-            move_motors(motors, mkwargs_dict, mobj_dict, current_pos, pos)
+            move_motors(mobj_dict, mkwargs_dict, current_pos, pos)
 
             # setup each filename
             expanded_filename = filename
@@ -589,7 +590,7 @@ def corotate_map(map_dict, start_angle, end_angle, step_size, angle_offset, file
             current_pos = pos
 
     # close motors
-    close_motors(motors, mobj_dict)
+    close_motors(mobj_dict)
 
 def find_balance_angle(start_angle, end_angle, step_size, go_to_balance_angle=True, axis_index=2):
     '''
@@ -915,13 +916,15 @@ def initialize_motors(motors):
         mobj_dict[m] = init_func()
     return mobj_dict
 
-def close_motors(motors, mobj_dict):
+def close_motors(mobj_dict):
+    motors = mobj_dict.items()
     for m in motors:
         obj = mobj_dict[m]
         close_func = motor_dict[m]['close']
         close_func(obj)
 
-def move_motors_to_start(motors, mkwargs_dict, mobj_dict, positions):
+def move_motors_to_start(mobj_dict, mkwargs_dict, positions):
+    motors = mobj_dict.items()
     for ii, m in enumerate(motors):
         move_back = motor_dict[m]['move_back']
         p = positions[0][ii] - move_back
@@ -931,7 +934,8 @@ def move_motors_to_start(motors, mkwargs_dict, mobj_dict, positions):
         move_func(p, obj, **kwargs)
         print(f'Moved motor {m} to {p}.')
 
-def move_motors(motors, mkwargs_dict, mobj_dict, current_pos, new_pos):
+def move_motors(mobj_dict, mkwargs_dict, current_pos, new_pos):
+    motors = mobj_dict.item()
     for ii, m in enumerate(motors):
         p_old = current_pos[ii]
         p_new = new_pos[ii]
@@ -942,7 +946,8 @@ def move_motors(motors, mkwargs_dict, mobj_dict, current_pos, new_pos):
             move_func(p_new, obj, **kwargs)
             print(f'Moved motor {m} to {p_new}.')
 
-def read_motors(motors, mobj_dict):
+def read_motors(mobj_dict):
+    motors = mobj_dict.items()
     pos_dict = {}
     for ii, m in enumerate(motors):
         mobj = mobj_dict[m]

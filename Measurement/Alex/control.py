@@ -67,7 +67,7 @@ def read_zurich_lockin(daq_objs=None, time_constant=0.3, channel_index=1, R_chan
 ### Motor Move and Read Methods ###
 ###################################
 
-def move_attocube(axis, position, anc=None, torlerance=1, go_back=10):
+def move_attocube(axis, position, anc=None, tolerance=1, go_back=10):
     '''
     utility to move attocube
     '''
@@ -138,19 +138,19 @@ def move_x(position,  anc=None, tolerance=1, go_back=10):
     '''
     wrapper to move attocube x positioner.
     '''
-    move_attocube('x', position, tolerance, go_back, anc)
+    move_attocube('x', position, anc, tolerance, go_back)
 
 def move_y(position,  anc=None, tolerance=1, go_back=10):
     '''
     wrapper to move attocube y positioner.
     '''
-    move_attocube('y', position, tolerance, go_back, anc)
+    move_attocube('y', position, anc, tolerance, go_back)
 
 def move_z(position,  anc=None, tolerance=1, go_back=10):
     '''
     wrapper to move attocube z positioner.
     '''
-    move_attocube('z', position, tolerance, go_back, anc)
+    move_attocube('z', position, anc, tolerance, go_back)
 
 def read_x(anc=None, print_flag=True):
     return read_attocube('x', anc, print_flag)
@@ -305,7 +305,13 @@ def initialize_esp():
 
 def initialize_attocube():
     # can this function check if the attocube has already been initialized?
-    return Positioner()
+    if attocube_initialized==False:
+        anc = Positioner()
+        attocube_initialized = True
+        attocube_handle = anc
+    else:
+        anc = attocube_handle
+    return anc
 
 def initialize_rotation_axis(index):
     controller = initialize_esp()
@@ -327,7 +333,12 @@ def initialize_lakeshore():
 #####################
 
 def close_attocube(anc):
-    anc.close()
+    if attocube_initialized==True:
+        anc.close()
+        attocube_initialized = False
+        attocube_handle = None
+    else:
+        return 0
 
 def close_lakeshore(obj):
     ls.close_lakeshore335(obj)

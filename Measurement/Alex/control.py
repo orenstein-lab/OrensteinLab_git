@@ -121,7 +121,7 @@ def read_attocube(axis, anc=None, print_flag=True):
         anc = initialize_attocube()
         anc_passed = False
 
-    if axis not in ax_dict.items():
+    if axis not in list(ax_dict.keys()):
         raise ValueError('Invalid axis, please choose from ["x", "y", "z"].')
 
     time.sleep(0.1)

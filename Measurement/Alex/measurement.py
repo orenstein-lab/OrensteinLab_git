@@ -376,7 +376,7 @@ def motor_scan(map_dict, filename_head=None, filename=None, showplot=True, time_
     # setup file with header
     if filename_head!=None and filename!=None:
         fname = get_unique_filename(filename_head, filename)
-        header = [motor_dict[m]['name'] for m in motors]+lockin_header
+        header = [motor_dict[m]['name'] for m in motors]+[motor_dict[m]['name']+str(' measured') for m in motors]+lockin_header
         write_file_header(fname, header)
 
     # move motors to start position, using move_back to handle initial case
@@ -448,12 +448,11 @@ def motor_scan(map_dict, filename_head=None, filename=None, showplot=True, time_
             x, y, r, x_R, y_R, r_R = lockin_meas
 
             # read actual motor positions
-            real_positions_dict = read_motors(mobj_dict)
-            #real_positions = [real_positions_dict[m] for m in motors]
-            real_positions = pos
+            measured_positions_dict = read_motors(mobj_dict)
+            measured_positions = [measured_positions_dict[m] for m in motors]
 
             # update measurable
-            for ii, p in enumerate(real_positions):
+            for ii, p in enumerate(measured_positions):
                 recorded_positions[ii] = np.append(recorded_positions[ii], p)
             demod_x = np.append(demod_x, x)
             demod_y = np.append(demod_y, y)
@@ -461,7 +460,7 @@ def motor_scan(map_dict, filename_head=None, filename=None, showplot=True, time_
 
             # add to file
             if filename_head!=None and filename!=None:
-                append_data_to_file(fname, list(real_positions)+list(lockin_meas))
+                append_data_to_file(fname, list(pos)+list(measured_positions)+list(lockin_meas))
 
             # update plots
             if showplot==True:

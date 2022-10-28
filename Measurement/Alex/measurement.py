@@ -112,6 +112,10 @@ def lockin_time_series(recording_time, filename_head=None, filename=None, measur
 
         x, y, r, x_R, y_R, r_R = read_lockin(daq_objs, time_constant=0.3, channel_index=1, R_channel_index=1)
 
+        # read additional motors
+        measured_positions_dict = read_motors(mobj_dict)
+        measured_positions = [measured_positions_dict[m] for m in measure_motors]
+
         time_record = np.append(time_record, t_delay)
         demod_x = np.append(demod_x, x)
         demod_y = np.append(demod_y, y)
@@ -129,7 +133,7 @@ def lockin_time_series(recording_time, filename_head=None, filename=None, measur
 
         # update file
         if filename_head!=None and filename!=None:
-            vars = [t_delay, x, y, r]
+            vars = [t_delay, x, y, r]+measured_positions
             append_data_to_file(fname, vars)
 
     return time_record, demod_x, demod_y, demod_r
@@ -232,6 +236,10 @@ def rotate_scan(start_angle, end_angle, step_size, filename_head=None, filename=
         elif axis_index==2:
             angle_pos = angle_pos_2
 
+        # read additional motors
+        measured_positions_dict = read_motors(mobj_dict)
+        measured_positions = [measured_positions_dict[m] for m in measure_motors]
+
         position = np.append(position, angle_pos)
         demod_x = np.append(demod_x, x)
         demod_y = np.append(demod_y, y)
@@ -250,7 +258,7 @@ def rotate_scan(start_angle, end_angle, step_size, filename_head=None, filename=
 
         # write to file
         if filename_head!=None and filename!=None:
-            vars = [angle_pos_1, angle_pos_2, x, y, r, x_R, y_R, r_R]
+            vars = [angle_pos_1, angle_pos_2, x, y, r, x_R, y_R, r_R]+measured_positions
             append_data_to_file(fname, vars)
 
     # move motors back to original positions
@@ -309,9 +317,7 @@ def corotate_scan(start_angle, end_angle, step_size, angle_offset, filename_head
     # initialize file
     if filename_head!=None and filename!=None:
         fname = get_unique_filename(filename_head, filename)
-        motor_names = [motor_dict['axis_1']['name'], motor_dict['axis_2']['name']]
-        measure_motors_names = [motor_dict[m]['name'] for m in measure_motors]
-        header = motor_names+lockin_header+measure_motors_names
+        header = header = [motor_dict['axis_1']['name'], motor_dict['axis_2']['name']]+lockin_header+measure_motors
         write_file_header(fname, header)
 
     # setup plot
@@ -388,6 +394,7 @@ def motor_scan(map_dict, filename_head=None, filename=None, measure_motors=[], s
     # capture motor information and initialize
     motors, mranges, mkwargs_dict = capture_motor_information(map_dict)
     mobj_dict = initialize_motors(motors)
+    mobj_measure_dict = initialize_motors(measure_motors)
 
     # generate positions recursively
     positions = gen_positions_recurse(mranges, len(mranges)-1)
@@ -395,7 +402,7 @@ def motor_scan(map_dict, filename_head=None, filename=None, measure_motors=[], s
     # setup file with header
     if filename_head!=None and filename!=None:
         fname = get_unique_filename(filename_head, filename)
-        header = [motor_dict[m]['name'] for m in motors]+[motor_dict[m]['name']+str(' measured') for m in motors]+lockin_header
+        header = [motor_dict[m]['name'] for m in motors]+[motor_dict[m]['name']+str(' measured') for m in motors]+lockin_header+measure_motors
         write_file_header(fname, header)
 
     # move motors to start position, using move_back to handle initial case
@@ -470,6 +477,10 @@ def motor_scan(map_dict, filename_head=None, filename=None, measure_motors=[], s
             measured_positions_dict = read_motors(mobj_dict)
             measured_positions = [measured_positions_dict[m] for m in motors]
 
+            # read additional motors
+            measured_motors_positions_dict = read_motors(mobj_measure_dict)
+            measured_motors_positions = [measured_motors_positions_dict[m] for m in measure_motors]
+
             # update measurable
             for ii, p in enumerate(measured_positions):
                 recorded_positions[ii] = np.append(recorded_positions[ii], p)
@@ -479,7 +490,7 @@ def motor_scan(map_dict, filename_head=None, filename=None, measure_motors=[], s
 
             # add to file
             if filename_head!=None and filename!=None:
-                append_data_to_file(fname, list(pos)+list(measured_positions)+list(lockin_meas))
+                append_data_to_file(fname, list(pos)+list(measured_positions)+list(lockin_meas)+list(measured_motors_positions))
 
             # update plots
             if showplot==True:
@@ -603,7 +614,7 @@ def corotate_map(map_dict, start_angle, end_angle, step_size, angle_offset, file
                 expanded_filename = expanded_filename+f'_{m}{p}'
 
             # scan
-            corotate_scan(start_angle, end_angle, step_size, angle_offset, filename_head=filename_head, filename=expanded_filename, measure_motors=measure_motors, showplot=showplot, time_constant=time_constant, channel_index=channel_index, R_channel_index=R_channel_index, daq_objs=daq_objs, axis_1=axis_1, axis_2=axis_2)
+            corotate_scan(start_angle, end_angle, step_size, angle_offset, filename_head=filename_head, filename=expanded_filename, measure_motors, showplot, time_constant=time_constant, channel_index=channel_index, R_channel_index=R_channel_index, daq_objs=daq_objs, axis_1=axis_1, axis_2=axis_2)
 
             current_pos = pos
 

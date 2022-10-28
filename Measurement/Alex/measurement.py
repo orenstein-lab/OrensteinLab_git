@@ -66,13 +66,16 @@ instrument_dict = {
 ### Medthods ###
 ################
 
-def lockin_time_series(recording_time, filename_head=None, filename=None, time_constant=0.3, channel_index=1, R_channel_index=1):
+def lockin_time_series(recording_time, filename_head=None, filename=None, measure_motors=[], time_constant=0.3, channel_index=1, R_channel_index=1):
     '''
     aquires data on the lockin over a specified length of time.
     '''
     # initialize zurich lockin and setup read function
     daq_objs  = instrument_dict['zurich_lockin']['init']()
     read_lockin = instrument_dict['zurich_lockin']['read']
+
+    # initialize additional motors to measure during scan
+    mobj_dict = initialize_motors(measure_motors)
 
     # initialize data bins
     time_record = np.array([])
@@ -96,7 +99,7 @@ def lockin_time_series(recording_time, filename_head=None, filename=None, time_c
     # setup file for writing
     if filename_head!=None and filename!=None:
         fname = get_unique_filename(filename_head, filename)
-        header = ['Time (s)', 'Demod x', 'Demod y', 'R']
+        header = ['Time (s)', 'Demod x', 'Demod y', 'R']+measure_motors
         write_file_header(fname, header)
 
     # loop
@@ -131,7 +134,7 @@ def lockin_time_series(recording_time, filename_head=None, filename=None, time_c
 
     return time_record, demod_x, demod_y, demod_r
 
-def rotate_scan(start_angle, end_angle, step_size, filename_head=None, filename=None, axis_index=1, showplot=True, time_constant=0.3, channel_index=1, R_channel_index=1, daq_objs=None, axis_1=None, axis_2=None):
+def rotate_scan(start_angle, end_angle, step_size, filename_head=None, filename=None, axis_index=1, measure_motors=[], showplot=True, time_constant=0.3, channel_index=1, R_channel_index=1, daq_objs=None, axis_1=None, axis_2=None):
 
     # initialize zurich lockin and setup read function
     if daq_objs==None:
@@ -173,6 +176,9 @@ def rotate_scan(start_angle, end_angle, step_size, filename_head=None, filename=
     else:
         raise ValueError('Invalid axis_index, please select either 1 or 2.')
 
+    # initialize additional motors to measure during scan
+    mobj_dict = initialize_motors(measure_motors)
+
     # setup measureables
     position = np.array([])
     demod_x = np.array([])
@@ -191,7 +197,7 @@ def rotate_scan(start_angle, end_angle, step_size, filename_head=None, filename=
     # initialize file
     if filename_head!=None and filename!=None:
         fname = get_unique_filename(filename_head, filename)
-        header = header = [motor_dict['axis_1']['name'], motor_dict['axis_2']['name']]+lockin_header
+        header = header = [motor_dict['axis_1']['name'], motor_dict['axis_2']['name']]+lockin_header+measure_motors
         write_file_header(fname, header)
 
     # setup plot
@@ -368,7 +374,7 @@ def corotate_scan(start_angle, end_angle, step_size, angle_offset, filename_head
 
     return position, demod_x, demod_y, demod_r
 
-def motor_scan(map_dict, filename_head=None, filename=None, showplot=True, time_constant=0.3, channel_index=1, R_channel_index=1):
+def motor_scan(map_dict, filename_head=None, filename=None, measure_motors=[], showplot=True, time_constant=0.3, channel_index=1, R_channel_index=1):
     '''
     utility to record lockin measurement as a function of motors specified by dictionary map_dict.
     '''
@@ -516,7 +522,7 @@ def motor_scan(map_dict, filename_head=None, filename=None, showplot=True, time_
     # close motors
     close_motors(mobj_dict)
 
-def rotate_map(map_dict, start_angle, end_angle, step_size, filename_head=None, filename=None, axis_index=1, showplot=True, time_constant=0.3, channel_index=1, R_channel_index=1, daq_objs=None, axis_1=None, axis_2=None):
+def rotate_map(map_dict, start_angle, end_angle, step_size, filename_head=None, filename=None, axis_index=1, measure_motors=[], showplot=False, time_constant=0.3, channel_index=1, R_channel_index=1, daq_objs=None, axis_1=None, axis_2=None):
 
     # Lock-in Amplifier initialization
     daq_objs = instrument_dict['zurich_lockin']['init']()
@@ -549,7 +555,7 @@ def rotate_map(map_dict, start_angle, end_angle, step_size, filename_head=None, 
                 expanded_filename = expanded_filename+f'_{m}{p}'
 
             # scan
-            rotate_scan(start_angle, end_angle, step_size, filename_head=filename_head, filename=expanded_filename, axis_index=axis_index, showplot=False, time_constant=time_constant, channel_index=channel_index, R_channel_index=R_channel_index, daq_objs=daq_objs, axis_1=axis_1, axis_2=axis_2)
+            rotate_scan(start_angle, end_angle, step_size, filename_head=filename_head, filename=expanded_filename, axis_index=axis_index, measure_motors=measure_motors, showplot=showplot, time_constant=time_constant, channel_index=channel_index, R_channel_index=R_channel_index, daq_objs=daq_objs, axis_1=axis_1, axis_2=axis_2)
 
             current_pos = pos
 

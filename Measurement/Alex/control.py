@@ -293,6 +293,38 @@ def set_coil():
 def read_coil():
     return 1
 
+def set_strain_voltage(channel, voltage, obj=None):
+
+    sc_passed = True
+    if sc==None:
+        sc = initialize_strain_cell_client()
+        sc_passed = False
+
+    sc.set_voltage(channel, voltage)
+
+def read_strain_capacitance(obj=None):
+
+    sc_passed = True
+    if sc==None:
+        sc = initialize_strain_cell_client()
+        sc_passed = False
+
+    cap = sc.get_cap()
+
+    if sc_passed == False:
+        print(pos)
+
+    return caps
+
+def set_strain_voltage_compress(voltage, obj=None):
+    set_strain_voltage(2,voltage)
+
+def set_strain_voltage_tension(voltage, obj=None):
+    set_strain_voltage(2,voltage)
+
+
+
+
 ###############################
 ### Initialization Medthods ###
 ###############################
@@ -331,6 +363,9 @@ def initialize_rot_axis_2():
 def initialize_lakeshore():
     return ls.initialization_lakeshore335()
 
+def initialize_strain_cell_client():
+    return StrainClient()
+
 #####################
 ### Close Methods ###
 #####################
@@ -351,6 +386,9 @@ def close_rot_axis_2(obj):
     return 0
 
 def close_lockin(obj):
+    return 0
+
+def close_strain_cell_client():
     return 0
 
 ''' a script I wrote for collecting data on capacitive sensor

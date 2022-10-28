@@ -303,7 +303,9 @@ def corotate_scan(start_angle, end_angle, step_size, angle_offset, filename_head
     # initialize file
     if filename_head!=None and filename!=None:
         fname = get_unique_filename(filename_head, filename)
-        header = header = [motor_dict['axis_1']['name'], motor_dict['axis_2']['name']]+lockin_header+measure_motors
+        motor_names = [motor_dict['axis_1']['name'], motor_dict['axis_2']['name']]
+        measure_motors_names = [motor_dict[m]['name'] for m in measure_motors]
+        header = motor_names+lockin_header+measure_motors_names
         write_file_header(fname, header)
 
     # setup plot
@@ -338,7 +340,7 @@ def corotate_scan(start_angle, end_angle, step_size, angle_offset, filename_head
         angle_pos_2 = read_axis_2(axis=axis_2, print_flag=False)
 
         # read additional motors
-        measure_positions_dict = read_motors(mobj_dict)
+        measured_positions_dict = read_motors(mobj_dict)
         measured_positions = [measured_positions_dict[m] for m in measure_motors]
 
         position = np.append(position, angle_pos_1)
@@ -595,7 +597,7 @@ def corotate_map(map_dict, start_angle, end_angle, step_size, angle_offset, file
                 expanded_filename = expanded_filename+f'_{m}{p}'
 
             # scan
-            corotate_scan(start_angle, end_angle, step_size, angle_offset, filename_head=filename_head, filename=expanded_filename, measure_motors, showplot, time_constant=time_constant, channel_index=channel_index, R_channel_index=R_channel_index, daq_objs=daq_objs, axis_1=axis_1, axis_2=axis_2)
+            corotate_scan(start_angle, end_angle, step_size, angle_offset, filename_head=filename_head, filename=expanded_filename, measure_motors=measure_motors, showplot=showplot, time_constant=time_constant, channel_index=channel_index, R_channel_index=R_channel_index, daq_objs=daq_objs, axis_1=axis_1, axis_2=axis_2)
 
             current_pos = pos
 

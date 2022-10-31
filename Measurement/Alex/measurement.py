@@ -10,6 +10,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
 import os
+from tqdm.auto import tqdm
 '''
 Features to add:
     - plotting for motor_scans
@@ -468,73 +469,75 @@ def motor_scan(map_dict, filename_head=None, filename=None, measure_motors=[], s
 
     # loop over positions, only moving a motor if its target position has changed.
     current_pos = positions[0]
-    for pos in positions:
+    num_pos = len(positions)
+    for ii in tqdm(range(num_pos)):
+        pos = positions[ii]
 
-            # move motors if position has changed
-            move_motors(mobj_dict, mkwargs_dict, current_pos, pos)
+        # move motors if position has changed
+        move_motors(mobj_dict, mkwargs_dict, current_pos, pos)
 
-            # acquire data
-            lockin_meas = read_lockin(daq_objs, time_constant, channel_index, R_channel_index)
-            x, y, r, x_R, y_R, r_R = lockin_meas
+        # acquire data
+        lockin_meas = read_lockin(daq_objs, time_constant, channel_index, R_channel_index)
+        x, y, r, x_R, y_R, r_R = lockin_meas
 
-            # read actual motor positions
-            measured_positions_dict = read_motors(mobj_dict)
-            measured_positions = [measured_positions_dict[m] for m in motors]
+        # read actual motor positions
+        measured_positions_dict = read_motors(mobj_dict)
+        measured_positions = [measured_positions_dict[m] for m in motors]
 
-            # read additional motors
-            measured_motors_positions_dict = read_motors(mobj_measure_dict)
-            measured_motors_positions = [measured_motors_positions_dict[m] for m in measure_motors]
+        # read additional motors
+        measured_motors_positions_dict = read_motors(mobj_measure_dict)
+        measured_motors_positions = [measured_motors_positions_dict[m] for m in measure_motors]
 
-            # update measurable
-            for ii, p in enumerate(measured_positions):
-                recorded_positions[ii] = np.append(recorded_positions[ii], p)
-            demod_x = np.append(demod_x, x)
-            demod_y = np.append(demod_y, y)
-            demod_r = np.append(demod_r, r)
+        # update measurable
+        for ii, p in enumerate(measured_positions):
+            recorded_positions[ii] = np.append(recorded_positions[ii], p)
+        demod_x = np.append(demod_x, x)
+        demod_y = np.append(demod_y, y)
+        demod_r = np.append(demod_r, r)
 
-            # add to file
-            if filename_head!=None and filename!=None:
-                append_data_to_file(fname, list(pos)+list(measured_positions)+list(lockin_meas)+list(measured_motors_positions))
+        # add to file
+        if filename_head!=None and filename!=None:
+            append_data_to_file(fname, list(pos)+list(measured_positions)+list(lockin_meas)+list(measured_motors_positions))
 
-            # update plots
-            if showplot==True:
-                if len(map_dict)==1:
-                    draw_x.set_data(recorded_positions[0], demod_x)
-                    draw_y.set_data(recorded_positions[0], demod_y)
-                    draw_r.set_data(recorded_positions[0], demod_r)
-                    for ax in axes:
-                        ax.relim()
-                        ax.autoscale()
-                    fig.canvas.draw()
-                    fig.canvas.flush_events()
+        # update plots
+        if showplot==True:
+            if len(map_dict)==1:
+                draw_x.set_data(recorded_positions[0], demod_x)
+                draw_y.set_data(recorded_positions[0], demod_y)
+                draw_r.set_data(recorded_positions[0], demod_r)
+                for ax in axes:
+                    ax.relim()
+                    ax.autoscale()
+                fig.canvas.draw()
+                fig.canvas.flush_events()
 
-                elif len(map_dict)==2:
-                    time.sleep(0.01)
-                    length = len(demod_x)
-                    y_num0 = length//x_num
-                    x_num0 = length-y_num0*x_num
-                    demod_x0[:y_num0, :] = np.reshape(demod_x[:y_num0*x_num], (y_num0, x_num))
-                    demod_y0[:y_num0, :] = np.reshape(demod_y[:y_num0*x_num], (y_num0, x_num))
-                    demod_r0[:y_num0, :] = np.reshape(demod_r[:y_num0*x_num], (y_num0, x_num))
-                    if (y_num0 < y_num):
-                        demod_x0[y_num0, :x_num0] = demod_x[y_num0*x_num:length]
-                        demod_y0[y_num0, :x_num0] = demod_y[y_num0*x_num:length]
-                        demod_r0[y_num0, :x_num0] = demod_r[y_num0*x_num:length]
+            elif len(map_dict)==2:
+                time.sleep(0.01)
+                length = len(demod_x)
+                y_num0 = length//x_num
+                x_num0 = length-y_num0*x_num
+                demod_x0[:y_num0, :] = np.reshape(demod_x[:y_num0*x_num], (y_num0, x_num))
+                demod_y0[:y_num0, :] = np.reshape(demod_y[:y_num0*x_num], (y_num0, x_num))
+                demod_r0[:y_num0, :] = np.reshape(demod_r[:y_num0*x_num], (y_num0, x_num))
+                if (y_num0 < y_num):
+                    demod_x0[y_num0, :x_num0] = demod_x[y_num0*x_num:length]
+                    demod_y0[y_num0, :x_num0] = demod_y[y_num0*x_num:length]
+                    demod_r0[y_num0, :x_num0] = demod_r[y_num0*x_num:length]
 
-                    #print(f'x: {demod_x0.min()}, {demod_x0.max()}')
-                    #print(f'y: {demod_y0.min()}, {demod_y0.max()}')
-                    #print(f'r: {demod_r0.min()}, {demod_r0.max()}')
-                    #print(demod_x0)
-                    mapx.set_data(demod_x0)
-                    mapx.set_clim(vmin = demod_x0.min(), vmax = demod_x0.max())
-                    mapy.set_data(demod_y0)
-                    mapy.set_clim(vmin = demod_y0.min(), vmax = demod_y0.max())
-                    mapr.set_data(demod_r0)
-                    mapr.set_clim(vmin = demod_r0.min(), vmax = demod_r0.max())
-                    fig.canvas.draw()
-                    fig.canvas.flush_events()
+                #print(f'x: {demod_x0.min()}, {demod_x0.max()}')
+                #print(f'y: {demod_y0.min()}, {demod_y0.max()}')
+                #print(f'r: {demod_r0.min()}, {demod_r0.max()}')
+                #print(demod_x0)
+                mapx.set_data(demod_x0)
+                mapx.set_clim(vmin = demod_x0.min(), vmax = demod_x0.max())
+                mapy.set_data(demod_y0)
+                mapy.set_clim(vmin = demod_y0.min(), vmax = demod_y0.max())
+                mapr.set_data(demod_r0)
+                mapr.set_clim(vmin = demod_r0.min(), vmax = demod_r0.max())
+                fig.canvas.draw()
+                fig.canvas.flush_events()
 
-            current_pos = pos
+        current_pos = pos
 
     # close motors
     close_motors(mobj_dict)
@@ -560,21 +563,23 @@ def rotate_map(map_dict, start_angle, end_angle, step_size, filename_head=None, 
 
     # loop over positions, only moving a motor if its target position has changed.
     current_pos = positions[0]
-    for pos in positions:
+    num_pos = len(positions)
+    for ii in tqdm(range(num_pos)):
+        pos = positions[ii]
 
-            # move motors if position has changed
-            move_motors(mobj_dict, mkwargs_dict, current_pos, pos)
+        # move motors if position has changed
+        move_motors(mobj_dict, mkwargs_dict, current_pos, pos)
 
-            # setup each filename
-            expanded_filename = filename
-            for ii, m in enumerate(motors):
-                p = pos[ii]
-                expanded_filename = expanded_filename+f'_{m}{p}'
+        # setup each filename
+        expanded_filename = filename
+        for ii, m in enumerate(motors):
+            p = pos[ii]
+            expanded_filename = expanded_filename+f'_{m}{p}'
 
-            # scan
-            rotate_scan(start_angle, end_angle, step_size, filename_head=filename_head, filename=expanded_filename, axis_index=axis_index, measure_motors=measure_motors, showplot=showplot, time_constant=time_constant, channel_index=channel_index, R_channel_index=R_channel_index, daq_objs=daq_objs, axis_1=axis_1, axis_2=axis_2)
+        # scan
+        rotate_scan(start_angle, end_angle, step_size, filename_head=filename_head, filename=expanded_filename, axis_index=axis_index, measure_motors=measure_motors, showplot=showplot, time_constant=time_constant, channel_index=channel_index, R_channel_index=R_channel_index, daq_objs=daq_objs, axis_1=axis_1, axis_2=axis_2)
 
-            current_pos = pos
+        current_pos = pos
 
     # close motors
     close_motors(mobj_dict)
@@ -606,21 +611,23 @@ def corotate_map(map_dict, start_angle, end_angle, step_size, angle_offset, file
 
     # loop over positions, only moving a motor if its target position has changed.
     current_pos = positions[0]
-    for pos in positions:
+    num_pos = len(positions)
+    for ii in tqdm(range(num_pos)):
+        pos = positions[ii]
 
-            # move motors if position has changed
-            move_motors(mobj_dict, mkwargs_dict, current_pos, pos)
+        # move motors if position has changed
+        move_motors(mobj_dict, mkwargs_dict, current_pos, pos)
 
-            # setup each filename
-            expanded_filename = filename
-            for ii, m in enumerate(motors):
-                p = pos[ii]
-                expanded_filename = expanded_filename+f'_{m}{p}'
+        # setup each filename
+        expanded_filename = filename
+        for ii, m in enumerate(motors):
+            p = pos[ii]
+            expanded_filename = expanded_filename+f'_{m}{p}'
 
-            # scan
-            corotate_scan(start_angle, end_angle, step_size, angle_offset, filename_head=filename_head, filename=expanded_filename, measure_motors=measure_motors, showplot=showplot, time_constant=time_constant, channel_index=channel_index, R_channel_index=R_channel_index, daq_objs=daq_objs, axis_1=axis_1, axis_2=axis_2)
+        # scan
+        corotate_scan(start_angle, end_angle, step_size, angle_offset, filename_head=filename_head, filename=expanded_filename, measure_motors=measure_motors, showplot=showplot, time_constant=time_constant, channel_index=channel_index, R_channel_index=R_channel_index, daq_objs=daq_objs, axis_1=axis_1, axis_2=axis_2)
 
-            current_pos = pos
+        current_pos = pos
 
     # close motors
     close_motors(mobj_dict)

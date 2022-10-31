@@ -614,7 +614,7 @@ def corotate_map(map_dict, start_angle, end_angle, step_size, angle_offset, file
                 expanded_filename = expanded_filename+f'_{m}{p}'
 
             # scan
-            corotate_scan(start_angle, end_angle, step_size, angle_offset, filename_head=filename_head, filename=expanded_filename, measure_motors, showplot, time_constant=time_constant, channel_index=channel_index, R_channel_index=R_channel_index, daq_objs=daq_objs, axis_1=axis_1, axis_2=axis_2)
+            corotate_scan(start_angle, end_angle, step_size, angle_offset, filename_head=filename_head, filename=expanded_filename, measure_motors=measure_motors, showplot=showplot, time_constant=time_constant, channel_index=channel_index, R_channel_index=R_channel_index, daq_objs=daq_objs, axis_1=axis_1, axis_2=axis_2)
 
             current_pos = pos
 

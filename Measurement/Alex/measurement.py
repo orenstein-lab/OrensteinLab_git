@@ -99,7 +99,8 @@ def lockin_time_series(recording_time, filename_head=None, filename=None, measur
     # setup file for writing
     if filename_head!=None and filename!=None:
         fname = get_unique_filename(filename_head, filename)
-        header = ['Time (s)', 'Demod x', 'Demod y', 'R']+measure_motors
+        header_motors = [motor_dict[m]['name'] for m in measure_motors]
+        header = ['Time (s)', 'Demod x', 'Demod y', 'R']+header_motors
         write_file_header(fname, header)
 
     # loop
@@ -201,7 +202,8 @@ def rotate_scan(start_angle, end_angle, step_size, filename_head=None, filename=
     # initialize file
     if filename_head!=None and filename!=None:
         fname = get_unique_filename(filename_head, filename)
-        header = header = [motor_dict['axis_1']['name'], motor_dict['axis_2']['name']]+lockin_header+measure_motors
+        header_motors = [motor_dict[m]['name'] for m in measure_motors]
+        header = [motor_dict['axis_1']['name'], motor_dict['axis_2']['name']]+lockin_header+header_motors
         write_file_header(fname, header)
 
     # setup plot
@@ -317,7 +319,8 @@ def corotate_scan(start_angle, end_angle, step_size, angle_offset, filename_head
     # initialize file
     if filename_head!=None and filename!=None:
         fname = get_unique_filename(filename_head, filename)
-        header = header = [motor_dict['axis_1']['name'], motor_dict['axis_2']['name']]+lockin_header+measure_motors
+        header_motors = [motor_dict[m]['name'] for m in measure_motors]
+        header = header = [motor_dict['axis_1']['name'], motor_dict['axis_2']['name']]+lockin_header+header_motors
         write_file_header(fname, header)
 
     # setup plot
@@ -402,7 +405,8 @@ def motor_scan(map_dict, filename_head=None, filename=None, measure_motors=[], s
     # setup file with header
     if filename_head!=None and filename!=None:
         fname = get_unique_filename(filename_head, filename)
-        header = [motor_dict[m]['name'] for m in motors]+[motor_dict[m]['name']+str(' measured') for m in motors]+lockin_header+measure_motors
+        header_motors = [motor_dict[m]['name'] for m in measure_motors]
+        header = [motor_dict[m]['name'] for m in motors]+[motor_dict[m]['name']+str(' measured') for m in motors]+lockin_header+header_motors
         write_file_header(fname, header)
 
     # move motors to start position, using move_back to handle initial case

@@ -293,7 +293,7 @@ def set_coil():
 def read_coil():
     return 1
 
-def set_strain_voltage(channel, voltage, obj=None):
+def set_strain_voltage(channel, voltage, sc=None):
 
     sc_passed = True
     if sc==None:
@@ -302,7 +302,7 @@ def set_strain_voltage(channel, voltage, obj=None):
 
     sc.set_voltage(channel, voltage)
 
-def read_strain_capacitance(obj=None):
+def read_strain_capacitance(sc=None):
 
     sc_passed = True
     if sc==None:
@@ -314,13 +314,13 @@ def read_strain_capacitance(obj=None):
     if sc_passed == False:
         print(pos)
 
-    return caps
+    return cap
 
-def set_strain_voltage_compress(voltage, obj=None):
-    set_strain_voltage(2,voltage)
+def set_strain_voltage_compress(voltage, sc=None):
+    set_strain_voltage(2,voltage, sc=sc)
 
-def set_strain_voltage_tension(voltage, obj=None):
-    set_strain_voltage(2,voltage)
+def set_strain_voltage_tension(voltage, sc=None):
+    set_strain_voltage(2,voltage, sc=sc)
 
 
 
@@ -388,7 +388,7 @@ def close_rot_axis_2(obj):
 def close_lockin(obj):
     return 0
 
-def close_strain_cell_client():
+def close_strain_cell_client(obj):
     return 0
 
 ''' a script I wrote for collecting data on capacitive sensor

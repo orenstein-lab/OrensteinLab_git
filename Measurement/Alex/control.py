@@ -220,7 +220,7 @@ def read_axis_1(axis=None, print_flag=True):
 def read_axis_2(axis=None, print_flag=True):
     return read_axis(2, axis, print_flag)
 
-def set_temperature(temperature, lsobj=None, tolerance=0.01, wait_time=0, max_check=60):
+def set_temperature(temperature, lsobj=None, tolerance=0.01, wait_time=0, max_check=300):
     '''
     sets lakeshore setpoint, waits until temperature is within tolerance of setpoint, and waits for soak time before returning.
 
@@ -350,8 +350,13 @@ def initialize_attocube():
 
 def initialize_rotation_axis(index):
     controller = initialize_esp()
-    axis_rot = newport.NewportESP301Axis(controller, index-1)
-    axis_rot.enable()
+    while True:
+        try:
+            axis_rot = newport.NewportESP301Axis(controller, index-1)
+            axis_rot.enable()
+            break
+        except:
+            time.sleep(0.1)
     return axis_rot
 
 def initialize_rot_axis_1():

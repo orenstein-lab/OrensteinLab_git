@@ -1014,6 +1014,7 @@ def gen_positions_recurse(range_list, n, pos_list=[], current_pos=None):
     '''
     if n==len(range_list)-1:
         current_pos = np.asarray(range_list)[:,0]
+        pos_list = []
     if n>=0:
         for i in range_list[n]:
             current_pos[n] = i

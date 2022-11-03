@@ -13,3 +13,6 @@ attocube_handle
 
 # ignore config file
 Configuration.txt
+
+# other files that pop up:
+.DS_Store

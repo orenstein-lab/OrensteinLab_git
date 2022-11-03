@@ -1,0 +1,15 @@
+# ignore ALL pycache files
+*.pyc
+
+# ignore ALL files in ANY directory named..
+Measurement/Alex/_pycache_
+Measurement/Elizabeth/_pycache_
+Measurement/Changmin/_pycache_
+Measurement/Veronika/_pycache_
+Measurement/Yue/_pycache_
+
+# ignore attocube handle file
+attocube_handle
+
+# ignore config file
+Configuration.txt

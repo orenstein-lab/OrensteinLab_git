@@ -121,6 +121,7 @@ def read_position():
     ax = {'x':0, 'y':1, 'z':2}
     anc = Positioner()
 
+    time.sleep(0.1) # need this or it reads all positions as 0.0
     x=anc.getPosition(ax['x'])/1000
     y=anc.getPosition(ax['y'])/1000
     z=anc.getPosition(ax['z'])/1000
@@ -130,6 +131,14 @@ def read_position():
     print('z: '+str(z))
 
     anc.close()
+
+def read_attocubes():
+    ax = {'x': 0, 'y': 1, 'z': 2};
+    anc = Positioner();
+    time.sleep(0.1)
+    pos= [anc.getPosition(0)/1000, anc.getPosition(1)/1000, anc.getPosition(2)/1000];
+    anc.close()
+    return pos
 
 def rotate_axis(angle, axis_index):
     #ESP301 initialization

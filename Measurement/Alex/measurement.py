@@ -112,7 +112,7 @@ def lockin_time_series(recording_time, filename_head=None, filename=None, measur
         toc = time.perf_counter()
         t_delay = toc - tic
 
-        x, y, r, x_R, y_R, r_R = read_lockin(daq_objs, time_constant=0.3, channel_index=1, R_channel_index=1)
+        x, y, r, x_R, y_R, r_R = read_lockin(daq_objs=daq_objs, time_constant=time_constant, channel_index=channel_index, R_channel_index=R_channel_index)
 
         # read additional motors
         measured_positions_dict = read_motors(mobj_dict)
@@ -140,7 +140,7 @@ def lockin_time_series(recording_time, filename_head=None, filename=None, measur
 
     return time_record, demod_x, demod_y, demod_r
 
-def rotate_scan(start_angle, end_angle, step_size, filename_head=None, filename=None, axis_index=1, measure_motors=[], showplot=True, time_constant=0.3, channel_index=1, R_channel_index=1, daq_objs=None, axis_1=None, axis_2=None):
+def rotate_scan(start_angle, end_angle, step_size, filename_head=None, filename=None, axis_index=1, measure_motors=[], showplot=True, time_constant=0.3, channel_index=1, R_channel_index=3, daq_objs=None, axis_1=None, axis_2=None):
 
     # initialize zurich lockin and setup read function
     if daq_objs==None:
@@ -225,13 +225,13 @@ def rotate_scan(start_angle, end_angle, step_size, filename_head=None, filename=
     for ii, angle in enumerate(angles):
         if (angle == start_angle):
             move_axis(angle-move_back, axis=axis)
-            move_other_axis(angle-move_other_back, axis=other_axis)
-            move_other_axis(angle, axis=other_axis)
+            #move_other_axis(angle-move_other_back, axis=other_axis)
+            #move_other_axis(angle, axis=other_axis)
         move_axis(angle, axis=axis)
         time.sleep(0.03)
 
         # read lockin and rotators
-        x, y, r, x_R, y_R, r_R = read_lockin(time_constant=0.3, channel_index=1, R_channel_index=1, daq_objs=daq_objs)
+        x, y, r, x_R, y_R, r_R = read_lockin(daq_objs=daq_objs, time_constant=time_constant, channel_index=channel_index, R_channel_index=R_channel_index)
         angle_pos_1 = read_axis_1(axis=axis_1, print_flag=False)
         angle_pos_2 = read_axis_2(axis=axis_2, print_flag=False)
         if axis_index==1:
@@ -266,11 +266,11 @@ def rotate_scan(start_angle, end_angle, step_size, filename_head=None, filename=
 
     # move motors back to original positions
     move_axis(start_angle, axis=axis)
-    move_other_axis(start_angle, axis=other_axis)
+    #move_other_axis(start_angle, axis=other_axis)
 
     return position, demod_x, demod_y, demod_r
 
-def corotate_scan(start_angle, end_angle, step_size, angle_offset, filename_head=None, filename=None, measure_motors=[], showplot=True, time_constant=0.3, channel_index=1, R_channel_index=1, daq_objs=None, axis_1=None, axis_2=None):
+def corotate_scan(start_angle, end_angle, step_size, angle_offset, filename_head=None, filename=None, measure_motors=[], showplot=True, time_constant=0.3, channel_index=1, R_channel_index=3, daq_objs=None, axis_1=None, axis_2=None):
     '''
     Takes a corotation scan moving axes 1 and 2, typically representing half wave plates.
 
@@ -351,7 +351,7 @@ def corotate_scan(start_angle, end_angle, step_size, angle_offset, filename_head
         time.sleep(0.03)
 
         # read lockin, rotators
-        x, y, r, x_R, y_R, r_R = read_lockin(time_constant=0.3, channel_index=1, R_channel_index=1, daq_objs=daq_objs)
+        x, y, r, x_R, y_R, r_R = read_lockin(daq_objs=daq_objs, time_constant=time_constant, channel_index=channel_index, R_channel_index=R_channel_index)
         angle_pos_1 = read_axis_1(axis=axis_1, print_flag=False)
         angle_pos_2 = read_axis_2(axis=axis_2, print_flag=False)
 
@@ -386,7 +386,7 @@ def corotate_scan(start_angle, end_angle, step_size, angle_offset, filename_head
 
     return position, demod_x, demod_y, demod_r
 
-def motor_scan(map_dict, filename_head=None, filename=None, measure_motors=[], showplot=True, time_constant=0.3, channel_index=1, R_channel_index=1):
+def motor_scan(map_dict, filename_head=None, filename=None, measure_motors=[], showplot=True, time_constant=0.3, channel_index=1, R_channel_index=3):
     '''
     utility to record lockin measurement as a function of motors specified by dictionary map_dict.
     '''
@@ -477,7 +477,7 @@ def motor_scan(map_dict, filename_head=None, filename=None, measure_motors=[], s
         move_motors(mobj_dict, mkwargs_dict, current_pos, pos)
 
         # acquire data
-        lockin_meas = read_lockin(daq_objs, time_constant, channel_index, R_channel_index)
+        lockin_meas = read_lockin(daq_objs=daq_objs, time_constant=time_constant, channel_index=channel_index, R_channel_index=R_channel_index)
         x, y, r, x_R, y_R, r_R = lockin_meas
 
         # read actual motor positions
@@ -542,7 +542,7 @@ def motor_scan(map_dict, filename_head=None, filename=None, measure_motors=[], s
     # close motors
     close_motors(mobj_dict)
 
-def rotate_map(map_dict, start_angle, end_angle, step_size, filename_head=None, filename=None, axis_index=1, measure_motors=[], showplot=False, time_constant=0.3, channel_index=1, R_channel_index=1, daq_objs=None, axis_1=None, axis_2=None):
+def rotate_map(map_dict, start_angle, end_angle, step_size, filename_head=None, filename=None, axis_index=1, measure_motors=[], showplot=False, time_constant=0.3, channel_index=1, R_channel_index=3, daq_objs=None, axis_1=None, axis_2=None):
 
     # Lock-in Amplifier initialization
     daq_objs = instrument_dict['zurich_lockin']['init']()
@@ -584,7 +584,7 @@ def rotate_map(map_dict, start_angle, end_angle, step_size, filename_head=None, 
     # close motors
     close_motors(mobj_dict)
 
-def corotate_map(map_dict, start_angle, end_angle, step_size, angle_offset, filename_head=None, filename=None, measure_motors=[], showplot=False, time_constant=0.3, channel_index=1, R_channel_index=1):
+def corotate_map(map_dict, start_angle, end_angle, step_size, angle_offset, filename_head=None, filename=None, measure_motors=[], showplot=False, time_constant=0.3, channel_index=1, R_channel_index=3):
     '''
     Takes a corotation scan at each point in a map specified by dictionary map_dict, which entries of the form 'axis':(start, end, step_size, kwargs), where kwargs is a dictionary of key/value pairs appropriate for each motor 'move' function. For example, a temperature map might take the following map dictionary:
 

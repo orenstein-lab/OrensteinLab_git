@@ -468,13 +468,14 @@ def motor_scan(map_dict, filename_head=None, filename=None, measure_motors=[], s
             print('Cannot plot scans that are greater than 2 dimensions.')
 
     # loop over positions, only moving a motor if its target position has changed.
-    current_pos = positions[0]
+    start_pos = positions[0]
+    current_pos = start_pos
     num_pos = len(positions)
     for ii in tqdm(range(num_pos)):
         pos = positions[ii]
 
         # move motors if position has changed
-        move_motors(mobj_dict, mkwargs_dict, current_pos, pos)
+        move_motors(mobj_dict, mkwargs_dict, current_pos, start_pos, pos)
 
         # acquire data
         lockin_meas = read_lockin(daq_objs=daq_objs, time_constant=time_constant, channel_index=channel_index, R_channel_index=R_channel_index)
@@ -562,13 +563,14 @@ def rotate_map(map_dict, start_angle, end_angle, step_size, filename_head=None, 
     move_motors_to_start(mobj_dict, mkwargs_dict, positions)
 
     # loop over positions, only moving a motor if its target position has changed.
-    current_pos = positions[0]
+    start_pos = positions[0]
+    current_pos = start_pos
     num_pos = len(positions)
     for ii in tqdm(range(num_pos)):
         pos = positions[ii]
 
         # move motors if position has changed
-        move_motors(mobj_dict, mkwargs_dict, current_pos, pos)
+        move_motors(mobj_dict, mkwargs_dict, current_pos, start_pos, pos)
 
         # setup each filename
         expanded_filename = filename
@@ -610,13 +612,14 @@ def corotate_map(map_dict, start_angle, end_angle, step_size, angle_offset, file
     move_motors_to_start(mobj_dict, mkwargs_dict, positions)
 
     # loop over positions, only moving a motor if its target position has changed.
-    current_pos = positions[0]
+    start_pos = positions[0]
+    current_pos = start_pos
     num_pos = len(positions)
     for ii in tqdm(range(num_pos)):
         pos = positions[ii]
 
-        # move motors if position has changed
-        move_motors(mobj_dict, mkwargs_dict, current_pos, pos)
+        # move motors if position has changed, accounting for move_back
+        move_motors(mobj_dict, mkwargs_dict, current_pos, start_pos, pos)
 
         # setup each filename
         expanded_filename = filename
@@ -977,17 +980,23 @@ def move_motors_to_start(mobj_dict, mkwargs_dict, positions):
         p_true = read_func(obj)
         print(f'Moved motor {m} to {p_true}.')
 
-def move_motors(mobj_dict, mkwargs_dict, current_pos, new_pos):
+def move_motors(mobj_dict, mkwargs_dict, current_pos, start_pos, new_pos):
     motors = list(mobj_dict.keys())
     for ii, m in enumerate(motors):
         p_old = current_pos[ii]
         p_new = new_pos[ii]
+        p_start = start_pos[ii]
         if p_new!=p_old:
             move_func = motor_dict[m]['move']
             read_func = motor_dict[m]['read']
             obj = mobj_dict[m]
             kwargs = mkwargs_dict[m]
-            move_func(p_new, obj, **kwargs)
+            if p_new==p_start:
+                move_back = motor_dict[m]['move_back']
+                move_func(p_new-move_back, obj, **kwargs)
+                move_func(p_new, obj, **kwargs)
+            else:
+                move_func(p_new, obj, **kwargs)
             p_true = read_func(obj)
             print(f'Moved motor {m} to {p_true}.')
 

@@ -322,9 +322,6 @@ def set_strain_voltage_compress(voltage, sc=None):
 def set_strain_voltage_tension(voltage, sc=None):
     set_strain_voltage(2,voltage, sc=sc)
 
-
-
-
 ###############################
 ### Initialization Medthods ###
 ###############################

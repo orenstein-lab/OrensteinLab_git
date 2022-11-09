@@ -51,9 +51,9 @@ motor_dict = {
 
 'axis_2':{'move':ctrl.rotate_axis_2, 'read':ctrl.read_axis_2, 'init':ctrl.initialize_rot_axis_2, 'close':ctrl.close_rot_axis_2, 'move_back':1, 'name':'Angle 2 (deg)'},
 
-'strain_compress':{'move':ctrl.set_strain_voltage_compress, 'read':ctrl.read_strain_capacitance, 'init':ctrl.initialize_strain_cell_client, 'close':ctrl.close_strain_cell_client, 'move_back':0, 'name':'Capacitance (pF)'},
+'strain_cap':{'move':ctrl.set_strain_capacitance, 'read':ctrl.read_strain_capacitance, 'init':ctrl.initialize_strain_cell_client, 'close':ctrl.close_strain_cell_client, 'move_back':0, 'name':'Capacitance (pF)'},
 
-'strain_tension':{'move':ctrl.set_strain_voltage_tension, 'read':ctrl.read_strain_capacitance, 'init':ctrl.initialize_strain_cell_client, 'close':ctrl.close_strain_cell_client, 'move_back':0, 'name':'Capacitance (pF)'}
+'strain_ps':{'move':ctrl.set_strain_ps, 'read':ctrl.read_strain_ps, 'init':ctrl.initialize_strain_cell_client, 'close':ctrl.close_strain_cell_client, 'move_back':0, 'name':'Voltage (V)'}
 }
 
 ##########################

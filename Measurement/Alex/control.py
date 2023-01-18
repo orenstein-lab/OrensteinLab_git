@@ -293,14 +293,37 @@ def set_coil():
 def read_coil():
     return 1
 
-def set_strain_voltage(channel, voltage, sc=None):
+def set_strain_ps(voltage, sc=None):
 
     sc_passed = True
     if sc==None:
         sc = initialize_strain_cell_client()
         sc_passed = False
 
-    sc.set_voltage(channel, voltage)
+    sc.set_ps(voltage)
+
+def set_strain_capacitance(cap, sc=None):
+
+    sc_passed = True
+    if sc==None:
+        sc = initialize_strain_cell_client()
+        sc_passed = False
+
+    sc.set_cap(cap)
+
+def read_strain_ps(sc=None):
+
+    sc_passed = True
+    if sc==None:
+        sc = initialize_strain_cell_client()
+        sc_passed = False
+
+    voltage = sc.get_ps()
+
+    if sc_passed == False:
+        print(pos)
+
+    return cap
 
 def read_strain_capacitance(sc=None):
 
@@ -315,15 +338,6 @@ def read_strain_capacitance(sc=None):
         print(pos)
 
     return cap
-
-def set_strain_voltage_compress(voltage, sc=None):
-    set_strain_voltage(2,voltage, sc=sc)
-
-def set_strain_voltage_tension(voltage, sc=None):
-    set_strain_voltage(2,voltage, sc=sc)
-
-
-
 
 ###############################
 ### Initialization Medthods ###

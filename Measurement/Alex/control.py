@@ -201,7 +201,7 @@ def check_axis_stability(axis):
     helper function for rotate_axis.
     '''
     while True:
-        time.sleep(0.03)
+        time.sleep(0.1)
         try:
             if axis.is_motion_done==True:
                 break
@@ -212,7 +212,7 @@ def rotate_axis_1(angle, axis=None):
     rotate_axis(1, angle, axis)
 
 def rotate_axis_2(angle, axis=None):
-    rotate_axis(2, angle, axis=None)
+    rotate_axis(2, angle, axis)
 
 def read_axis_1(axis=None, print_flag=True):
     return read_axis(1, axis, print_flag)

@@ -22,6 +22,11 @@ Features to add:
 
 '''
 
+'''
+map_dict are dictionaries with entries of the form {'motor':(start, stop, end, kwargs)}, where kwargs is another dictionary with form {'key':value} where key is the name of kwarg and value the desired value.
+
+'''
+
 #####################
 ### Configuration ###
 #####################
@@ -227,8 +232,10 @@ def rotate_scan(start_angle, end_angle, step_size, filename_head=None, filename=
             move_axis(angle-move_back, axis=axis)
             #move_other_axis(angle-move_other_back, axis=other_axis)
             #move_other_axis(angle, axis=other_axis)
+            move_axis(angle, axis=axis)
+            time.sleep(2)
         move_axis(angle, axis=axis)
-        time.sleep(0.03)
+        time.sleep(time_constant)
 
         # read lockin and rotators
         x, y, r, x_R, y_R, r_R = read_lockin(daq_objs=daq_objs, time_constant=time_constant, channel_index=channel_index, R_channel_index=R_channel_index)
@@ -345,10 +352,12 @@ def corotate_scan(start_angle, end_angle, step_size, angle_offset, filename_head
         if (angle_1 == start_angle):
             move_axis_1(angle_1-move_back_1, axis=axis_1)
             move_axis_2(angle_2-move_back_2, axis=axis_2)
+            move_axis_1(angle_1, axis=axis_1)
+            move_axis_2(angle_2, axis=axis_2)
+            time.sleep(2)
         move_axis_1(angle_1, axis=axis_1)
-        time.sleep(0.03)
         move_axis_2(angle_2, axis=axis_2)
-        time.sleep(0.03)
+        time.sleep(time_constant)
 
         # read lockin, rotators
         x, y, r, x_R, y_R, r_R = read_lockin(daq_objs=daq_objs, time_constant=time_constant, channel_index=channel_index, R_channel_index=R_channel_index)
@@ -455,9 +464,9 @@ def motor_scan(map_dict, filename_head=None, filename=None, measure_motors=[], s
             for ii, ax in enumerate(axes):
                 ax.set_xlabel(x_label)
                 ax.set_ylabel(y_label)
-            mapx = axes[0].imshow(demod_x0,cmap="bwr",origin='lower',extent=extent,norm = colors.TwoSlopeNorm(0))
-            mapy = axes[1].imshow(demod_y0,cmap="bwr",origin='lower',extent=extent,norm = colors.TwoSlopeNorm(0))
-            mapr = axes[2].imshow(demod_r0,cmap="bwr",origin='lower',extent=extent,norm = colors.TwoSlopeNorm(0))
+            mapx = axes[0].imshow(demod_x0,cmap="bwr",origin='lower',extent=extent,norm = colors.TwoSlopeNorm(0, vmin=min(demod_x0.min(), -1e-12), vmax=max(demod_x0.max(), 1e-12)))
+            mapy = axes[1].imshow(demod_y0,cmap="bwr",origin='lower',extent=extent,norm = colors.TwoSlopeNorm(0, vmin=min(demod_y0.min(), -1e-12), vmax=max(demod_y0.max(), 1e-12)))
+            mapr = axes[2].imshow(demod_r0,cmap="bwr",origin='lower',extent=extent,norm = colors.TwoSlopeNorm(0, vmin=min(demod_r0.min(), -1e-12), vmax=max(demod_r0.max(), 1e-12)))
             fig.colorbar(mapx, ax=axes[0])
             fig.colorbar(mapy, ax=axes[1])
             fig.colorbar(mapr, ax=axes[2])
@@ -472,6 +481,10 @@ def motor_scan(map_dict, filename_head=None, filename=None, measure_motors=[], s
     num_pos = len(positions)
     for ii in tqdm(range(num_pos)):
         pos = positions[ii]
+
+        # move motors to go back position if starting new raster
+        if pos[0]!=current_pos[0] and pos[1]!=current_pos[1]:
+            move_motors(mobj_dict, mkwargs_dict, current_pos, pos-10)
 
         # move motors if position has changed
         move_motors(mobj_dict, mkwargs_dict, current_pos, pos)
@@ -529,11 +542,11 @@ def motor_scan(map_dict, filename_head=None, filename=None, measure_motors=[], s
                 #print(f'r: {demod_r0.min()}, {demod_r0.max()}')
                 #print(demod_x0)
                 mapx.set_data(demod_x0)
-                mapx.set_clim(vmin = demod_x0.min(), vmax = demod_x0.max())
+                mapx.set_clim(vmin = min(demod_x0.min(),0), vmax = max(demod_x0.max(),0))
                 mapy.set_data(demod_y0)
-                mapy.set_clim(vmin = demod_y0.min(), vmax = demod_y0.max())
+                mapy.set_clim(vmin = min(demod_y0.min(),0), vmax = max(demod_y0.max(),0))
                 mapr.set_data(demod_r0)
-                mapr.set_clim(vmin = demod_r0.min(), vmax = demod_r0.max())
+                mapr.set_clim(vmin = min(demod_r0.min(),0), vmax = max(demod_r0.max(),0))
                 fig.canvas.draw()
                 fig.canvas.flush_events()
 
@@ -646,8 +659,12 @@ def find_balance_angle(start_angle, end_angle, step_size, go_to_balance_angle=Tr
     axis_2 = motor_dict['axis_2']['init']()
     move_axis_1 = motor_dict['axis_1']['move']
     move_axis_2 = motor_dict['axis_2']['move']
+    move_back_1 = motor_dict['axis_1']['move_back']
+    move_back_2 = motor_dict['axis_2']['move_back']
 
     # move both motors to 0
+    move_axis_1(-move_back_1)
+    move_axis_2(-move_back_2)
     move_axis_1(0)
     move_axis_2(0)
 

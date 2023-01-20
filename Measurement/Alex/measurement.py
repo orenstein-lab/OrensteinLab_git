@@ -350,13 +350,16 @@ def corotate_scan(start_angle, end_angle, step_size, angle_offset, filename_head
         angle_1 = angle
         angle_2 = angles_2[ii]
         if (angle_1 == start_angle):
-            move_axis_1(angle_1-move_back_1, axis=axis_1)
-            move_axis_2(angle_2-move_back_2, axis=axis_2)
-            move_axis_1(angle_1, axis=axis_1)
-            move_axis_2(angle_2, axis=axis_2)
-            time.sleep(2)
-        move_axis_1(angle_1, axis=axis_1)
-        move_axis_2(angle_2, axis=axis_2)
+            #move_axis_1(angle_1-move_back_1, axis=axis_1)
+            #move_axis_2(angle_2-move_back_2, axis=axis_2)
+            #move_axis_1(angle_1, axis=axis_1)
+            #move_axis_2(angle_2, axis=axis_2)
+            ctrl.corotate_axes(1, 2, angle_1-move_back_1, angle_2-move_back_2, axis_1=axis_1, axis_2=axis_2)
+            #ctrl.corotate_axes(1, 2, angle_1, angle_2, axis_1=axis_1, axis_2=axis_2)
+            time.sleep(0.1) # was set to 2 but I don't think this matters much
+        ctrl.corotate_axes(1, 2, angle_1, angle_2, axis_1=axis_1, axis_2=axis_2)
+        #move_axis_1(angle_1, axis=axis_1)
+        #move_axis_2(angle_2, axis=axis_2)
         time.sleep(time_constant)
 
         # read lockin, rotators
@@ -390,8 +393,9 @@ def corotate_scan(start_angle, end_angle, step_size, angle_offset, filename_head
             fig.canvas.flush_events()
 
     # move motors back to original positions
-    move_axis_1(start_angle, axis=axis_1)
-    move_axis_2(start_angle+angle_offset, axis=axis_2)
+    #move_axis_1(start_angle, axis=axis_1)
+    #move_axis_2(start_angle+angle_offset, axis=axis_2)
+    ctrl.corotate_axes(1, 2, start_angle_1, start_angle+angle_offset, axis_1=axis_1, axis_2=axis_2)
 
     return position, demod_x, demod_y, demod_r
 
@@ -556,7 +560,7 @@ def motor_scan(map_dict, filename_head=None, filename=None, measure_motors=[], s
     # close motors
     close_motors(mobj_dict)
 
-def rotate_map(map_dict, start_angle, end_angle, step_size, filename_head=None, filename=None, axis_index=1, measure_motors=[], showplot=False, time_constant=0.3, channel_index=1, R_channel_index=3, daq_objs=None, axis_1=None, axis_2=None):
+def rotate_map(map_dict, start_angle, end_angle, step_size, filename_head=None, filename=None, axis_index=1, measure_motors=[], showplot=False, time_constant=0.3, channel_index=1, R_channel_index=3, daq_objs=None):
 
     # Lock-in Amplifier initialization
     daq_objs = instrument_dict['zurich_lockin']['init']()

@@ -174,6 +174,23 @@ def rotate_axis(axis_index, angle, axis):
     axis.move(angle,absolute=True)
     check_axis_stability(axis)
 
+def corotate_axes(axis_1_index, axis_2_index, angle_1, angle_2, axis_1==None, axis_2==None):
+
+    if axis_1==None:
+        axis_1 = initialize_rotation_axis(axis_1_index)
+    if axis_2==None:
+        axis_2 = initialize_rotation_axis(axis_2_index)
+
+    axis_1.move(angle_1, absolute=True)
+    axis_2.move(angle_2, absolute=True)
+    while True:
+        time.sleep(0.1)
+        try:
+            if axis_1.is_motion_done==True and axis_2.is_motion_done==True:
+                break
+        except:
+            pass
+
 def read_axis(axis_index, axis=None, print_flag=True):
     '''
     read angle on an axis

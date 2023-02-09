@@ -51,6 +51,7 @@ def read_zurich_lockin(daq_objs=None, time_constant=0.3, channel_index=1, R_chan
     else:
         daq, device, props = daq_objs
 
+    daq.setDouble('/%s/demods/0/timeconstant' % device, time_constant)
     time.sleep(time_constant*4)
     sample = daq.getSample(channel_name[channel_index-1] % device)
     sample["R"] = np.abs(sample["x"] + 1j * sample["y"])
@@ -174,7 +175,7 @@ def rotate_axis(axis_index, angle, axis):
     axis.move(angle,absolute=True)
     check_axis_stability(axis)
 
-def corotate_axes(axis_1_index, axis_2_index, angle_1, angle_2, axis_1==None, axis_2==None):
+def corotate_axes(axis_1_index, axis_2_index, angle_1, angle_2, axis_1=None, axis_2=None):
 
     if axis_1==None:
         axis_1 = initialize_rotation_axis(axis_1_index)

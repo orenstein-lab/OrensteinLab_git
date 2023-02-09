@@ -23,7 +23,7 @@ Features to add:
 '''
 
 '''
-map_dict are dictionaries with entries of the form {'motor':(start, stop, end, kwargs)}, where kwargs is another dictionary with form {'key':value} where key is the name of kwarg and value the desired value.
+map_dict are dictionaries with entries of the form {'motor':(start, stop, step, kwargs)}, where kwargs is another dictionary with form {'key':value} where key is the name of kwarg and value the desired value.
 
 '''
 
@@ -395,7 +395,7 @@ def corotate_scan(start_angle, end_angle, step_size, angle_offset, filename_head
     # move motors back to original positions
     #move_axis_1(start_angle, axis=axis_1)
     #move_axis_2(start_angle+angle_offset, axis=axis_2)
-    ctrl.corotate_axes(1, 2, start_angle_1, start_angle+angle_offset, axis_1=axis_1, axis_2=axis_2)
+    ctrl.corotate_axes(1, 2, start_angle, start_angle+angle_offset, axis_1=axis_1, axis_2=axis_2)
 
     return position, demod_x, demod_y, demod_r
 
@@ -415,6 +415,7 @@ def motor_scan(map_dict, filename_head=None, filename=None, measure_motors=[], s
 
     # generate positions recursively
     positions = gen_positions_recurse(mranges, len(mranges)-1)
+    #print(positions)
 
     # setup file with header
     if filename_head!=None and filename!=None:
@@ -487,9 +488,9 @@ def motor_scan(map_dict, filename_head=None, filename=None, measure_motors=[], s
     for ii in tqdm(range(num_pos)):
         pos = positions[ii]
 
-        # move motors to go back position if starting new raster
-        if pos[0]!=current_pos[0] and pos[1]!=current_pos[1]:
-            move_motors(mobj_dict, mkwargs_dict, current_pos, pos-10)
+        # move motors to go back position if starting new raster - NEEDS WORK
+        #if pos[0]!=current_pos[0] and pos[1]!=current_pos[1]:
+        #    move_motors(mobj_dict, mkwargs_dict, current_pos, pos-10)
 
         # move motors if position has changed
         move_motors(mobj_dict, mkwargs_dict, current_pos, start_pos, pos)
@@ -642,6 +643,8 @@ def corotate_map(map_dict, start_angle, end_angle, step_size, angle_offset, file
         expanded_filename = filename
         for ii, m in enumerate(motors):
             p = pos[ii]
+            if m == 'temp':
+                p = round(p,5)
             expanded_filename = expanded_filename+f'_{m}{p}'
 
         # scan

@@ -51,8 +51,8 @@ def read_zurich_lockin(daq_objs=None, time_constant=0.3, channel_index=1, R_chan
     else:
         daq, device, props = daq_objs
 
-    daq.setDouble(f'/%s/demods/{channel_index-1}/sample' % device, time_constant)
-    daq.setDouble(f'/%s/demods/{R_channel_index-1}/sample' % device, time_constant)
+    daq.setDouble(f'/%s/demods/{channel_index-1}/timeconstant' % device, time_constant)
+    daq.setDouble(f'/%s/demods/{R_channel_index-1}/timeconstant' % device, time_constant)
     time.sleep(time_constant*4)
     sample = daq.getSample(f'/%s/demods/{channel_index-1}/sample' % device)
     sample["R"] = np.abs(sample["x"] + 1j * sample["y"])
@@ -363,7 +363,7 @@ def read_strain_capacitance(sc=None):
 
     return cap
 
-def set_zurich_output_amplitude(amplitude, daq_objs=None, channel=1):
+def set_zurich_output_amplitude(amplitude, daq_objs=None, wait_time=0, channel=1):
 
     # initialize
     if daq_objs==None:
@@ -372,6 +372,7 @@ def set_zurich_output_amplitude(amplitude, daq_objs=None, channel=1):
         daq, device, props = daq_objs
 
     daq.setDouble(f'/%s/sigouts/0/amplitudes/{channel-1}'%device, amplitude)
+    time.sleep(wait_time)
 
 def read_zurich_output_amplitude(daq_objs=None, channel=1):
 
@@ -384,7 +385,7 @@ def read_zurich_output_amplitude(daq_objs=None, channel=1):
     amplitude = daq.getDouble(f'/%s/sigouts/0/amplitudes/{channel-1}'%device)
     return amplitude
 
-def set_zurich_frequency(freq, daq_objs=None, osc=1):
+def set_zurich_frequency(freq, daq_objs=None, wait_time=0, osc=1):
 
     # initialize
     if daq_objs==None:
@@ -393,6 +394,7 @@ def set_zurich_frequency(freq, daq_objs=None, osc=1):
         daq, device, props = daq_objs
 
     daq.setDouble(f'/%s/oscs/{osc-1}/freq'%device, freq)
+    time.sleep(wait_time)
 
 def read_zurich_frequency(daq_objs=None, osc=1):
 

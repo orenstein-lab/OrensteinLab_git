@@ -4,6 +4,7 @@ Main file for controlling lab equipment and orchestrating measurements
 
 get_ipython().run_line_magic('matplotlib', 'notebook')
 import zhinst.utils as ziutils
+import zhinst.core as zicore
 import instruments.newport as newport
 import OrensteinLab_git.Instrument.OptiCool.OptiCool_Control as optc
 import numpy as np
@@ -36,7 +37,6 @@ with open(os.path.dirname(__file__)+ r'\..\..\Configuration.txt', "r") as f_conf
     conf_info_split = conf_info.split('\n')
     device_id = conf_info_split[0].split('\t')[1]
     port_id = conf_info_split[1].split('\t')[1]
-channel_name = ['/%s/demods/0/sample','/%s/demods/1/sample','/%s/demods/2/sample','/%s/demods/3/sample']
 ATTOCUBE_HANDLE_FNAME = f'{os.path.dirname(__file__)}\\..\\..\\attocube_handle'
 
 ###############################
@@ -47,18 +47,19 @@ def read_zurich_lockin(daq_objs=None, time_constant=0.3, channel_index=1, R_chan
 
     # initialize
     if daq_objs==None:
-        daq, device, props = ctrl.initialize_zurich_lockin()
+        daq, device, props = initialize_zurich_lockin()
     else:
         daq, device, props = daq_objs
 
-    daq.setDouble('/%s/demods/0/timeconstant' % device, time_constant)
+    daq.setDouble(f'/%s/demods/{channel_index-1}/sample' % device, time_constant)
+    daq.setDouble(f'/%s/demods/{R_channel_index-1}/sample' % device, time_constant)
     time.sleep(time_constant*4)
-    sample = daq.getSample(channel_name[channel_index-1] % device)
+    sample = daq.getSample(f'/%s/demods/{channel_index-1}/sample' % device)
     sample["R"] = np.abs(sample["x"] + 1j * sample["y"])
     x = sample["x"][0]
     y = sample["y"][0]
     r = sample["R"][0]
-    sample_R = daq.getSample(channel_name[R_channel_index - 1] % device)
+    sample_R = daq.getSample(f'/%s/demods/{R_channel_index-1}/sample' % device)
     sample_R["R"] = np.abs(sample_R["x"] + 1j * sample_R["y"])
     x_R = sample_R["x"][0]
     y_R = sample_R["y"][0]
@@ -190,7 +191,8 @@ def corotate_axes(axis_1_index, axis_2_index, angle_1, angle_2, axis_1=None, axi
             if axis_1.is_motion_done==True and axis_2.is_motion_done==True:
                 break
         except:
-            pass
+            print('failed to check axis stability, trying agian.')
+            #pass
 
 def read_axis(axis_index, axis=None, print_flag=True):
     '''
@@ -203,12 +205,13 @@ def read_axis(axis_index, axis=None, print_flag=True):
         obj_passed = False
 
     while True:
-        time.sleep(0.03)
+        time.sleep(0.1)
         try:
             pos = float(axis.position)
             break
         except:
-            pass
+            print('failed to read axis, trying again.')
+            #pass
 
     if print_flag==True and obj_passed==False:
         print(pos)
@@ -224,7 +227,8 @@ def check_axis_stability(axis):
             if axis.is_motion_done==True:
                 break
         except:
-            pass
+            print('failed to check axis stability, trying agian.')
+            #pass
 
 def rotate_axis_1(angle, axis=None):
     rotate_axis(1, angle, axis)
@@ -238,7 +242,7 @@ def read_axis_1(axis=None, print_flag=True):
 def read_axis_2(axis=None, print_flag=True):
     return read_axis(2, axis, print_flag)
 
-def set_temperature(temperature, lsobj=None, tolerance=0.01, wait_time=0, max_check=300):
+def set_temperature(temperature, lsobj=None, tolerance=0.01, wait_time=0, max_check=750):
     '''
     sets lakeshore setpoint, waits until temperature is within tolerance of setpoint, and waits for soak time before returning.
 
@@ -262,11 +266,13 @@ def set_temperature(temperature, lsobj=None, tolerance=0.01, wait_time=0, max_ch
     current_temp = []
     for m in range(max_check):
         current_temp.append(ls.read_temperature(lsobj))
-        if m >= 2 and abs(np.mean(current_temp[-3:]) - temp) < 0.05:
+        if m >= 10 and abs(np.mean(current_temp[-3:]) - temp) < tolerance:
             time.sleep(wait_time)
             break
         else:
             time.sleep(1)
+    if m==max_check-1:
+        print(f'Maximum time exceeded. Temperature: {ls.read_temperature(lsobj)}')
 
     if lsobj_passed==False:
         close_lakeshore(lsobj)
@@ -341,7 +347,7 @@ def read_strain_ps(sc=None):
     if sc_passed == False:
         print(pos)
 
-    return cap
+    return voltage
 
 def read_strain_capacitance(sc=None):
 
@@ -356,6 +362,49 @@ def read_strain_capacitance(sc=None):
         print(pos)
 
     return cap
+
+def set_zurich_output_amplitude(amplitude, daq_objs=None, channel=1):
+
+    # initialize
+    if daq_objs==None:
+        daq, device, props = initialize_zurich_lockin()
+    else:
+        daq, device, props = daq_objs
+
+    daq.setDouble(f'/%s/sigouts/0/amplitudes/{channel-1}'%device, amplitude)
+
+def read_zurich_output_amplitude(daq_objs=None, channel=1):
+
+    # initialize
+    if daq_objs==None:
+        daq, device, props = initialize_zurich_lockin()
+    else:
+        daq, device, props = daq_objs
+
+    amplitude = daq.getDouble(f'/%s/sigouts/0/amplitudes/{channel-1}'%device)
+    return amplitude
+
+def set_zurich_frequency(freq, daq_objs=None, osc=1):
+
+    # initialize
+    if daq_objs==None:
+        daq, device, props = initialize_zurich_lockin()
+    else:
+        daq, device, props = daq_objs
+
+    daq.setDouble(f'/%s/oscs/{osc-1}/freq'%device, freq)
+
+def read_zurich_frequency(daq_objs=None, osc=1):
+
+    # initialize
+    if daq_objs==None:
+        daq, device, props = initialize_zurich_lockin()
+    else:
+        daq, device, props = daq_objs
+
+    freq = daq.getDouble(f'/%s/oscs/{osc-1}/freq'%device)
+    return freq
+
 
 ###############################
 ### Initialization Medthods ###
@@ -426,6 +475,9 @@ def close_lockin(obj):
     return 0
 
 def close_strain_cell_client(obj):
+    return 0
+
+def close_zurich_lockin(obj):
     return 0
 
 ''' a script I wrote for collecting data on capacitive sensor

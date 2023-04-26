@@ -252,7 +252,7 @@ def read_esp300(axis_index, axis=None, print_flag=True):
         print(pos)
     return pos
 
-def set_temperature(temperature, lsobj=None, tolerance=0.01, wait_time=0, max_check=750):
+def set_temperature(temperature, lsobj=None, tolerance=0.05, wait_time=0, max_check=750):
     '''
     sets lakeshore setpoint, waits until temperature is within tolerance of setpoint, and waits for soak time before returning.
 

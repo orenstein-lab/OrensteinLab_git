@@ -78,7 +78,7 @@ instrument_dict = {
 ### Medthods ###
 ################
 
-def lockin_time_series(recording_time, filename_head=None, filename=None, measure_motors=[], time_constant=0.3, channel_index=1, R_channel_index=1):
+def lockin_time_series(recording_time, filename_head=None, filename=None, measure_motors=[], time_constant=0.3, channel_index=1, R_channel_index=2):
     '''
     aquires data on the lockin over a specified length of time.
     '''
@@ -151,7 +151,7 @@ def lockin_time_series(recording_time, filename_head=None, filename=None, measur
 
     return time_record, demod_x, demod_y, demod_r
 
-def rotate_scan(start_angle, end_angle, step_size, filename_head=None, filename=None, axis_index=1, measure_motors=[], showplot=True, time_constant=0.3, channel_index=1, R_channel_index=3, daq_objs=None, axis_1=None, axis_2=None):
+def rotate_scan(start_angle, end_angle, step_size, filename_head=None, filename=None, axis_index=1, measure_motors=[], showplot=True, time_constant=0.3, channel_index=1, R_channel_index=2, daq_objs=None, axis_1=None, axis_2=None):
 
     # initialize zurich lockin and setup read function
     if daq_objs==None:
@@ -283,9 +283,9 @@ def rotate_scan(start_angle, end_angle, step_size, filename_head=None, filename=
 
     return position, demod_x, demod_y, demod_r
 
-def corotate_scan(start_angle, end_angle, step_size, angle_offset, filename_head=None, filename=None, measure_motors=[], showplot=True, time_constant=0.3, channel_index=1, R_channel_index=3, daq_objs=None, axis_1=None, axis_2=None):
+def corotate_scan(start_angle, end_angle, step_size, angle_offset, rate_axis_2=1, filename_head=None, filename=None, measure_motors=[], showplot=True, time_constant=0.3, channel_index=1, R_channel_index=2, daq_objs=None, axis_1=None, axis_2=None):
     '''
-    Takes a corotation scan moving axes 1 and 2, typically representing half wave plates.
+    Takes a corotation scan moving axes 1 and 2, typically representing half wave plates. axis 2 can be specificied to move at a rate greater than axis 1, such that axis_2_move = rate*axis_1_move
 
     To do:
         - build in ability to change scan direction
@@ -322,7 +322,7 @@ def corotate_scan(start_angle, end_angle, step_size, angle_offset, filename_head
 
     # convert input to angle lists
     angles_1 = get_motor_range(start_angle, end_angle, step_size)
-    angles_2 = angles_1 + angle_offset
+    angles_2 = rate_axis_2*angles_1 + angle_offset
 
     # setup measureables
     position = np.array([])
@@ -567,7 +567,7 @@ def motor_scan(map_dict, filename_head=None, filename=None, measure_motors=[], s
     # close motors
     close_motors(mobj_dict)
 
-def rotate_map(map_dict, start_angle, end_angle, step_size, filename_head=None, filename=None, axis_index=1, measure_motors=[], showplot=False, time_constant=0.3, channel_index=1, R_channel_index=3, daq_objs=None, print_flag=False):
+def rotate_map(map_dict, start_angle, end_angle, step_size, filename_head=None, filename=None, axis_index=1, measure_motors=[], showplot=False, time_constant=0.3, channel_index=1, R_channel_index=2, daq_objs=None, print_flag=False):
 
     # Lock-in Amplifier initialization
     daq_objs = instrument_dict['zurich_lockin']['init']()
@@ -610,7 +610,7 @@ def rotate_map(map_dict, start_angle, end_angle, step_size, filename_head=None, 
     # close motors
     close_motors(mobj_dict)
 
-def corotate_map(map_dict, start_angle, end_angle, step_size, angle_offset, filename_head=None, filename=None, measure_motors=[], showplot=False, time_constant=0.3, channel_index=1, R_channel_index=3, print_flag=False):
+def corotate_map(map_dict, start_angle, end_angle, step_size, angle_offset, rate_axis_2=1, filename_head=None, filename=None, measure_motors=[], showplot=False, time_constant=0.3, channel_index=1, R_channel_index=2, print_flag=False):
     '''
     Takes a corotation scan at each point in a map specified by dictionary map_dict, which entries of the form 'axis':(start, end, step_size, kwargs), where kwargs is a dictionary of key/value pairs appropriate for each motor 'move' function. For example, a temperature map might take the following map dictionary:
 
@@ -654,7 +654,7 @@ def corotate_map(map_dict, start_angle, end_angle, step_size, angle_offset, file
             expanded_filename = expanded_filename+f'_{m}{p}'
 
         # scan
-        corotate_scan(start_angle, end_angle, step_size, angle_offset, filename_head=filename_head, filename=expanded_filename, measure_motors=measure_motors, showplot=showplot, time_constant=time_constant, channel_index=channel_index, R_channel_index=R_channel_index, daq_objs=daq_objs, axis_1=axis_1, axis_2=axis_2)
+        corotate_scan(start_angle, end_angle, step_size, angle_offset, rate_axis_2=rate_axis_2, filename_head=filename_head, filename=expanded_filename, measure_motors=measure_motors, showplot=showplot, time_constant=time_constant, channel_index=channel_index, R_channel_index=R_channel_index, daq_objs=daq_objs, axis_1=axis_1, axis_2=axis_2)
 
         current_pos = pos
 

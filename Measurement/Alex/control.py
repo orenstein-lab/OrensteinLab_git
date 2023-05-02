@@ -50,7 +50,7 @@ ATTOCUBE_HANDLE_FNAME = f'{os.path.dirname(__file__)}\\..\\..\\attocube_handle'
 ### Instrument Read Methods ###
 ###############################
 
-def read_zurich_lockin(daq_objs=None, time_constant=0.3, channel_index=1, R_channel_index=1):
+def read_zurich_lockin(daq_objs=None, time_constant=0.3, poll_timeout=500, channel_index=1, R_channel_index=1):
 
     # initialize
     if daq_objs==None:
@@ -61,11 +61,11 @@ def read_zurich_lockin(daq_objs=None, time_constant=0.3, channel_index=1, R_chan
     daq.setDouble(f'/%s/demods/{channel_index-1}/timeconstant' % device, time_constant)
     daq.setDouble(f'/%s/demods/{R_channel_index-1}/timeconstant' % device, time_constant)
     poll_length = time_constant
-    poll_timeout = 500 # ms
+    poll_timeout = poll_timeout # ms
     poll_flags = 0
     poll_return_flat_dict = True
 
-    # subscrive to channels and read mfli
+    # subscribe to channels and read mfli
     time.sleep(time_constant*4)
     daq.subscribe(f'/%s/demods/{channel_index-1}/sample' % device)
     daq.subscribe(f'/%s/demods/{R_channel_index-1}/sample' % device)
@@ -88,7 +88,7 @@ def read_zurich_lockin(daq_objs=None, time_constant=0.3, channel_index=1, R_chan
     y_R_avg = np.mean(y_R)
     r_R_avg = np.mean(r_R)
 
-    return x_avg, y_avg, r_avg, x_avg_R, y_avg_R, r_avg_R
+    return x_avg, y_avg, r_avg, x_R_avg, y_R_avg, r_R_avg
 
 ########################################
 ### Core Motor Move and Read Methods ###

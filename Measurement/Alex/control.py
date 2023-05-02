@@ -6,6 +6,7 @@ get_ipython().run_line_magic('matplotlib', 'notebook')
 import zhinst.utils as ziutils
 import zhinst.core as zicore
 import instruments.newport as newport
+from pymeasure.instruments.newport import ESP300
 import OrensteinLab_git.Instrument.OptiCool.OptiCool_Control as optc
 import numpy as np
 import matplotlib.pyplot as plt
@@ -27,6 +28,11 @@ To do:
     - every motor move function takes arguments (setpoint, obj=None, kwargs)
     - write a set_coil function
     - anything else that seems fitting to go in here!
+
+to find pymeasure instruments:
+
+from pymeasure.instruments import list_resources
+list_resources()
 '''
 
 #####################
@@ -37,6 +43,7 @@ with open(os.path.dirname(__file__)+ r'\..\..\Configuration.txt', "r") as f_conf
     conf_info_split = conf_info.split('\n')
     device_id = conf_info_split[0].split('\t')[1]
     port_id = conf_info_split[1].split('\t')[1]
+    esp300_id = conf_info_split[2].split('\t')[1]
 ATTOCUBE_HANDLE_FNAME = f'{os.path.dirname(__file__)}\\..\\..\\attocube_handle'
 
 ###############################
@@ -67,9 +74,9 @@ def read_zurich_lockin(daq_objs=None, time_constant=0.3, channel_index=1, R_chan
 
     return x, y, r, x_R, y_R, r_R
 
-###################################
-### Motor Move and Read Methods ###
-###################################
+########################################
+### Core Motor Move and Read Methods ###
+########################################
 
 def move_attocube(axis, position, anc=None, tolerance=1, go_back=10):
     '''
@@ -138,34 +145,15 @@ def read_attocube(axis, anc=None, print_flag=True):
 
     return pos
 
-def move_x(position,  anc=None, tolerance=1, go_back=10):
-    '''
-    wrapper to move attocube x positioner.
-    '''
-    move_attocube('x', position, anc, tolerance, go_back)
+def move_pos(x, y, z=0):
+    move_x(x)
+    move_y(y)
+    if z==0:
+        pass
+    else:
+        move_z(z)
 
-def move_y(position,  anc=None, tolerance=1, go_back=10):
-    '''
-    wrapper to move attocube y positioner.
-    '''
-    move_attocube('y', position, anc, tolerance, go_back)
-
-def move_z(position,  anc=None, tolerance=1, go_back=10):
-    '''
-    wrapper to move attocube z positioner.
-    '''
-    move_attocube('z', position, anc, tolerance, go_back)
-
-def read_x(anc=None, print_flag=True):
-    return read_attocube('x', anc, print_flag)
-
-def read_y(anc=None, print_flag=True):
-    return read_attocube('y', anc, print_flag)
-
-def read_z(anc=None, print_flag=True):
-    return read_attocube('z', anc, print_flag)
-
-def rotate_axis(axis_index, angle, axis):
+def rotate_axis(axis_index, angle, axis=None):
     '''
     rotate waveplate. I can now add any checks that have to happen typically.
     '''
@@ -230,19 +218,41 @@ def check_axis_stability(axis):
             print('failed to check axis stability, trying agian.')
             #pass
 
-def rotate_axis_1(angle, axis=None):
-    rotate_axis(1, angle, axis)
+def move_esp300(axis_index, position, axis=None):
 
-def rotate_axis_2(angle, axis=None):
-    rotate_axis(2, angle, axis)
+    if axis==None:
+        axis = initialize_esp300(axis_index)
 
-def read_axis_1(axis=None, print_flag=True):
-    return read_axis(1, axis, print_flag)
+    axis.position = position
+    while True:
+        time.sleep(0.1)
+        try:
+            if axis.motion_done==True:
+                break
+        except:
+            print('failed to check axis stability, trying agian.')
+            #pass
 
-def read_axis_2(axis=None, print_flag=True):
-    return read_axis(2, axis, print_flag)
+def read_esp300(axis_index, axis=None, print_flag=True):
+    obj_passed = True
+    if axis==None:
+        axis = initialize_esp300(axis_index)
+        obj_passed = False
 
-def set_temperature(temperature, lsobj=None, tolerance=0.01, wait_time=0, max_check=750):
+    while True:
+        time.sleep(0.1)
+        try:
+            pos = float(axis.position)
+            break
+        except:
+            print('failed to read axis, trying again.')
+            #pass
+
+    if print_flag==True and obj_passed==False:
+        print(pos)
+    return pos
+
+def set_temperature(temperature, lsobj=None, tolerance=0.05, wait_time=0, max_check=750):
     '''
     sets lakeshore setpoint, waits until temperature is within tolerance of setpoint, and waits for soak time before returning.
 
@@ -407,6 +417,54 @@ def read_zurich_frequency(daq_objs=None, osc=1):
     freq = daq.getDouble(f'/%s/oscs/{osc-1}/freq'%device)
     return freq
 
+#######################################
+### Wrapper Move and Read Functions ###
+#######################################
+
+def move_x(position,  anc=None, tolerance=1, go_back=10):
+    '''
+    wrapper to move attocube x positioner.
+    '''
+    move_attocube('x', position, anc, tolerance, go_back)
+
+def move_y(position,  anc=None, tolerance=1, go_back=10):
+    '''
+    wrapper to move attocube y positioner.
+    '''
+    move_attocube('y', position, anc, tolerance, go_back)
+
+def move_z(position,  anc=None, tolerance=1, go_back=10):
+    '''
+    wrapper to move attocube z positioner.
+    '''
+    move_attocube('z', position, anc, tolerance, go_back)
+
+def read_x(anc=None, print_flag=True):
+    return read_attocube('x', anc, print_flag)
+
+def read_y(anc=None, print_flag=True):
+    return read_attocube('y', anc, print_flag)
+
+def read_z(anc=None, print_flag=True):
+    return read_attocube('z', anc, print_flag)
+
+def rotate_axis_1(angle, axis=None):
+    rotate_axis(1, angle, axis)
+
+def rotate_axis_2(angle, axis=None):
+    rotate_axis(2, angle, axis)
+
+def read_axis_1(axis=None, print_flag=True):
+    return read_axis(1, axis, print_flag)
+
+def read_axis_2(axis=None, print_flag=True):
+    return read_axis(2, axis, print_flag)
+
+def move_delay_stage(position, axis=None):
+    move_esp300(1, position, axis)
+
+def read_delay_stage(axis=None, print_flag=True):
+    return read_esp300(1, axis, print_flag)
 
 ###############################
 ### Initialization Medthods ###
@@ -419,6 +477,22 @@ def initialize_zurich_lockin():
 
 def initialize_esp():
     return newport.NewportESP301.open_serial(port=port_id, baud=921600)
+
+def initialize_esp300(axis_index):
+    obj = ESP300(esp300_id)
+    if axis_index==1:
+        axis = obj.x
+    elif axis_index==2:
+        axis = obj.y
+    elif axis_index==3:
+        axis = obj.phi
+    else:
+        ValueError('could not initialize ESP300. Please choose axis 1, 2, or 3')
+    axis.enable()
+    return axis
+
+def initialize_delay_stage():
+    return initialize_esp300(1)
 
 def initialize_attocube():
     # can this function check if the attocube has already been initialized?
@@ -471,6 +545,9 @@ def close_rot_axis_1(obj):
     return 0
 
 def close_rot_axis_2(obj):
+    return 0
+
+def close_delay_stage(obj):
     return 0
 
 def close_lockin(obj):

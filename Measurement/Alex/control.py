@@ -60,19 +60,35 @@ def read_zurich_lockin(daq_objs=None, time_constant=0.3, channel_index=1, R_chan
 
     daq.setDouble(f'/%s/demods/{channel_index-1}/timeconstant' % device, time_constant)
     daq.setDouble(f'/%s/demods/{R_channel_index-1}/timeconstant' % device, time_constant)
-    time.sleep(time_constant*4)
-    sample = daq.getSample(f'/%s/demods/{channel_index-1}/sample' % device)
-    sample["R"] = np.abs(sample["x"] + 1j * sample["y"])
-    x = sample["x"][0]
-    y = sample["y"][0]
-    r = sample["R"][0]
-    sample_R = daq.getSample(f'/%s/demods/{R_channel_index-1}/sample' % device)
-    sample_R["R"] = np.abs(sample_R["x"] + 1j * sample_R["y"])
-    x_R = sample_R["x"][0]
-    y_R = sample_R["y"][0]
-    r_R = sample_R["R"][0]
+    poll_length = time_constant
+    poll_timeout = 500 # ms
+    poll_flags = 0
+    poll_return_flat_dict = True
 
-    return x, y, r, x_R, y_R, r_R
+    # subscrive to channels and read mfli
+    time.sleep(time_constant*4)
+    daq.subscribe(f'/%s/demods/{channel_index-1}/sample' % device)
+    daq.subscribe(f'/%s/demods/{R_channel_index-1}/sample' % device)
+    mfli_dict = daq.poll(poll_length, poll_timeout, poll_flags, poll_return_flat_dict)
+    data_dict = mfli_dict[f'/%s/demods/{channel_index-1}/sample' % device]
+    R_dict = mfli_dict[f'/%s/demods/{R_channel_index-1}/sample' % device]
+    daq.unsubscribe('*')
+
+    # extract data from mfli_dict
+    x = data_dict['x']
+    y = data_dict['y']
+    r = np.abs(x + 1j*y)
+    x_avg = np.mean(x)
+    y_avg = np.mean(y)
+    r_avg = np.mean(r)
+    x_R = R_dict['x']
+    y_R = R_dict['y']
+    r_R = np.abs(x_R + 1j*y_R)
+    x_R_avg = np.mean(x_R)
+    y_R_avg = np.mean(y_R)
+    r_R_avg = np.mean(r_R)
+
+    return x_avg, y_avg, r_avg, x_avg_R, y_avg_R, r_avg_R
 
 ########################################
 ### Core Motor Move and Read Methods ###

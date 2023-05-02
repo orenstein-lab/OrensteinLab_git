@@ -43,6 +43,7 @@ lockin_header = ['Demod x', 'Demod y', 'r', 'Demod x_R', 'Demod y_R', 'Demod r_R
 #####################
 # entries of the form motor:{'move':move_function, 'read':read_function, 'init':initialize_function, 'close':close_function}
 #'coil':(ctrl.set_coil, ctrl.initialize_coil, ctrl.close_coil),
+# consider changing to yaml file, can also be used for easily have default configurations for instruments.
 motor_dict = {
 'x':{'move':ctrl.move_x, 'read':ctrl.read_x, 'init':ctrl.initialize_attocube, 'close':ctrl.close_attocube, 'move_back':10, 'name':'x (um)'},
 

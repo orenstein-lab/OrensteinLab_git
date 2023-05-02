@@ -362,7 +362,7 @@ def corotate_scan(start_angle, end_angle, step_size, angle_offset, rate_axis_2=1
             #move_axis_2(angle_2, axis=axis_2)
             ctrl.corotate_axes(1, 2, angle_1-move_back_1, angle_2-move_back_2, axis_1=axis_1, axis_2=axis_2)
             #ctrl.corotate_axes(1, 2, angle_1, angle_2, axis_1=axis_1, axis_2=axis_2)
-            time.sleep(0.1) # was set to 2 but I don't think this matters much
+            time.sleep(2) # was set to 2 but I don't think this matters much
         ctrl.corotate_axes(1, 2, angle_1, angle_2, axis_1=axis_1, axis_2=axis_2)
         #move_axis_1(angle_1, axis=axis_1)
         #move_axis_2(angle_2, axis=axis_2)

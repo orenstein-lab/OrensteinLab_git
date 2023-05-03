@@ -10,6 +10,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
 import os
+import threading
 from tqdm.auto import tqdm
 '''
 Features to add:
@@ -708,6 +709,44 @@ def find_balance_angle(start_angle, end_angle, step_size, go_to_balance_angle=Tr
 
     print(f'Balance angle: {balance_angle}')
     return balance_angle
+
+def align_delay_stage(wait_time=5):
+
+    # initialize delay stage:
+    delay_stage = motor_dict['delay_stage']['init']()
+    move = motor_dict['delay_stage']['move']
+
+    # setup locked variable
+    run = True
+    lock = threading.Lock()
+
+    # setup thread func
+    def osc_delay_stage(wait):
+        run_cond = True
+        n=0
+        while run_cond:
+            if n!=0:
+                time.sleep(wait)
+            if n==0:
+                n=1
+            move(-125, delay_stage)
+            time.sleep(wait)
+            move(125, delay_stage)
+            with lock: # read locked variable
+                run_cond = run
+                #print(run_cond)
+
+    # start thread
+    move_ds_thread = threading.Thread(target=osc_delay_stage, args=(wait_time,))
+    move_ds_thread.start()
+
+    # ask to stop
+    answer = input('Stop?')
+
+    # shutdown
+    with lock:
+        run = False
+    move_ds_thread.join()
 
 ###########################
 ### Strain Cell Methods ### # perhaps move these to another file?

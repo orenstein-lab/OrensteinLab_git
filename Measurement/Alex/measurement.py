@@ -663,7 +663,7 @@ def corotate_map(map_dict, start_angle, end_angle, step_size, angle_offset, rate
     # close motors
     close_motors(mobj_dict)
 
-def find_balance_angle(start_angle, end_angle, step_size, go_to_balance_angle=True, axis_index=2):
+def find_balance_angle(start_angle, end_angle, step_size, balance_at=0, go_to_balance_angle=True, axis_index=2):
     '''
     Assuming we are measuring in DC mode above a transition or on GaAs, carries out a rotate_scan. Find angle by carrying out a linear fit, such that the angle range should be taken to be very small.
 
@@ -681,12 +681,12 @@ def find_balance_angle(start_angle, end_angle, step_size, go_to_balance_angle=Tr
     move_back_2 = motor_dict['axis_2']['move_back']
 
     # move both motors to 0
-    move_axis_1(-move_back_1)
-    move_axis_2(-move_back_2)
-    move_axis_1(0)
-    move_axis_2(0)
+    move_axis_1(balance_at-move_back_1)
+    move_axis_2(balance_at-move_back_2)
+    move_axis_1(balance_at)
+    move_axis_2(balance_at)
 
-    positions, demod_x, demod_y, demod_r = rotate_scan(start_angle, end_angle, step_size, axis_index=axis_index)
+    positions, demod_x, demod_y, demod_r = rotate_scan(balance_at+start_angle, balance_at+end_angle, step_size, axis_index=axis_index)
 
     # linear fit
     fit_params = np.polyfit(positions, demod_x, 1)
@@ -700,6 +700,9 @@ def find_balance_angle(start_angle, end_angle, step_size, go_to_balance_angle=Tr
     ax.set_ylabel('Demod X')
     ax.plot(positions, demod_x, 'o', ms=5, color='blue')
     ax.plot(angles_vect, fit, '-', color='black')
+
+    # set balance angle relative to 0
+    balance_angle = balance_angle - balance_at
 
     if go_to_balance_angle: # is there a good way to automatically re-zero zero?
         if axis_index==1:
@@ -734,7 +737,7 @@ def align_delay_stage(wait_time=5):
             move(125, delay_stage)
             with lock: # read locked variable
                 run_cond = run
-                #print(run_cond)
+                # print(run_cond)
 
     # start thread
     move_ds_thread = threading.Thread(target=osc_delay_stage, args=(wait_time,))

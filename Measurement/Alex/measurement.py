@@ -58,7 +58,9 @@ motor_dict = {
 
 'axis_2':{'move':ctrl.rotate_axis_2, 'read':ctrl.read_axis_2, 'init':ctrl.initialize_rot_axis_2, 'close':ctrl.close_rot_axis_2, 'move_back':1, 'name':'Angle 2 (deg)'},
 
-'delay_stage':{'move':ctrl.move_delay_stage, 'read':ctrl.read_delay_stage, 'init':ctrl.initialize_delay_stage, 'close':ctrl.close_delay_stage, 'move_back':1, 'name':'Delay Stage (mm)'},
+'axis_3':{'move':ctrl.rotate_axis_3, 'read':ctrl.read_axis_3, 'init':ctrl.initialize_rot_axis_3, 'close':ctrl.close_rot_axis_3, 'move_back':1, 'name':'Angle 2 (deg)'},
+
+'delay_stage':{'move':ctrl.rotate_axis_3, 'read':ctrl.read_axis_3, 'init':ctrl.initialize_rot_axis_3, 'close':ctrl.close_rot_axis_3, 'move_back':1, 'name':'Delay Stage (mm)'},
 
 'strain_cap':{'move':ctrl.set_strain_capacitance, 'read':ctrl.read_strain_capacitance, 'init':ctrl.initialize_strain_cell_client, 'close':ctrl.close_strain_cell_client, 'move_back':0, 'name':'Capacitance (pF)'},
 
@@ -66,7 +68,13 @@ motor_dict = {
 
 'zurich_output':{'move':ctrl.set_zurich_output_amplitude, 'read':ctrl.read_zurich_output_amplitude, 'init':ctrl.initialize_zurich_lockin, 'close':ctrl.close_zurich_lockin, 'move_back':0, 'name':'Lock-in Ouput Voltage (V)'},
 
-'zurich_frequency':{'move':ctrl.set_zurich_frequency, 'read':ctrl.read_zurich_frequency, 'init':ctrl.initialize_zurich_lockin, 'close':ctrl.close_zurich_lockin, 'move_back':0, 'name':'Lock-in Frequency (Hz)'}
+'zurich_frequency':{'move':ctrl.set_zurich_frequency, 'read':ctrl.read_zurich_frequency, 'init':ctrl.initialize_zurich_lockin, 'close':ctrl.close_zurich_lockin, 'move_back':0, 'name':'Lock-in Frequency (Hz)'},
+
+'opticool_temp':{'move':ctrl.set_opticool_temperature, 'read':ctrl.read_opticool_temperature, 'init':ctrl.initialize_opticool, 'close':ctrl.close_opticool, 'move_back':0, 'name':'Temperature (K)'},
+
+'opticool_field':{'move':ctrl.set_opticool_field, 'read':ctrl.read_opticool_field, 'init':ctrl.initialize_opticool, 'close':ctrl.close_opticool, 'move_back':0, 'name':'Field (Oe)'},
+
+'corotate_axes12':{'move':ctrl.corotate_axes12, 'read':ctrl.read_corotate_axes12, 'init':ctrl.initialize_corotate_axes12, 'close':ctrl.close_corotate_axes12, 'move_back':1, 'name':'Corotation Axes (deg)'}
 }
 
 ##########################
@@ -663,7 +671,7 @@ def corotate_map(map_dict, start_angle, end_angle, step_size, angle_offset, rate
     # close motors
     close_motors(mobj_dict)
 
-def find_balance_angle(start_angle, end_angle, step_size, balance_at=0, go_to_balance_angle=True, axis_index=2):
+def find_balance_angle(start_angle, end_angle, step_size, balance_at=0, offset=0, go_to_balance_angle=True, axis_index=2):
     '''
     Assuming we are measuring in DC mode above a transition or on GaAs, carries out a rotate_scan. Find angle by carrying out a linear fit, such that the angle range should be taken to be very small.
 
@@ -689,16 +697,16 @@ def find_balance_angle(start_angle, end_angle, step_size, balance_at=0, go_to_ba
     positions, demod_x, demod_y, demod_r = rotate_scan(balance_at+start_angle, balance_at+end_angle, step_size, axis_index=axis_index)
 
     # linear fit
-    fit_params = np.polyfit(positions, demod_x, 1)
+    fit_params = np.polyfit(positions, demod_x-offset, 1)
     balance_angle = -fit_params[1]/fit_params[0]
-    angles_vect = np.linspace(start_angle, end_angle, 1000)
+    angles_vect = np.linspace(start_angle+balance_at, balance_at+end_angle, 1000)
     fit = fit_params[0]*angles_vect + fit_params[1]
 
     # display result
     fig, ax = plt.subplots(1)
     ax.set_ylabel('Angle (deg)')
     ax.set_ylabel('Demod X')
-    ax.plot(positions, demod_x, 'o', ms=5, color='blue')
+    ax.plot(positions, demod_x-offset, 'o', ms=5, color='blue')
     ax.plot(angles_vect, fit, '-', color='black')
 
     # set balance angle relative to 0
@@ -706,14 +714,14 @@ def find_balance_angle(start_angle, end_angle, step_size, balance_at=0, go_to_ba
 
     if go_to_balance_angle: # is there a good way to automatically re-zero zero?
         if axis_index==1:
-            move_axis_1(balance_angle)
+            move_axis_1(balance_angle+balance_at)
         else:
-            move_axis_2(balance_angle)
+            move_axis_2(balance_angle+balance_at)
 
     print(f'Balance angle: {balance_angle}')
     return balance_angle
 
-def align_delay_stage(wait_time=5):
+def align_delay_stage(wait_time=5, range=(-125,125)):
 
     # initialize delay stage:
     delay_stage = motor_dict['delay_stage']['init']()
@@ -732,9 +740,9 @@ def align_delay_stage(wait_time=5):
                 time.sleep(wait)
             if n==0:
                 n=1
-            move(-125, delay_stage)
+            move(range[0], delay_stage)
             time.sleep(wait)
-            move(125, delay_stage)
+            move(range[1], delay_stage)
             with lock: # read locked variable
                 run_cond = run
                 # print(run_cond)
@@ -744,12 +752,28 @@ def align_delay_stage(wait_time=5):
     move_ds_thread.start()
 
     # ask to stop
-    answer = input('Stop?')
+    answer = input('Press any key to stop:')
 
     # shutdown
     with lock:
         run = False
     move_ds_thread.join()
+
+def list_motors():
+    '''
+    walk through motors in motor_dict and return those that can initialize properly
+    '''
+
+    m_list = []
+    for m in motor_dict.keys():
+        try:
+            obj = motor_dict[m]['init']()
+            m_list.append(m)
+            motor_dict[m]['close'](obj)
+        except:
+            print(f'motor {m} not able to initialize')
+
+    return m_list
 
 ###########################
 ### Strain Cell Methods ### # perhaps move these to another file?

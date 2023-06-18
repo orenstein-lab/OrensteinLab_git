@@ -8,7 +8,8 @@ import sys
 import telnetlib
 
 def connect_opticool():
-    HOST = '127.0.0.1'
+    #HOST = '127.0.0.1'
+    HOST='131.243.163.240'
     PORT = '5000'
     telnetObj=telnetlib.Telnet(HOST,PORT,timeout=15)
     telnetObj.read_until(('Connected to QDInstrument Socket Server.\r\n').encode('ascii'))

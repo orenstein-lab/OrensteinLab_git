@@ -20,7 +20,7 @@ from IPython.display import clear_output
 import threading
 import ipywidgets as widgets
 from pyanc350.v2 import Positioner
-import OrensteinLab_git.Instrument.Lakeshore.Lakeshore335 as ls
+import OrensteinLab_git.Instrument.Lakeshore.Lakeshore as ls
 from strain_control.strain_client import StrainClient
 '''
 To do:
@@ -44,6 +44,7 @@ with open(os.path.dirname(__file__)+ r'\..\..\Configuration.txt', "r") as f_conf
     device_id = conf_info_split[0].split('\t')[1]
     port_id = conf_info_split[1].split('\t')[1]
     esp300_id = conf_info_split[2].split('\t')[1]
+    lakeshore_model = conf_info_split[3].split('\t')[1]
 ATTOCUBE_HANDLE_FNAME = f'{os.path.dirname(__file__)}\\..\\..\\attocube_handle'
 
 ###############################
@@ -434,6 +435,58 @@ def read_zurich_frequency(daq_objs=None, osc=1):
     freq = daq.getDouble(f'/%s/oscs/{osc-1}/freq'%device)
     return freq
 
+def set_opticool_temperature(temperature, rate=10, mode=0, obj=None):
+
+    obj_passed=True
+    if obj==None:
+        obj = initialize_opticool()
+        obj_passed==False
+
+    optc.set_temperature(obj, temperature, rate, mode)
+
+    if obj_passed==False:
+        close_opticool(obj)
+
+def read_opticool_temperature(obj=None):
+
+    obj_passed=True
+    if obj==None:
+        obj = initialize_opticool()
+        obj_passed==False
+
+    temp = optc.read_temperature(obj)[0]
+
+    if obj_passed==False:
+        close_opticool(obj)
+
+    return temp
+
+def set_opticool_field(field, rate=110, mode=0, obj=None):
+
+    obj_passed=True
+    if obj==None:
+        obj = initialize_opticool()
+        obj_passed==False
+
+    optc.set_field(obj, field, rate, mode)
+
+    if obj_passed==False:
+        close_opticool(obj)
+
+def read_opticool_field(obj=None):
+
+    obj_passed=True
+    if obj==None:
+        obj = initialize_opticool()
+        obj_passed==False
+
+    field = optc.read_field(obj)[0]
+
+    if obj_passed==False:
+        close_opticool(obj)
+
+    return field
+
 #######################################
 ### Wrapper Move and Read Functions ###
 #######################################
@@ -471,11 +524,29 @@ def rotate_axis_1(angle, axis=None):
 def rotate_axis_2(angle, axis=None):
     rotate_axis(2, angle, axis)
 
+def rotate_axis_3(angle, axis=None):
+    rotate_axis(3, angle, axis)
+
+def corotate_axes12(angle, obj=None, bal_angle=0):
+    
+    if obj==None:
+        axis_1, axis_2 = initialize_corotate_axes12()
+    else:
+        axis_1, axis_2 = obj
+    
+    corotate_axes(1,2,angle, angle+bal_angle, axis_1=axis_1, axis_2=axis_2)
+
 def read_axis_1(axis=None, print_flag=True):
     return read_axis(1, axis, print_flag)
 
 def read_axis_2(axis=None, print_flag=True):
     return read_axis(2, axis, print_flag)
+
+def read_axis_3(axis=None, print_flag=True):
+    return read_axis(3, axis, print_flag)
+
+def read_corotate_axes12(axis=None, print_flag=True):
+    return read_axis(1, print_flag=print_flag)
 
 def move_delay_stage(position, axis=None):
     move_esp300(1, position, axis)
@@ -539,11 +610,25 @@ def initialize_rot_axis_1():
 def initialize_rot_axis_2():
     return initialize_rotation_axis(2)
 
+def initialize_rot_axis_3():
+    return initialize_rotation_axis(3)
+
+def initialize_corotate_axes12():
+    axis_1 = initialize_rotation_axis(1)
+    axis_2 = initialize_rotation_axis(2)
+    return axis_1, axis_2
+
 def initialize_lakeshore():
-    return ls.initialization_lakeshore335()
+    if lakeshore_model == '335':
+        return ls.initialize_lakeshore335()
+    elif lakeshore_model == '336':
+        return ls.initialize_lakeshore336()
 
 def initialize_strain_cell_client():
     return StrainClient()
+
+def initialize_opticool():
+    return optc.connect_opticool()
 
 #####################
 ### Close Methods ###
@@ -556,12 +641,15 @@ def close_attocube(anc):
         return 0
 
 def close_lakeshore(obj):
-    ls.close_lakeshore335(obj)
+    ls.close_lakeshore(obj)
 
 def close_rot_axis_1(obj):
     return 0
 
 def close_rot_axis_2(obj):
+    return 0
+
+def close_rot_axis_3(obj):
     return 0
 
 def close_delay_stage(obj):
@@ -574,6 +662,12 @@ def close_strain_cell_client(obj):
     return 0
 
 def close_zurich_lockin(obj):
+    return 0
+
+def close_opticool(obj):
+    optc.disconnect_opticool(obj)
+
+def close_corotate_axes12(obj):
     return 0
 
 ''' a script I wrote for collecting data on capacitive sensor

@@ -528,12 +528,12 @@ def rotate_axis_3(angle, axis=None):
     rotate_axis(3, angle, axis)
 
 def corotate_axes12(angle, obj=None, bal_angle=0):
-    
+
     if obj==None:
         axis_1, axis_2 = initialize_corotate_axes12()
     else:
         axis_1, axis_2 = obj
-    
+
     corotate_axes(1,2,angle, angle+bal_angle, axis_1=axis_1, axis_2=axis_2)
 
 def read_axis_1(axis=None, print_flag=True):

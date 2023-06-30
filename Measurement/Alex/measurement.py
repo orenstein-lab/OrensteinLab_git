@@ -410,6 +410,7 @@ def corotate_scan(start_angle, end_angle, step_size, angle_offset, rate_axis_2=1
 def motor_scan(map_dict, filename_head=None, filename=None, measure_motors=[], showplot=True, time_constant=0.3, channel_index=1, R_channel_index=3, print_flag=False):
     '''
     utility to record lockin measurement as a function of motors specified by dictionary map_dict.
+
     '''
 
     # Lock-in Amplifier initialization

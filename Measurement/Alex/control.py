@@ -94,7 +94,7 @@ def read_zurich_lockin(daq_objs=None, time_constant=0.3, poll_timeout=500, chann
 ### Core Motor Move and Read Methods ###
 ########################################
 
-def move_attocube(axis, position, anc=None, tolerance=1, go_back=10):
+def move_attocube(axis, position, anc=None, tolerance=1, go_back=0):
     '''
     utility to move attocube
     '''
@@ -105,6 +105,7 @@ def move_attocube(axis, position, anc=None, tolerance=1, go_back=10):
     if anc==None:
         anc = initialize_attocube()
         anc_passed = False
+        go_back=10
 
 
     pos = float(position)
@@ -437,19 +438,19 @@ def read_zurich_frequency(daq_objs=None, osc=1):
 ### Wrapper Move and Read Functions ###
 #######################################
 
-def move_x(position,  anc=None, tolerance=1, go_back=10):
+def move_x(position,  anc=None, tolerance=1, go_back=0):
     '''
     wrapper to move attocube x positioner.
     '''
     move_attocube('x', position, anc, tolerance, go_back)
 
-def move_y(position,  anc=None, tolerance=1, go_back=10):
+def move_y(position,  anc=None, tolerance=1, go_back=0):
     '''
     wrapper to move attocube y positioner.
     '''
     move_attocube('y', position, anc, tolerance, go_back)
 
-def move_z(position,  anc=None, tolerance=1, go_back=10):
+def move_z(position,  anc=None, tolerance=1, go_back=0):
     '''
     wrapper to move attocube z positioner.
     '''

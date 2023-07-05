@@ -12,7 +12,7 @@ import matplotlib.colors as colors
 import os
 import threading
 from tqdm.auto import tqdm
-from OrensteinLab_git.configuration import motor_dict, instrument_dict
+from OrensteinLab_git.configuration import config_dict, motor_dict, instrument_dict
 
 '''
 Features to add:

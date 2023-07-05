@@ -5,7 +5,7 @@ Main file for controlling lab equipment and orchestrating measurements
 get_ipython().run_line_magic('matplotlib', 'notebook')
 import zhinst.utils as ziutils
 import zhinst.core as zicore
-import instruments.newport as newport
+import pymeasure.instruments.newport as newport
 from pymeasure.instruments.newport import ESP300
 import OrensteinLab_git.Instrument.OptiCool.OptiCool_Control as optc
 import numpy as np
@@ -23,12 +23,6 @@ from pyanc350.v2 import Positioner
 import OrensteinLab_git.Instrument.Lakeshore.Lakeshore as ls
 from strain_control.strain_client import StrainClient
 '''
-To do:
-    - clean up printing to eliminate erroneous prints/only print when called from the command line or when we intuitively want it to print
-    - every motor move function takes arguments (setpoint, obj=None, kwargs)
-    - write a set_coil function
-    - anything else that seems fitting to go in here!
-
 to find pymeasure instruments:
 
 from pymeasure.instruments import list_resources

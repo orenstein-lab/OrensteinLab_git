@@ -21,8 +21,8 @@ s
 config_dict = {'Zurich Lockin ID':'dev3425',
 'ESP301 COM PORT':'COM4',
 'ESP300 COM PORT':'COM1',
-'Lakeshore model':336,
-'Attocube handle: f'{os.path.dirname(__file__)}\\attocube_handle'}}
+'Lakeshore Model':336,
+'Attocube Handle': f'{os.path.dirname(__file__)}\\attocube_handle'}
 
 #####################
 ### System Motors ###

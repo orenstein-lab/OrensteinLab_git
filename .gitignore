@@ -13,6 +13,7 @@ attocube_handle
 
 # ignore config file
 Configuration.txt
+configuration.py
 
 # other files that pop up:
 .DS_Store

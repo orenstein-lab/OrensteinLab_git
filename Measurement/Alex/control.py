@@ -5,7 +5,7 @@ Main file for controlling lab equipment and orchestrating measurements
 get_ipython().run_line_magic('matplotlib', 'notebook')
 import zhinst.utils as ziutils
 import zhinst.core as zicore
-import pymeasure.instruments.newport as newport
+import instruments.newport as newport
 from pymeasure.instruments.newport import ESP300
 import OrensteinLab_git.Instrument.OptiCool.OptiCool_Control as optc
 import numpy as np

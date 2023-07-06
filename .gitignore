@@ -14,6 +14,7 @@ attocube_handle
 # ignore config file
 Measurement/Alex/motors.py
 configuration.py
+Configuration.txt
 
 # other files that pop up:
 .DS_Store

@@ -3,7 +3,8 @@
 # @author: Yue Sun, UCB
 
 import lakeshore as ls
-from OrensteinLab_git.configuration import config_dict, motor_dict, instrument_dict
+from OrensteinLab_git.configuration import config_dict
+import time
 
 lakeshore_model = config_dict['Lakeshore Model']
 

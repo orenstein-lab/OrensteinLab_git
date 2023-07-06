@@ -1,5 +1,6 @@
 from pyanc350.v2 import Positioner
-from OrensteinLab_git.configuration import config_dict, motor_dict, instrument_dict
+from OrensteinLab_git.configuration import config_dict
+import pickle
 
 axis_dict = {'x':0, 'y':1, 'z':2}
 ATTOCUBE_HANDLE_FNAME = config_dict['Attocube Handle']

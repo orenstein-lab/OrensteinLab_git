@@ -670,6 +670,33 @@ def find_balance_angle(start_angle, end_angle, step_size, balance_at=0, offset=0
     print(f'Balance angle: {balance_angle}')
     return balance_angle
 
+def balance_pid(balance_at, P, tolerance, balance_axis_index, channel_index, time_constant):
+
+    '''
+    work in progress
+
+
+    apilevel = 6
+    (daq, device, props) = ziutils.create_api_session(device_id, apilevel)
+
+    status = True
+    x = 10000
+    axis_rot = newport.NewportESP301Axis(controller,balance_axis_index-1)
+    axis_rot.enable()
+    while (np.abs(x)>tolerance):
+        time.sleep(time_constant*4)
+        sample = daq.getSample(channel_name[channel_index-1] % device)
+        sample["R"] = np.abs(sample["x"] + 1j * sample["y"])
+        x = sample["x"][0]
+        print(x)
+        motion = -P*x
+        axis_rot.move(motion,absolute=False)
+        while (axis_rot.is_motion_done==False):
+            pass
+    print('Balance angle = '+str(axis_rot.position))
+    '''
+    return 0
+
 def align_delay_stage(wait_time=5, range=(-125,125)):
 
     # initialize delay stage:

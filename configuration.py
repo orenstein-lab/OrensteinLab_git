@@ -18,11 +18,15 @@ s
 ############################
 ### System Configuration ###
 ############################
-config_dict = {'Zurich Lockin ID':'dev3425',
-'ESP301 COM PORT':'COM4',
-'ESP300 COM PORT':'COM1',
+config_dict = {
+'Zurich Lockin ID':'dev3425',
+'ESP COM PORT':'COM4',
+'ESP Model':301,
 'Lakeshore Model':336,
-'Attocube Handle': f'{os.path.dirname(__file__)}\\attocube_handle'}
+'Attocube Handle': f'{os.path.dirname(__file__)}\\attocube_handle',
+'Opticool IP':'131.243.163.240',
+'Opticool Port':'5000'
+}
 
 #####################
 ### System Motors ###

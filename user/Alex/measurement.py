@@ -2,34 +2,26 @@
 Main file for controlling lab equipment and orchestrating measurements, with a specific eye to procedures
 '''
 
-from strain_control.strain_client import StrainClient
-import OrensteinLab_git.Measurement.Alex.control as ctrl
-import OrensteinLab_git.Instrument.montana.cryocore as cryocore
-import time
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
 import os
+import time
 import threading
 from tqdm.auto import tqdm
+import OrensteinLab_git.control.newport
+import OrensteinLab_git.control.lakeshore
+import OrensteinLab_git.control.zurich
+import OrensteinLab_git.control.opticool
+import OrensteinLab_git.control.razorbill
+import OrensteinLab_git.control.attocube
 from OrensteinLab_git.configuration import config_dict, motor_dict, instrument_dict
 
 '''
 Features to add:
     - default save files
-    - add metadata
+    - add default saving of metadata into header
 '''
-
-#####################
-### Configuration ###
-#####################
-with open(os.path.dirname(__file__)+ r'\..\..\Configuration.txt', "r") as f_conf:
-    conf_info = f_conf.read()
-    conf_info_split = conf_info.split('\n')
-    device_id = conf_info_split[0].split('\t')[1]
-    port_id = conf_info_split[1].split('\t')[1]
-channel_name = ['/%s/demods/0/sample','/%s/demods/1/sample','/%s/demods/2/sample','/%s/demods/3/sample']
-lockin_header = ['Demod x', 'Demod y', 'r', 'Demod x_R', 'Demod y_R', 'Demod r_R']
 
 
 ################
@@ -318,10 +310,10 @@ def corotate_scan(start_angle, end_angle, step_size, angle_offset, rate_axis_2=1
             #move_axis_2(angle_2-move_back_2, axis=axis_2)
             #move_axis_1(angle_1, axis=axis_1)
             #move_axis_2(angle_2, axis=axis_2)
-            ctrl.corotate_axes(1, 2, angle_1-move_back_1, angle_2-move_back_2, axis_1=axis_1, axis_2=axis_2)
+            newport.corotate_axes(1, 2, angle_1-move_back_1, angle_2-move_back_2, axis_1=axis_1, axis_2=axis_2)
             #ctrl.corotate_axes(1, 2, angle_1, angle_2, axis_1=axis_1, axis_2=axis_2)
             time.sleep(2) # was set to 2 but I don't think this matters much
-        ctrl.corotate_axes(1, 2, angle_1, angle_2, axis_1=axis_1, axis_2=axis_2)
+        newport.corotate_axes(1, 2, angle_1, angle_2, axis_1=axis_1, axis_2=axis_2)
         #move_axis_1(angle_1, axis=axis_1)
         #move_axis_2(angle_2, axis=axis_2)
         time.sleep(time_constant)
@@ -359,7 +351,7 @@ def corotate_scan(start_angle, end_angle, step_size, angle_offset, rate_axis_2=1
     # move motors back to original positions
     #move_axis_1(start_angle, axis=axis_1)
     #move_axis_2(start_angle+angle_offset, axis=axis_2)
-    ctrl.corotate_axes(1, 2, start_angle, start_angle+angle_offset, axis_1=axis_1, axis_2=axis_2)
+    newport.corotate_axes(1, 2, start_angle, start_angle+angle_offset, axis_1=axis_1, axis_2=axis_2)
 
     return position, demod_x, demod_y, demod_r
 

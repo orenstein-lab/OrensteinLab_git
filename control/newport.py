@@ -1,6 +1,7 @@
 import instruments.newport as newport
 from pymeasure.instruments.newport import ESP300
 from OrensteinLab_git.configuration import config_dict
+import time
 
 esp_port = config_dict['ESP COM Port']
 esp_model = config_dict['ESP Model']
@@ -10,35 +11,35 @@ esp_model = config_dict['ESP Model']
 ######################
 
 def move_axis(axis_index, pos, axis=None):
-    if esp_model==301:
-        move_esp301(axis_index, axis, print_flag)
-    elif esp_model==300:
-        move_esp300(axis_index, axis, print_flag)
+    if esp_model=='301':
+        move_esp301(axis_index, pos, axis)
+    elif esp_model=='300':
+        move_esp300(axis_index, pos, axis)
     else:
         raise ValueError(f'ESP Model {esp_model} not supported.')
 
 def read_axis(axis_index, axis=None, print_flag=True):
-    if esp_model==301:
+    if esp_model=='301':
         pos = read_esp301(axis_index, axis, print_flag)
-    elif esp_model==300:
+    elif esp_model=='300':
         pos = read_esp300(axis_index, axis, print_flag)
     else:
         raise ValueError(f'ESP Model {esp_model} not supported.')
     return pos
 
 def corotate_axes(axis_1_index, axis_2_index, angle_1, angle_2, axis_1=None, axis_2=None):
-    if esp_model==301:
-        corotate_axes301(axis_index, axis, print_flag)
-    elif esp_model==300:
-        corotate_axes300(axis_index, axis, print_flag)
+    if esp_model=='301':
+        corotate_axes301(axis_1_index, axis_2_index, angle_1, angle_2, axis_1, axis_2)
+    elif esp_model=='300':
+        corotate_axes300(axis_1_index, axis_2_index, angle_1, angle_2, axis_1, axis_2)
     else:
         raise ValueError(f'ESP Model {esp_model} not supported.')
 
 def initialize_axis(axis_index):
-    if esp_model==301:
-        axis = initialize_esp301(axis_index, axis, print_flag)
-    elif esp_model==300:
-        axis = initialize_esp300(axis_index, axis, print_flag)
+    if esp_model=='301':
+        axis = initialize_esp301(axis_index)
+    elif esp_model=='300':
+        axis = initialize_esp300(axis_index)
     else:
         raise ValueError(f'ESP Model {esp_model} not supported.')
     return axis
@@ -52,10 +53,10 @@ def move_esp301(axis_index, pos, axis=None):
     '''
     # initialize axis
     if axis==None:
-        axis = initialize_rotation_axis(axis_index)
+        axis = initialize_esp301(axis_index)
 
     axis.move(pos, absolute=True)
-    check_axis_stability(axis)
+    check_axis_stability301(axis)
 
 def read_esp301(axis_index, axis=None, print_flag=True):
     '''
@@ -64,7 +65,7 @@ def read_esp301(axis_index, axis=None, print_flag=True):
     # initialize axis
     obj_passed = True
     if axis==None:
-        axis = initialize_rotation_axis(axis_index)
+        axis = initialize_esp301(axis_index)
         obj_passed = False
 
     while True:

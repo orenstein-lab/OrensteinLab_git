@@ -128,6 +128,6 @@ def get_lsobj(lsobj):
     '''
     lsobj_passed = True
     if lsobj==None:
-        lsobj = initialization_lakeshore()
+        lsobj = initialize_lakeshore()
         lsobj_passed=False
     return lsobj, lsobj_passed

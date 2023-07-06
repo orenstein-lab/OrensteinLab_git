@@ -1,3 +1,4 @@
+import numpy as np
 from pyanc350.v2 import Positioner
 from OrensteinLab_git.configuration import config_dict
 import time

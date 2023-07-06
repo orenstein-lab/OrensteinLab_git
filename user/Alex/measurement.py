@@ -15,7 +15,7 @@ import OrensteinLab_git.control.zurich
 import OrensteinLab_git.control.opticool
 import OrensteinLab_git.control.razorbill
 import OrensteinLab_git.control.attocube
-from OrensteinLab_git.configuration import config_dict, motor_dict, instrument_dict
+from OrensteinLab_git.motors import motor_dict, instrument_dict
 
 '''
 Features to add:

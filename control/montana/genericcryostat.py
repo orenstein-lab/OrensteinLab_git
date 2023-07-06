@@ -6,7 +6,7 @@
 
 import sys
 import os
-import OrensteinLab_git.Instrument.montana.instrument as instrument
+import OrensteinLab_git.control.montana.instrument as instrument
 
 class PidScheduleItem:
     def __init__(self, temperature, kc=None, ti=None, td=None):

@@ -2,7 +2,7 @@ import instruments.newport as newport
 from pymeasure.instruments.newport import ESP300
 from OrensteinLab_git.configuration import config_dict
 
-esp_port = config_dict['ESP Port']
+esp_port = config_dict['ESP COM Port']
 esp_model = config_dict['ESP Model']
 
 ######################

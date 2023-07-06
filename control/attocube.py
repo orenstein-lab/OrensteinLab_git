@@ -1,5 +1,6 @@
 from pyanc350.v2 import Positioner
 from OrensteinLab_git.configuration import config_dict
+import time
 import pickle
 
 axis_dict = {'x':0, 'y':1, 'z':2}
@@ -27,26 +28,26 @@ def move_attocube(axis, position, anc=None, tolerance=1, go_back=0):
     tol = float(tolerance)
 
     # Move to go_back position to prevent hysteresis
-    anc.moveAbsolute(ax[axis], int(target*1000))
+    anc.moveAbsolute(axis_dict[axis], int(target*1000))
     time.sleep(0.1)
-    error = np.abs(target-anc.getPosition(ax[axis])/1000)
+    error = np.abs(target-anc.getPosition(axis_dict[axis])/1000)
     while (error >= tol):
-        anc.moveAbsolute(ax[axis], int(target*1000))
+        anc.moveAbsolute(axis_dict[axis], int(target*1000))
         time.sleep(0.1)
-        error = np.abs(target-anc.getPosition(ax[axis])/1000)
+        error = np.abs(target-anc.getPosition(axis_dict[axis])/1000)
 
     # Move to specified position
-    anc.moveAbsolute(ax[axis], int(pos*1000))
+    anc.moveAbsolute(axis_dict[axis], int(pos*1000))
     time.sleep(0.1)
-    error = np.abs(pos-anc.getPosition(ax[axis])/1000)
+    error = np.abs(pos-anc.getPosition(axis_dict[axis])/1000)
     while (error >= tol):
-        anc.moveAbsolute(ax[axis], int(pos*1000))
+        anc.moveAbsolute(axis_dict[axis], int(pos*1000))
         time.sleep(0.1)
-        error = np.abs(pos-anc.getPosition(ax[axis])/1000)
+        error = np.abs(pos-anc.getPosition(axis_dict[axis])/1000)
 
     # print and close only if another process hasn't passed anc object
     if anc_passed == False:
-        print(anc.getPosition(ax[axis])/1000)
+        print(anc.getPosition(axis_dict[axis])/1000)
         close_attocube(anc)
 
 def read_attocube(axis, anc=None, print_flag=True):
@@ -59,11 +60,11 @@ def read_attocube(axis, anc=None, print_flag=True):
         anc = initialize_attocube()
         anc_passed = False
 
-    if axis not in list(ax_dict.keys()):
+    if axis not in list(axis_dict.keys()):
         raise ValueError('Invalid axis, please choose from ["x", "y", "z"].')
 
     time.sleep(0.1)
-    pos=anc.getPosition(ax_dict[axis])/1000
+    pos=anc.getPosition(axis_dict[axis])/1000
 
     if print_flag==True and anc_passed==False:
         print(f'{axis}: {pos}')

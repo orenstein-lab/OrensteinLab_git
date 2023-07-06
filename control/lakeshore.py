@@ -118,6 +118,8 @@ def initialize_lakeshore():
         return ls.model_335.Model335(57600)
     elif lakeshore_model == '336':
         return ls.model_336.Model336()
+    else:
+        raise ValueError('Invalid Lakeshore Model.')
 
 def close_lakeshore(lsobj):
     lsobj.disconnect_usb()

@@ -21,8 +21,8 @@ Example usage:
 """
 import sys
 import os
-import OrensteinLab_git.control.montana.instrument as instrument
-import OrensteinLab_git.control.montana.genericcryostat as genericcryostat
+import OrensteinLab_git.Measurement.Alex.control.montana.instrument as instrument
+import OrensteinLab_git.Measurement.Alex.control.montana.genericcryostat as genericcryostat
 
 Ports = instrument.Rest_Ports
 

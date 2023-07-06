@@ -2,6 +2,7 @@
 Main file for controlling lab equipment and orchestrating measurements, with a specific eye to procedures
 '''
 
+get_ipython().run_line_magic('matplotlib', 'notebook')
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
@@ -9,12 +10,12 @@ import os
 import time
 import threading
 from tqdm.auto import tqdm
-import OrensteinLab_git.Measurement.Alex.control.newport
-import OrensteinLab_git.Measurement.Alex.control.lakeshore
-import OrensteinLab_git.Measurement.Alex.control.zurich
-import OrensteinLab_git.Measurement.Alex.control.opticool
-import OrensteinLab_git.Measurement.Alex.control.razorbill
-import OrensteinLab_git.Measurement.Alex.control.attocube
+import OrensteinLab_git.Measurement.Alex.control.newport as newport
+import OrensteinLab_git.Measurement.Alex.control.lakeshore as ls
+import OrensteinLab_git.Measurement.Alex.control.zurich as zurich
+import OrensteinLab_git.Measurement.Alex.control.opticool as oc
+import OrensteinLab_git.Measurement.Alex.control.razorbill as razorbill
+import OrensteinLab_git.Measurement.Alex.control.attocube as atto
 from OrensteinLab_git.Measurement.Alex.motors import motor_dict, instrument_dict
 
 '''

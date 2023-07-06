@@ -294,7 +294,7 @@ def set_temperature(temperature, lsobj=None, tolerance=0.05, wait_time=0, max_ch
         else:
             time.sleep(1)
     if m==max_check-1:
-        print(f'Maximum time exceeded. Temperature: {ls.read_temperature(lsobj)}')
+        print(f'Maximum time exceeded. Temperature: {read_temperature(lsobj)}')
 
     if lsobj_passed==False:
         close_lakeshore(lsobj)
@@ -311,9 +311,9 @@ def set_lakeshore_range(range):
     range=int(range)
     if range not in [0,1,2,3]:
         raise ValueError(f'{range} is not a valid range. Please choose from (0=off, 1=Low, 2=Med, 3=High)')
-    lsobj = ls.initialize_lakeshore()
+    lsobj = initialize_lakeshore()
     ls.set_range(lsobj, 1, range)
-    ls.close_lakeshore(lsobj)
+    close_lakeshore(lsobj)
 
 def read_temperature(lsobj=None):
     '''
@@ -326,11 +326,11 @@ def read_temperature(lsobj=None):
     '''
     lsobj_passed = True
     if lsobj==None:
-        lsobj = ls.initialize_lakeshore()
+        lsobj = initialize_lakeshore()
         lsobj_passed=False
-    temp = ls.read_temperature(lsobj)
+    temp = read_temperature(lsobj)
     if lsobj_passed==False:
-        ls.close_lakeshore(lsobj)
+        close_lakeshore(lsobj)
     return temp
 
 def set_coil():

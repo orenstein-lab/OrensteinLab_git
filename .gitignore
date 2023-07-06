@@ -2,19 +2,18 @@
 *.pyc
 
 # ignore ALL files in ANY directory named..
-Measurement/Alex/__pycache__/
-Measurement/Elizabeth/__pycache__/
-Measurement/Changmin/__pycache__/
-Measurement/Veronika/__pycache__/
-Measurement/Yue/__pycache__/
+user/Alex/__pycache__/
+user/Elizabeth/__pycache__/
+user/Changmin/__pycache__/
+user/Veronika/__pycache__/
+user/Yue/__pycache__/
 
 # ignore attocube handle file
 attocube_handle
 
 # ignore config file
-Configuration.txt
+motors.py
 configuration.py
 
 # other files that pop up:
 .DS_Store
-Configuration.txt

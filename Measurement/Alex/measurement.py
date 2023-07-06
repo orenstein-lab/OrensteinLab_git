@@ -2,34 +2,26 @@
 Main file for controlling lab equipment and orchestrating measurements, with a specific eye to procedures
 '''
 
-from strain_control.strain_client import StrainClient
-import OrensteinLab_git.Measurement.Alex.control as ctrl
-import OrensteinLab_git.Instrument.montana.cryocore as cryocore
-import time
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
 import os
+import time
 import threading
 from tqdm.auto import tqdm
-from OrensteinLab_git.configuration import motor_dict, instrument_dict
+import OrensteinLab_git.Measurement.Alex.control.newport
+import OrensteinLab_git.Measurement.Alex.control.lakeshore
+import OrensteinLab_git.Measurement.Alex.control.zurich
+import OrensteinLab_git.Measurement.Alex.control.opticool
+import OrensteinLab_git.Measurement.Alex.control.razorbill
+import OrensteinLab_git.Measurement.Alex.control.attocube
+from OrensteinLab_git.Measurement.Alex.motors import motor_dict, instrument_dict
 
 '''
 Features to add:
     - default save files
-    - add metadata
+    - add default saving of metadata into header
 '''
-
-#####################
-### Configuration ###
-#####################
-with open(os.path.dirname(__file__)+ r'\..\..\Configuration.txt', "r") as f_conf:
-    conf_info = f_conf.read()
-    conf_info_split = conf_info.split('\n')
-    device_id = conf_info_split[0].split('\t')[1]
-    port_id = conf_info_split[1].split('\t')[1]
-channel_name = ['/%s/demods/0/sample','/%s/demods/1/sample','/%s/demods/2/sample','/%s/demods/3/sample']
-lockin_header = ['Demod x', 'Demod y', 'r', 'Demod x_R', 'Demod y_R', 'Demod r_R']
 
 
 ################
@@ -318,10 +310,10 @@ def corotate_scan(start_angle, end_angle, step_size, angle_offset, rate_axis_2=1
             #move_axis_2(angle_2-move_back_2, axis=axis_2)
             #move_axis_1(angle_1, axis=axis_1)
             #move_axis_2(angle_2, axis=axis_2)
-            ctrl.corotate_axes(1, 2, angle_1-move_back_1, angle_2-move_back_2, axis_1=axis_1, axis_2=axis_2)
+            newport.corotate_axes(1, 2, angle_1-move_back_1, angle_2-move_back_2, axis_1=axis_1, axis_2=axis_2)
             #ctrl.corotate_axes(1, 2, angle_1, angle_2, axis_1=axis_1, axis_2=axis_2)
             time.sleep(2) # was set to 2 but I don't think this matters much
-        ctrl.corotate_axes(1, 2, angle_1, angle_2, axis_1=axis_1, axis_2=axis_2)
+        newport.corotate_axes(1, 2, angle_1, angle_2, axis_1=axis_1, axis_2=axis_2)
         #move_axis_1(angle_1, axis=axis_1)
         #move_axis_2(angle_2, axis=axis_2)
         time.sleep(time_constant)
@@ -359,7 +351,7 @@ def corotate_scan(start_angle, end_angle, step_size, angle_offset, rate_axis_2=1
     # move motors back to original positions
     #move_axis_1(start_angle, axis=axis_1)
     #move_axis_2(start_angle+angle_offset, axis=axis_2)
-    ctrl.corotate_axes(1, 2, start_angle, start_angle+angle_offset, axis_1=axis_1, axis_2=axis_2)
+    newport.corotate_axes(1, 2, start_angle, start_angle+angle_offset, axis_1=axis_1, axis_2=axis_2)
 
     return position, demod_x, demod_y, demod_r
 
@@ -669,6 +661,33 @@ def find_balance_angle(start_angle, end_angle, step_size, balance_at=0, offset=0
 
     print(f'Balance angle: {balance_angle}')
     return balance_angle
+
+def balance_pid(balance_at, P, tolerance, balance_axis_index, channel_index, time_constant):
+
+    '''
+    work in progress
+
+
+    apilevel = 6
+    (daq, device, props) = ziutils.create_api_session(device_id, apilevel)
+
+    status = True
+    x = 10000
+    axis_rot = newport.NewportESP301Axis(controller,balance_axis_index-1)
+    axis_rot.enable()
+    while (np.abs(x)>tolerance):
+        time.sleep(time_constant*4)
+        sample = daq.getSample(channel_name[channel_index-1] % device)
+        sample["R"] = np.abs(sample["x"] + 1j * sample["y"])
+        x = sample["x"][0]
+        print(x)
+        motion = -P*x
+        axis_rot.move(motion,absolute=False)
+        while (axis_rot.is_motion_done==False):
+            pass
+    print('Balance angle = '+str(axis_rot.position))
+    '''
+    return 0
 
 def align_delay_stage(wait_time=5, range=(-125,125)):
 

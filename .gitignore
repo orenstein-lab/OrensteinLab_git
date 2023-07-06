@@ -12,9 +12,8 @@ Measurement/Yue/__pycache__/
 attocube_handle
 
 # ignore config file
-Configuration.txt
+Measurement/Alex/motors.py
 configuration.py
 
 # other files that pop up:
 .DS_Store
-Configuration.txt

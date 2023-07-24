@@ -94,6 +94,28 @@ def read_zurich_frequency(daq_objs=None, osc=1):
     freq = daq.getDouble(f'/%s/oscs/{osc-1}/freq'%device)
     return freq
 
+def set_zurich_aux_offset(offset, daq_objs=None, wait_time=0, channel=1):
+    
+    # initialize
+    if daq_objs==None:
+        daq, device, props = initialize_zurich_lockin()
+    else:
+        daq, device, props = daq_objs
+
+    daq.setDouble(f'%s/auxouts/{int(channel-1)}/offset'%device, offset)
+    time.sleep(wait_time)
+
+def get_zurich_aux_offset(daq_objs=None, wait_time=0, channel=1):
+    
+    # initialize
+    if daq_objs==None:
+        daq, device, props = initialize_zurich_lockin()
+    else:
+        daq, device, props = daq_objs
+
+    offset = daq.getDouble(f'/%s/auxouts/{int(channel-1)}/offset'%device)
+    return offset
+
 def initialize_zurich_lockin():
     apilevel=6
     (daq, device, props) = ziutils.create_api_session(device_id, apilevel)
@@ -101,3 +123,23 @@ def initialize_zurich_lockin():
 
 def close_zurich_lockin(obj):
     return 0
+
+
+
+
+#########################
+### Wrapper functions ###
+#########################
+
+def set_zurich_aux_offset_1(offset, daq_objs=None, wait_time=0):
+    set_zurich_aux_offset(offset, daq_objs, wait_time, 1)
+
+def set_zurich_aux_offset_2(offset, daq_objs=None, wait_time=0):
+    set_zurich_aux_offset(offset, daq_objs, wait_time, 2)
+
+def get_zurich_aux_offset_1(daq_objs=None, wait_time=0):
+    return get_zurich_aux_offset(daq_objs, wait_time, 1)
+
+def get_zurich_aux_offset_2(daq_objs=None, wait_time=0):
+    return get_zurich_aux_offset(daq_objs, wait_time, 2)
+

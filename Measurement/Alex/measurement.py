@@ -24,6 +24,7 @@ Features to add:
     - add default saving of metadata into header
 '''
 
+lockin_header = ['Demod x', 'Demod y', 'r', 'Demod x_R', 'Demod y_R', 'Demod r_R'] # this should be moved to zurich file somehow
 
 ################
 ### Medthods ###

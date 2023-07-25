@@ -588,7 +588,7 @@ def motor_scan_autobalance(map_dict, autobalance, slope, tol, autobalance_channe
         filename = filename+f'_{m}'
     fname = get_unique_filename(filename_head, filename)
     header_motors = [motor_dict[m]['name'] for m in measure_motors]
-    header = [motor_dict[m]['name'] for m in motors]+[motor_dict[m]['name']+str(' measured') for m in motors]+lockin_header+header_motors
+    header = [motor_dict[m]['name'] for m in motors]+[motor_dict[m]['name']+str(' measured') for m in motors]+lockin_header+header_motors+['Balance Angle (Deg)']
     write_file_header(fname, header, metadata)
 
     # move motors to start position, using move_back to handle initial case
@@ -653,6 +653,7 @@ def motor_scan_autobalance(map_dict, autobalance, slope, tol, autobalance_channe
     autobalance_idx = motors.index(autobalance)
     if 'corotate_axes12' in motors:
         axis_1, axis_2 = mobj_dict['corotate_axes12']
+        corotate_axes_idx = motors.index('corotate_axes12')
     else:
         if 'axis_1' in motors
             axis_1 = mobj_dict['axis_1']
@@ -669,6 +670,7 @@ def motor_scan_autobalance(map_dict, autobalance, slope, tol, autobalance_channe
     start_pos = positions[0]
     current_pos = start_pos
     num_pos = len(positions)
+    bal_angle=0
     for ii in tqdm(range(num_pos)):
         pos = positions[ii]
 
@@ -680,9 +682,11 @@ def motor_scan_autobalance(map_dict, autobalance, slope, tol, autobalance_channe
         move_motors(mobj_dict, mkwargs_dict, current_pos, start_pos, pos, print_flag=print_flag)
         current_pos = pos
 
-
         if curren_pos[autobalance_idx] == start_pos[autobalance_idx]:
-            autobalance(slope, tol, daq_objs=daq_objs, axis_1=axis_1, axis_2=axis_2, channel_index=autobalance_channel)
+            bal_angle = autobalance(slope, tol, daq_objs=daq_objs, axis_1=axis_1, axis_2=axis_2, channel_index=autobalance_channel)
+            if 'corotate_axes12' in motors:
+                mkwargs_dict['corotate_axes12']['bal_angle'] = bal_angle
+                mobj_dict['corotate_axes12']['move'](current_pos[corotate_axes_idx], **mkwargs_dict['corotate_axes12'])
 
         # acquire data
         lockin_meas = read_lockin(daq_objs=daq_objs, time_constant=time_constant, channel_index=channel_index, R_channel_index=R_channel_index)
@@ -705,7 +709,7 @@ def motor_scan_autobalance(map_dict, autobalance, slope, tol, autobalance_channe
 
         # add to file
         if filename_head!=None and filename!=None:
-            append_data_to_file(fname, list(pos)+list(measured_positions)+list(lockin_meas)+list(measured_motors_positions))
+            append_data_to_file(fname, list(pos)+list(measured_positions)+list(lockin_meas)+list(measured_motors_positions)+[bal_angle])
 
         # update plots
         if showplot==True:

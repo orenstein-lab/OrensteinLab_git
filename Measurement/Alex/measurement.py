@@ -47,11 +47,12 @@ def lockin_time_series(recording_time, filename_head=None, filename=None, measur
 
     # metadata motors
     passed_meta_motors = True
-    if meta_objs_dict==None:
+    if meta_objs_dict=={}:
         passed_meta_motors = False
         all_motors = set(list(motor_dict.keys()))
         used_motors = set(measure_motors)
         meta_motors = list(all_motors - used_motors)
+        print(meta_motors)
         meta_objs_dict = initialize_motors(meta_motors)
 
     # initialize data bins
@@ -92,7 +93,7 @@ def lockin_time_series(recording_time, filename_head=None, filename=None, measur
         x, y, r, x_R, y_R, r_R = read_lockin(daq_objs=daq_objs, time_constant=time_constant, channel_index=channel_index, R_channel_index=R_channel_index)
 
         # read additional motors
-        measured_positions_dict = read_motors(mobj_dict)
+        measured_positions_dict = read_motors(mobj_measure_dict)
         measured_positions = [measured_positions_dict[m] for m in measure_motors]
 
         time_record = np.append(time_record, t_delay)
@@ -173,7 +174,7 @@ def rotate_scan(start_angle, end_angle, step_size, filename_head=None, filename=
 
     # metadata motors
     passed_meta_motors = True
-    if meta_objs_dict==None:
+    if meta_objs_dict=={}:
         passed_meta_motors = False
         all_motors = set(list(motor_dict.keys()))
         used_motors = set(['axis_1', 'axis_2']+measure_motors)
@@ -274,7 +275,7 @@ def rotate_scan(start_angle, end_angle, step_size, filename_head=None, filename=
 
     return position, demod_x, demod_y, demod_r
 
-def corotate_scan(start_angle, end_angle, step_size, angle_offset, rate_axis_2=1, filename_head=None, filename=None, measure_motors=[], mobj_dict={}, showplot=True, time_constant=0.3, channel_index=1, R_channel_index=2, daq_objs=None, axis_1=None, axis_2=None, meta_objs_dict={}):
+def corotate_scan(start_angle, end_angle, step_size, angle_offset, rate_axis_2=1, filename_head=None, filename=None, measure_motors=[], mobj_measure_dict={}, showplot=True, time_constant=0.3, channel_index=1, R_channel_index=2, daq_objs=None, axis_1=None, axis_2=None, meta_objs_dict={}):
     '''
     Takes a corotation scan moving axes 1 and 2, typically representing half wave plates. axis 2 can be specificied to move at a rate greater than axis 1, such that axis_2_move = rate*axis_1_move
 
@@ -310,7 +311,7 @@ def corotate_scan(start_angle, end_angle, step_size, angle_offset, rate_axis_2=1
 
     # metadata motors
     passed_meta_motors = True
-    if meta_objs_dict==None:
+    if meta_objs_dict=={}:
         passed_meta_motors = False
         all_motors = set(list(motor_dict.keys()))
         used_motors = set(['axis_1', 'axis_2']+measure_motors)
@@ -378,7 +379,7 @@ def corotate_scan(start_angle, end_angle, step_size, angle_offset, rate_axis_2=1
         angle_pos_2 = read_axis_2(axis=axis_2, print_flag=False)
 
         # read additional motors
-        measured_positions_dict = read_motors(mobj_dict)
+        measured_positions_dict = read_motors(mobj_measure_dict)
         measured_positions = [measured_positions_dict[m] for m in measure_motors]
 
         position = np.append(position, angle_pos_1)

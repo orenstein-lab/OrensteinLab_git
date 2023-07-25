@@ -16,7 +16,7 @@ import OrensteinLab_git.Measurement.Alex.control.zurich as zurich
 import OrensteinLab_git.Measurement.Alex.control.opticool as oc
 import OrensteinLab_git.Measurement.Alex.control.razorbill as razorbill
 import OrensteinLab_git.Measurement.Alex.control.attocube as atto
-from OrensteinLab_git.Measurement.Alex.motors import motor_dict, instrument_dict
+from OrensteinLab_git.Measurement.Alex.motors import motor_dict, instrument_dict, meta_exclude
 
 '''
 Features to add:
@@ -51,9 +51,9 @@ def lockin_time_series(recording_time, filename_head=None, filename=None, measur
         passed_meta_motors = False
         all_motors = set(list(motor_dict.keys()))
         used_motors = set(measure_motors)
-        meta_motors = list(all_motors - used_motors)
-        print(meta_motors)
-        meta_objs_dict = initialize_motors(meta_motors)
+        exclude = set(meta_exclude)
+        meta_motors = list(all_motors - used_motors - exclude)
+        meta_objs_dict = initialize_meta_motors(meta_motors)
 
     # initialize data bins
     time_record = np.array([])
@@ -178,8 +178,9 @@ def rotate_scan(start_angle, end_angle, step_size, filename_head=None, filename=
         passed_meta_motors = False
         all_motors = set(list(motor_dict.keys()))
         used_motors = set(['axis_1', 'axis_2']+measure_motors)
-        meta_motors = list(all_motors - used_motors)
-        meta_objs_dict = initialize_motors(meta_motors)
+        exclude = set(meta_exclude)
+        meta_motors = list(all_motors - used_motors - exclude)
+        meta_objs_dict = initialize_meta_motors(meta_motors)
 
     # setup measureables
     position = np.array([])
@@ -315,8 +316,9 @@ def corotate_scan(start_angle, end_angle, step_size, angle_offset, rate_axis_2=1
         passed_meta_motors = False
         all_motors = set(list(motor_dict.keys()))
         used_motors = set(['axis_1', 'axis_2']+measure_motors)
-        meta_motors = list(all_motors - used_motors)
-        meta_objs_dict = initialize_motors(meta_motors)
+        exclude = set(meta_exclude)
+        meta_motors = list(all_motors - used_motors - exclude)
+        meta_objs_dict = initialize_meta_motors(meta_motors)
 
     # setup measureables
     position = np.array([])
@@ -434,8 +436,9 @@ def motor_scan(map_dict, filename_head=None, filename=None, measure_motors=[], s
     # setup metadata
     all_motors = set(list(motor_dict.keys()))
     used_motors = set(motors+measure_motors)
-    meta_motors = list(all_motors - used_motors)
-    meta_objs_dict = initialize_motors(meta_motors)
+    exclude = set(meta_exclude)
+    meta_motors = list(all_motors - used_motors - exclude)
+    meta_objs_dict = initialize_meta_motors(meta_motors)
 
     # generate positions recursively
     positions = gen_positions_recurse(mranges, len(mranges)-1)
@@ -605,8 +608,9 @@ def rotate_map(map_dict, start_angle, end_angle, step_size, filename_head=None, 
     # setup metadata
     all_motors = set(list(motor_dict.keys()))
     used_motors = set(motors+measure_motors)
-    meta_motors = list(all_motors - used_motors)
-    meta_objs_dict = initialize_motors(meta_motors)
+    exclude = set(meta_exclude)
+    meta_motors = list(all_motors - used_motors - exclude)
+    meta_objs_dict = initialize_meta_motors(meta_motors)
 
     # generate positions recursively
     positions = gen_positions_recurse(mranges, len(mranges)-1)
@@ -663,8 +667,9 @@ def corotate_map(map_dict, start_angle, end_angle, step_size, angle_offset, rate
     # setup metadata
     all_motors = set(list(motor_dict.keys()))
     used_motors = set(motors+measure_motors)
-    meta_motors = list(all_motors - used_motors)
-    meta_objs_dict = initialize_motors(meta_motors)
+    exclude = set(meta_exclude)
+    meta_motors = list(all_motors - used_motors - exclude)
+    meta_objs_dict = initialize_meta_motors(meta_motors)
 
     # generate positions recursively
     positions = gen_positions_recurse(mranges, len(mranges)-1)
@@ -1258,6 +1263,16 @@ def append_data_to_file(fname, values):
         for val in values[:-1]:
             file.write(f'{format(val, ".15f")}\t')
         file.write(f'{format(values[-1], ".15f")}\n')
+
+def initialize_meta_motors(motors):
+        mobj_dict = {}
+        for m in motors:
+            init_func = motor_dict[m]['init']
+            try:
+                mobj_dict[m] = init_func()
+            except:
+                mobj_dict[m] = None
+        return mobj_dict
 
 def generate_metadata(meta_objs_dict):
     '''

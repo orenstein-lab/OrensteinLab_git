@@ -50,6 +50,8 @@ motor_dict = {
 'galvo_y':{'move':zurich.set_zurich_aux_offset_2, 'read':zurich.get_zurich_aux_offset_2, 'init':zurich.initialize_zurich_lockin, 'close':zurich.close_zurich_lockin, 'move_back':0, 'name':'Galvo x Voltage (V)'}
 }
 
+meta_exclude = []
+
 
 ##########################
 ### System Instruments ###

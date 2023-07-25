@@ -21,7 +21,6 @@ from OrensteinLab_git.Measurement.Alex.motors import motor_dict, instrument_dict
 
 '''
 Features to add:
-    - default save files, calling
     - add default saving of metadata into header. This should be done only once for certain motors and so it is so not to be handled via measure_motors. Rather we should add a measure_header variable which automatically measures everything in motor dict that is not in the map_dict or whatever other associated thing.
         - This seems to be pretty slow. Another approach would be to try to take a snapshot of everything before each scan in such a way that aquiring metadata need not be so general. Then I can just have one somewhat ugly function that generates the metadata and I can put it in motors, for example. This may still have issues with the motor objects conflicting, but I do like the idea of having more complete information beyond motors in motor_dict. For example, the lockin has many many paramters that would be nice to have saved.
     - autobalancing function and associated mapping for balancing before all measurements in a map. Lets begin by writing a new function but it could be wrapped into the corotate scans or motor_scan.
@@ -78,10 +77,7 @@ def lockin_time_series(recording_time, filename_head=None, filename=None, measur
     fig.show()
 
     # setup file for writing
-    if filename_head==None:
-        filename_head = os.getcwd()
-    if filename==None:
-        filename = str(inspect.stack()[0][3])
+    filename_head, filename = generate_filename(filename_head, filename, 'lockin_time_series')
     fname = get_unique_filename(filename_head, filename)
     metadata = generate_metadata(meta_objs_dict)
     header_motors = [motor_dict[m]['name'] for m in measure_motors]
@@ -203,13 +199,13 @@ def rotate_scan(start_angle, end_angle, step_size, filename_head=None, filename=
     demod_y = np.array([])
     demod_r = np.array([])
 
-    # initialize file
-    if filename_head!=None and filename!=None:
-        fname = get_unique_filename(filename_head, filename)
-        metadata = generate_metadata(meta_objs_dict)
-        header_motors = [motor_dict[m]['name'] for m in measure_motors]
-        header = [motor_dict['axis_1']['name'], motor_dict['axis_2']['name']]+lockin_header+header_motors
-        write_file_header(fname, header, metadata)
+    # setup file for writing
+    filename_head, filename = generate_filename(filename_head, filename, 'rotate_scan')
+    fname = get_unique_filename(filename_head, filename)
+    metadata = generate_metadata(meta_objs_dict)
+    header_motors = [motor_dict[m]['name'] for m in measure_motors]
+    header = [motor_dict['axis_1']['name'], motor_dict['axis_2']['name']]+lockin_header+header_motors
+    write_file_header(fname, header, metadata)
 
     # setup plot
     if showplot==True:
@@ -342,13 +338,13 @@ def corotate_scan(start_angle, end_angle, step_size, angle_offset, rate_axis_2=1
     demod_y = np.array([])
     demod_r = np.array([])
 
-    # initialize file
-    if filename_head!=None and filename!=None:
-        fname = get_unique_filename(filename_head, filename)
-        metadata = generate_metadata(meta_objs_dict)
-        header_motors = [motor_dict[m]['name'] for m in measure_motors]
-        header = header = [motor_dict['axis_1']['name'], motor_dict['axis_2']['name']]+lockin_header+header_motors
-        write_file_header(fname, header, metadata)
+    # setup file for writing
+    filename_head, filename = generate_filename(filename_head, filename, 'corotate_scan')
+    fname = get_unique_filename(filename_head, filename)
+    metadata = generate_metadata(meta_objs_dict)
+    header_motors = [motor_dict[m]['name'] for m in measure_motors]
+    header = header = [motor_dict['axis_1']['name'], motor_dict['axis_2']['name']]+lockin_header+header_motors
+    write_file_header(fname, header, metadata)
 
     # setup plot
     if showplot==True:
@@ -450,13 +446,15 @@ def motor_scan(map_dict, filename_head=None, filename=None, measure_motors=[], s
     positions = gen_positions_recurse(mranges, len(mranges)-1)
     #print(positions)
 
-    # setup file with header
-    if filename_head!=None and filename!=None:
-        fname = get_unique_filename(filename_head, filename)
-        metadata = generate_metadata(meta_objs_dict)
-        header_motors = [motor_dict[m]['name'] for m in measure_motors]
-        header = [motor_dict[m]['name'] for m in motors]+[motor_dict[m]['name']+str(' measured') for m in motors]+lockin_header+header_motors
-        write_file_header(fname, header, metadata)
+    # setup file for writing
+    filename_head, filename = generate_filename(filename_head, filename, 'motor_scan')
+    for m in motors:
+        filename = filename+f'_{m}'
+    fname = get_unique_filename(filename_head, filename)
+    metadata = generate_metadata(meta_objs_dict)
+    header_motors = [motor_dict[m]['name'] for m in measure_motors]
+    header = [motor_dict[m]['name'] for m in motors]+[motor_dict[m]['name']+str(' measured') for m in motors]+lockin_header+header_motors
+    write_file_header(fname, header, metadata)
 
     # move motors to start position, using move_back to handle initial case
     move_motors_to_start(mobj_dict, mkwargs_dict, positions, print_flag=print_flag)
@@ -624,6 +622,9 @@ def rotate_map(map_dict, start_angle, end_angle, step_size, filename_head=None, 
     # move motors to start position, using move_back to handle initial case
     move_motors_to_start(mobj_dict, mkwargs_dict, positions, print_flag=print_flag)
 
+    # setup filenames
+    filename_head, filename = generate_filename(filename_head, filename, 'rotate_map')
+
     # loop over positions, only moving a motor if its target position has changed.
     start_pos = positions[0]
     current_pos = start_pos
@@ -682,6 +683,9 @@ def corotate_map(map_dict, start_angle, end_angle, step_size, angle_offset, rate
 
     # move motors to start position, using move_back to handle initial case
     move_motors_to_start(mobj_dict, mkwargs_dict, positions, print_flag=print_flag)
+
+    # setup filenames
+    filename_head, filename = generate_filename(filename_head, filename, 'corotate_map')
 
     # loop over positions, only moving a motor if its target position has changed.
     start_pos = positions[0]
@@ -1221,8 +1225,18 @@ def gen_positions_recurse(range_list, n, pos_list=[], current_pos=None):
 
     return pos_list
 
+def generate_filename(filename_head, filename, current_func):
+    if filename_head==None:
+        filename_head = os.path.join(os.getcwd(), 'autogenerated')
+        if os.path.isdir(filename_head)==False:
+            os.mkdir(filename_head)
+    if filename==None:
+        filename = current_func
+    return filename_head, filename
+
 def get_unique_filename(filename_head, filename):
-    fname = f'{filename_head}\\{filename}.dat'
+    #fname = f'{filename_head}\\{filename}.dat'
+    fname = os.path.join(filename_head, f'{filename}.dat')
     if not os.path.exists(fname):
         return fname
 
@@ -1230,12 +1244,6 @@ def get_unique_filename(filename_head, filename):
     name, ext = os.path.splitext(name)
 
     make_fn = lambda i: os.path.join(path, '%s_%s%s' % (name, i, ext))
-
-    # dir
-    # for fname in dir:
-    #     if filename==fname:
-    #         match = re.match(filename, fname)
-    #         int(bool(match))
 
     for i in range(1, 1000):
         uni_fn = make_fn(i)

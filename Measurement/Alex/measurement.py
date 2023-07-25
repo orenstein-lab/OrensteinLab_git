@@ -20,11 +20,12 @@ from OrensteinLab_git.Measurement.Alex.motors import motor_dict, instrument_dict
 
 '''
 Features to add:
-    - default save files
-    - add default saving of metadata into header
+    - default save files, calling 
+    - add default saving of metadata into header. This should be done only once for certain motors and so it is so not to be handled via measure_motors. Rather we should add a measure_header variable which automatically measures everything in motor dict that is not in the map_dict or whatever other associated thing.
+    - autobalancing function and associated mapping for balancing before all measurements in a map. Lets begin by writing a new function but it could be wrapped into the corotate scans or motor_scan.
 '''
 
-lockin_header = ['Demod x', 'Demod y', 'r', 'Demod x_R', 'Demod y_R', 'Demod r_R'] # this should be moved to zurich file somehow
+lockin_header = ['Demod x', 'Demod y', 'r', 'Demod x_R', 'Demod y_R', 'Demod r_R'] # this should be moved to zurich file somehow    
 
 ################
 ### Medthods ###
@@ -614,7 +615,7 @@ def corotate_map(map_dict, start_angle, end_angle, step_size, angle_offset, rate
     # close motors
     close_motors(mobj_dict)
 
-def find_balance_angle(start_angle, end_angle, step_size, balance_at=0, offset=0, go_to_balance_angle=True, axis_index=2):
+def find_balance_angle(start_angle, end_angle, step_size, balance_at=0, offset=0, go_to_balance_angle=True, axis_index=2, channel_index=1, time_constant=0.3, R_channel_index=2):
     '''
     Assuming we are measuring in DC mode above a transition or on GaAs, carries out a rotate_scan. Find angle by carrying out a linear fit, such that the angle range should be taken to be very small.
 
@@ -637,7 +638,7 @@ def find_balance_angle(start_angle, end_angle, step_size, balance_at=0, offset=0
     move_axis_1(balance_at)
     move_axis_2(balance_at)
 
-    positions, demod_x, demod_y, demod_r = rotate_scan(balance_at+start_angle, balance_at+end_angle, step_size, axis_index=axis_index)
+    positions, demod_x, demod_y, demod_r = rotate_scan(balance_at+start_angle, balance_at+end_angle, step_size, axis_index=axis_index, channel_index=channel_index, time_constant=time_constant, R_channel_index=R_channel_index)
 
     # linear fit
     fit_params = np.polyfit(positions, demod_x-offset, 1)
@@ -664,32 +665,53 @@ def find_balance_angle(start_angle, end_angle, step_size, balance_at=0, offset=0
     print(f'Balance angle: {balance_angle}')
     return balance_angle
 
-def balance_pid(balance_at, P, tolerance, balance_axis_index, channel_index, time_constant):
-
+def autobalance(slope, tolerance, daq_objs=None, axis_1=None, axis_2=None, balance_at=None, offset=0, channel_index=1, time_constant=0.3, print_flag=True, lockin_index=0):
     '''
-    work in progress
+    balance lockin at specified balance_at angle on the fly. Axis 1 is taken to be held fixed at balance_at and axis 2 is moved to balance PID (photodiode).
 
+    in the future this could be designed more robustly with a PID control loop
+    '''
 
-    apilevel = 6
-    (daq, device, props) = ziutils.create_api_session(device_id, apilevel)
+    # initialize lockin
+    if daq_objs==None:
+        daq_objs = instrument_dict['zurich_lockin']['init']()
+    else:
+        pass
+    read_lockin = instrument_dict['zurich_lockin']['read']
 
-    status = True
-    x = 10000
-    axis_rot = newport.NewportESP301Axis(controller,balance_axis_index-1)
-    axis_rot.enable()
-    while (np.abs(x)>tolerance):
+    # initialize axes and setup axis move functions
+    if axis_1 == None:
+        init_func = motor_dict['axis_1']['init']
+        axis_1 = init_func()
+    if axis_2 == None:
+        init_func = motor_dict['axis_2']['init']
+        axis_2 = init_func()
+    move_axis_1 = motor_dict['axis_1']['move']
+    move_axis_2 = motor_dict['axis_2']['move']
+    read_axis_1 = motor_dict['axis_1']['read']
+    read_axis_2 = motor_dict['axis_2']['read']
+    move_back_1 = motor_dict['axis_1']['move_back']
+    move_back_2 = motor_dict['axis_2']['move_back']
+
+    # move axis 1 to balance_at position if value given
+    if balance_at!=None:
+        move_axis_1(balance_at-move_back_1, axis=axis_1)
+        move_axis_1(balance_at, axis=axis_1)
+    else:
+        balance_at = read_axis_1(axis=axis_1)
+
+    pid_signal = 10000
+    curr_pos = read_axis_2(axis=axis_2)
+    while (np.abs(pid_signal-offset)>tolerance):
+        #print(curr_pos)
         time.sleep(time_constant*4)
-        sample = daq.getSample(channel_name[channel_index-1] % device)
-        sample["R"] = np.abs(sample["x"] + 1j * sample["y"])
-        x = sample["x"][0]
-        print(x)
-        motion = -P*x
-        axis_rot.move(motion,absolute=False)
-        while (axis_rot.is_motion_done==False):
-            pass
-    print('Balance angle = '+str(axis_rot.position))
-    '''
-    return 0
+        pid_signal = read_lockin(daq_objs=daq_objs, time_constant=time_constant, channel_index=channel_index)[lockin_index]
+        new_pos = curr_pos+(1/slope)*(pid_signal-offset)
+        move_axis_2(new_pos, axis=axis_2)
+        curr_pos = new_pos
+    if print_flag:
+        print(f'Balanced PID at {balance_at}. Balance angle: {curr_pos}.')
+    return curr_pos
 
 def align_delay_stage(wait_time=5, range=(-125,125)):
 

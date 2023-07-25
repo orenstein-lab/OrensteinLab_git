@@ -5,6 +5,7 @@
 import lakeshore as ls
 from OrensteinLab_git.configuration import config_dict
 import time
+import numpy as np
 
 lakeshore_model = config_dict['Lakeshore Model']
 
@@ -50,7 +51,10 @@ def read_temperature(lsobj=None):
         - temp(float):  read temperature
     '''
     lsobj, lsobj_passed = get_lsobj(lsobj)
-    temp = float(lsobj.query('KRDG?'))
+    if lakeshore_model=='335':
+        temp = float(lsobj.query('KRDG?'))
+    elif lakeshore_model=='336':
+        temp = float(lsobj.query('KRDG?A'))
     if lsobj_passed==False:
         close_lakeshore(lsobj)
     return temp
@@ -64,21 +68,27 @@ def set_setpoint(set_temperature, lsobj=None, output=1):
 def read_setpoint(lsobj=None):
 
     lsobj, lsobj_passed = get_lsobj(lsobj)
-    setpoint = float(lsobj.query('SETP?'))
+    if lakeshore_model=='335':
+        setpoint = float(lsobj.query('SETP?'))
+    elif lakeshore_model=='336':
+        setpoint = float(lsobj.query('SETP?A'))
     if lsobj_passed==False:
         close_lakeshore(lsobj)
     return setpoint
 
 def set_ramp(lsobj=None, output=1, on_off=0, rate=0):
     lsobj, lsobj_passed = get_lsobj(lsobj)
-    inst.command("RAMP "+str(output)+','+str(int(on_off))+','+str(rate))
+    lsobj.command("RAMP "+str(output)+','+str(int(on_off))+','+str(rate))
     if lsobj_passed==False:
         close_lakeshore(lsobj)
 
 def read_ramp(lsobj=None):
 
     lsobj, lsobj_passed = get_lsobj(lsobj)
-    output = lsobj.query('RAMP?').split(',')
+    if lakeshore_model=='335':
+        output = lsobj.query('RAMP?').split(',')
+    elif lakeshore_model=='336':
+        output = lsobj.query('RAMP?A').split(',')
     on_off = bool(int(output[0]))
     rate = float(output[1])
     if lsobj_passed==False:

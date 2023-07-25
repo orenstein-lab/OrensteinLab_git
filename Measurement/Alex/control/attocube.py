@@ -1,8 +1,8 @@
 import numpy as np
 from pyanc350.v2 import Positioner
 from OrensteinLab_git.configuration import config_dict
-import time
 import pickle
+import time
 
 axis_dict = {'x':0, 'y':1, 'z':2}
 ATTOCUBE_HANDLE_FNAME = config_dict['Attocube Handle']
@@ -85,6 +85,7 @@ def initialize_attocube():
     try:
         with open(ATTOCUBE_HANDLE_FNAME, 'rb') as f:
             anc = pickle.load(f)
+        read_attocube(1,anc=anc, print_flag=False)
     except: # if there is not already a connection, above fails and we instantiate a new handle
         anc = Positioner()
         with open(ATTOCUBE_HANDLE_FNAME, 'wb') as f:

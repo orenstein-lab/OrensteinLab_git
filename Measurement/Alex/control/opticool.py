@@ -1,10 +1,11 @@
 import sys
 import telnetlib
+import pickle
 from OrensteinLab_git.configuration import config_dict
 
 host = config_dict['Opticool IP']
 port = config_dict['Opticool Port']
-OPTICOOL_HANDLE_NAME = config_dict['Opticool Handle']
+OPTICOOL_HANDLE_FNAME = config_dict['Opticool Handle']
 
 ######################
 ### Core Functions ###

@@ -3,9 +3,9 @@ import zhinst.utils as ziutils
 import zhinst.core as zicore
 from OrensteinLab_git.configuration import config_dict
 import time
+import pickle
 
 device_id = config_dict['Zurich Lockin ID']
-ZURICH_HANDLE_NAME = config_dict['Zurich Lockin Handle']
 
 ######################
 ### Core Functions ###
@@ -123,14 +123,8 @@ def get_zurich_aux_offset(daq_objs=None, wait_time=0, channel=1):
     return offset
 
 def initialize_zurich_lockin():
-    try:
-        with open(ZURICH_HANDLE_FNAME, 'rb') as f:
-            obj = pickle.load(f)
-    except: # if there is not already a connection, above fails and we instantiate a new handle
-        apilevel=6
-        obj = ziutils.create_api_session(device_id, apilevel)
-        with open(ZURICH_HANDLE_FNAME, 'wb') as f:
-            pickle.dump(obj, f)
+    apilevel=6
+    obj = ziutils.create_api_session(device_id, apilevel)
     daq, device, props = obj
     return daq, device, props
 

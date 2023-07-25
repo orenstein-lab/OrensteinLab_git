@@ -10,6 +10,7 @@ import os
 import time
 import threading
 from tqdm.auto import tqdm
+import inspect
 import OrensteinLab_git.Measurement.Alex.control.newport as newport
 import OrensteinLab_git.Measurement.Alex.control.lakeshore as ls
 import OrensteinLab_git.Measurement.Alex.control.zurich as zurich
@@ -24,6 +25,7 @@ Features to add:
     - add default saving of metadata into header. This should be done only once for certain motors and so it is so not to be handled via measure_motors. Rather we should add a measure_header variable which automatically measures everything in motor dict that is not in the map_dict or whatever other associated thing.
         - This seems to be pretty slow. Another approach would be to try to take a snapshot of everything before each scan in such a way that aquiring metadata need not be so general. Then I can just have one somewhat ugly function that generates the metadata and I can put it in motors, for example. This may still have issues with the motor objects conflicting, but I do like the idea of having more complete information beyond motors in motor_dict. For example, the lockin has many many paramters that would be nice to have saved.
     - autobalancing function and associated mapping for balancing before all measurements in a map. Lets begin by writing a new function but it could be wrapped into the corotate scans or motor_scan.
+    - overhaul how I handle lockin data acquisition
 '''
 
 lockin_header = ['Demod x', 'Demod y', 'r', 'Demod x_R', 'Demod y_R', 'Demod r_R'] # this should be moved to zurich file somehow
@@ -76,12 +78,15 @@ def lockin_time_series(recording_time, filename_head=None, filename=None, measur
     fig.show()
 
     # setup file for writing
-    if filename_head!=None and filename!=None:
-        fname = get_unique_filename(filename_head, filename)
-        metadata = generate_metadata(meta_objs_dict)
-        header_motors = [motor_dict[m]['name'] for m in measure_motors]
-        header = ['Time (s)', 'Demod x', 'Demod y', 'R']+header_motors
-        write_file_header(fname, header, metadata)
+    if filename_head==None:
+        filename_head = os.getcwd()
+    if filename==None:
+        filename = str(inspect.stack()[0][3])
+    fname = get_unique_filename(filename_head, filename)
+    metadata = generate_metadata(meta_objs_dict)
+    header_motors = [motor_dict[m]['name'] for m in measure_motors]
+    header = ['Time (s)', 'Demod x', 'Demod y', 'R']+header_motors
+    write_file_header(fname, header, metadata)
 
     # loop
     t_delay = 0

@@ -228,7 +228,7 @@ def read_axis_3(axis=None, print_flag=True):
     return read_axis(3, axis, print_flag)
 
 def read_corotate_axes12(axes=None, print_flag=True):
-    if axis==None:
+    if axes==None:
         axis_1, axis_2 = initialize_corotate_axes12()
     else:
         axis_1, axis_2 = axes

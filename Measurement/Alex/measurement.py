@@ -559,7 +559,7 @@ def motor_scan(map_dict, filename_head=None, filename=None, measure_motors=[], s
     close_motors(mobj_dict)
     close_motors(mobj_measure_dict)
 
-def motor_scan_autobalance(map_dict, autobalance, slope, tol, autobalance_channel=1, filename_head=None, filename=None, measure_motors=[], showplot=True, time_constant=0.3, channel_index=1, R_channel_index=3, print_flag=False):
+def motor_scan_autobalance(map_dict, autobalance_axis, slope, tol, autobalance_channel=1, filename_head=None, filename=None, measure_motors=[], showplot=True, time_constant=0.3, channel_index=1, R_channel_index=3, print_flag=False):
     '''
     utility to record lockin measurement as a function of motors specified by dictionary map_dict.
 
@@ -650,18 +650,22 @@ def motor_scan_autobalance(map_dict, autobalance, slope, tol, autobalance_channe
 
 
     # setup for autobalancing
-    autobalance_idx = motors.index(autobalance)
+    autobalance_idx = motors.index(autobalance_axis)
     if 'corotate_axes12' in motors:
         axis_1, axis_2 = mobj_dict['corotate_axes12']
         corotate_axes_idx = motors.index('corotate_axes12')
     else:
-        if 'axis_1' in motors
+        if 'axis_1' in motors:
             axis_1 = mobj_dict['axis_1']
+        elif 'axis_1' in measure_motors:
+            axis_1 = mobj_measure_dict['axis_1']
         else:
             axis_1 = motor_dict['axis_1']['init']()
             axis_1_close = motor_dict['axis_1']['close']
-        if 'axis_2' in motors
+        if 'axis_2' in motors:
             axis_2 = mobj_dict['axis_2']
+        elif 'axis_2' in measure_motors:
+            axis_2 = mobj_measure_dict['axis_2']
         else:
             axis_2 = motor_dict['axis_2']['init']()
             axis_2_close = motor_dict['axis_2']['close']
@@ -682,11 +686,11 @@ def motor_scan_autobalance(map_dict, autobalance, slope, tol, autobalance_channe
         move_motors(mobj_dict, mkwargs_dict, current_pos, start_pos, pos, print_flag=print_flag)
         current_pos = pos
 
-        if curren_pos[autobalance_idx] == start_pos[autobalance_idx]:
+        if current_pos[autobalance_idx] == start_pos[autobalance_idx]:
             bal_angle = autobalance(slope, tol, daq_objs=daq_objs, axis_1=axis_1, axis_2=axis_2, channel_index=autobalance_channel)
             if 'corotate_axes12' in motors:
                 mkwargs_dict['corotate_axes12']['bal_angle'] = bal_angle
-                mobj_dict['corotate_axes12']['move'](current_pos[corotate_axes_idx], **mkwargs_dict['corotate_axes12'])
+                motor_dict['corotate_axes12']['move'](current_pos[corotate_axes_idx], mobj_dict['corotate_axes12'], **mkwargs_dict['corotate_axes12'])
 
         # acquire data
         lockin_meas = read_lockin(daq_objs=daq_objs, time_constant=time_constant, channel_index=channel_index, R_channel_index=R_channel_index)

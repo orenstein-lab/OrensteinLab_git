@@ -607,7 +607,7 @@ def rotate_map(map_dict, start_angle, end_angle, step_size, filename_head=None, 
 
     # setup metadata
     all_motors = set(list(motor_dict.keys()))
-    used_motors = set(motors+measure_motors)
+    used_motors = set(motors+measure_motors+['axis_1', 'axis_2'])
     exclude = set(meta_exclude)
     meta_motors = list(all_motors - used_motors - exclude)
     meta_objs_dict = initialize_meta_motors(meta_motors)
@@ -666,7 +666,7 @@ def corotate_map(map_dict, start_angle, end_angle, step_size, angle_offset, rate
 
     # setup metadata
     all_motors = set(list(motor_dict.keys()))
-    used_motors = set(motors+measure_motors)
+    used_motors = set(motors+measure_motors+['axis_1', 'axis_2'])
     exclude = set(meta_exclude)
     meta_motors = list(all_motors - used_motors - exclude)
     meta_objs_dict = initialize_meta_motors(meta_motors)
@@ -1143,7 +1143,8 @@ def close_motors(mobj_dict):
     for m in motors:
         obj = mobj_dict[m]
         close_func = motor_dict[m]['close']
-        close_func(obj)
+        if obj!=None:
+            close_func(obj)
 
 def move_motors_to_start(mobj_dict, mkwargs_dict, positions, print_flag=False):
     motors = list(mobj_dict.keys())
@@ -1281,9 +1282,9 @@ def generate_metadata(meta_objs_dict):
 
     metadata = {}
     for m in list(meta_objs_dict.keys()):
-        obj = meta_objs_dict['m']
-        read = motor_dict['m']['read']
-        name = motor_dict['m']['name']
+        obj = meta_objs_dict[m]
+        read = motor_dict[m]['read']
+        name = motor_dict[m]['name']
         try:
             pos = read(obj)
         except:

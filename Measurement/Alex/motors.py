@@ -27,7 +27,7 @@ motor_dict = {
 
 'axis_2':{'move':newport.move_axis_2, 'read':newport.read_axis_2, 'init':newport.initialize_axis_2, 'close':newport.close_axis_2, 'move_back':1, 'name':'Angle 2 (deg)'},
 
-'axis_3':{'move':newport.move_axis_3, 'read':newport.read_axis_3, 'init':newport.initialize_axis_3, 'close':newport.close_axis_3, 'move_back':1, 'name':'Angle 2 (deg)'},
+'axis_3':{'move':newport.move_axis_3, 'read':newport.read_axis_3, 'init':newport.initialize_axis_3, 'close':newport.close_axis_3, 'move_back':1, 'name':'Angle 3 (deg)'},
 
 'delay_stage':{'move':newport.move_axis_3, 'read':newport.read_axis_3, 'init':newport.initialize_axis_3, 'close':newport.close_axis_3, 'move_back':1, 'name':'Delay Stage (mm)'},
 
@@ -39,7 +39,7 @@ motor_dict = {
 
 'zurich_frequency':{'move':zurich.set_zurich_frequency, 'read':zurich.read_zurich_frequency, 'init':zurich.initialize_zurich_lockin, 'close':zurich.close_zurich_lockin, 'move_back':0, 'name':'Lock-in Frequency (Hz)'},
 
-'opticool_temp':{'move':opticool.set_opticool_temperature, 'read':opticool.read_opticool_temperature, 'init':opticool.initialize_opticool, 'close':opticool.close_opticool, 'move_back':0, 'name':'Temperature (K)'},
+'opticool_temp':{'move':opticool.set_opticool_temperature, 'read':opticool.read_opticool_temperature, 'init':opticool.initialize_opticool, 'close':opticool.close_opticool, 'move_back':0, 'name':'Opticool Temperature (K)'},
 
 'opticool_field':{'move':opticool.set_opticool_field, 'read':opticool.read_opticool_field, 'init':opticool.initialize_opticool, 'close':opticool.close_opticool, 'move_back':0, 'name':'Field (Oe)'},
 
@@ -47,10 +47,10 @@ motor_dict = {
 
 'galvo_x':{'move':zurich.set_zurich_aux_offset_1, 'read':zurich.get_zurich_aux_offset_1, 'init':zurich.initialize_zurich_lockin, 'close':zurich.close_zurich_lockin, 'move_back':0, 'name':'Galvo x Voltage (V)'},
 
-'galvo_y':{'move':zurich.set_zurich_aux_offset_2, 'read':zurich.get_zurich_aux_offset_2, 'init':zurich.initialize_zurich_lockin, 'close':zurich.close_zurich_lockin, 'move_back':0, 'name':'Galvo x Voltage (V)'}
+'galvo_y':{'move':zurich.set_zurich_aux_offset_2, 'read':zurich.get_zurich_aux_offset_2, 'init':zurich.initialize_zurich_lockin, 'close':zurich.close_zurich_lockin, 'move_back':0, 'name':'Galvo y Voltage (V)'}
 }
 
-meta_exclude = []
+meta_exclude = ['corotate_axes12', 'zurich_output', 'strain_ps', 'strain_cap', ]
 
 
 ##########################

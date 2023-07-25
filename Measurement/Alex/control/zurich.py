@@ -77,7 +77,7 @@ def read_zurich_output_amplitude(daq_objs=None, channel=1):
     amplitude = daq.getDouble(f'/%s/sigouts/0/amplitudes/{channel-1}'%device)
     return amplitude
 
-def set_zurich_frequency(freq, daq_objs=None, wait_time=0, osc=1):
+def set_zurich_frequency(freq, daq_objs=None, wait_time=0, osc=2):
 
     # initialize
     if daq_objs==None:
@@ -88,7 +88,7 @@ def set_zurich_frequency(freq, daq_objs=None, wait_time=0, osc=1):
     daq.setDouble(f'/%s/oscs/{osc-1}/freq'%device, freq)
     time.sleep(wait_time)
 
-def read_zurich_frequency(daq_objs=None, osc=1):
+def read_zurich_frequency(daq_objs=None, osc=2):
 
     # initialize
     if daq_objs==None:

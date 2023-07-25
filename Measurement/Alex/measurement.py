@@ -17,7 +17,7 @@ import OrensteinLab_git.Measurement.Alex.control.zurich as zurich
 import OrensteinLab_git.Measurement.Alex.control.opticool as oc
 import OrensteinLab_git.Measurement.Alex.control.razorbill as razorbill
 import OrensteinLab_git.Measurement.Alex.control.attocube as atto
-from OrensteinLab_git.Measurement.Alex.motors import motor_dict, instrument_dict, meta_exclude
+from OrensteinLab_git.Measurement.Alex.motors import motor_dict, instrument_dict, meta_motors
 
 '''
 Features to add:
@@ -33,10 +33,15 @@ lockin_header = ['Demod x', 'Demod y', 'r', 'Demod x_R', 'Demod y_R', 'Demod r_R
 ### Medthods ###
 ################
 
-def lockin_time_series(recording_time, filename_head=None, filename=None, measure_motors=[], mobj_measure_dict={}, time_constant=0.3, channel_index=1, R_channel_index=2, meta_objs_dict={}):
+def lockin_time_series(recording_time, filename_head=None, filename=None, measure_motors=[], mobj_measure_dict={}, time_constant=0.3, channel_index=1, R_channel_index=2, metadata={}):
     '''
     aquires data on the lockin over a specified length of time.
     '''
+
+    # setup metadata
+    if metadata=={}:
+        metadata = generate_metadata()
+
     # initialize zurich lockin and setup read function
     daq_objs  = instrument_dict['zurich_lockin']['init']()
     read_lockin = instrument_dict['zurich_lockin']['read']
@@ -46,16 +51,6 @@ def lockin_time_series(recording_time, filename_head=None, filename=None, measur
     if mobj_measure_dict=={}:
         passed_measure_motors = False
         mobj_measure_dict = initialize_motors(measure_motors)
-
-    # metadata motors
-    passed_meta_motors = True
-    if meta_objs_dict=={}:
-        passed_meta_motors = False
-        all_motors = set(list(motor_dict.keys()))
-        used_motors = set(measure_motors)
-        exclude = set(meta_exclude)
-        meta_motors = list(all_motors - used_motors - exclude)
-        meta_objs_dict = initialize_meta_motors(meta_motors)
 
     # initialize data bins
     time_record = np.array([])
@@ -79,7 +74,6 @@ def lockin_time_series(recording_time, filename_head=None, filename=None, measur
     # setup file for writing
     filename_head, filename = generate_filename(filename_head, filename, 'lockin_time_series')
     fname = get_unique_filename(filename_head, filename)
-    metadata = generate_metadata(meta_objs_dict)
     header_motors = [motor_dict[m]['name'] for m in measure_motors]
     header = ['Time (s)', 'Demod x', 'Demod y', 'R']+header_motors
     write_file_header(fname, header, metadata)
@@ -121,12 +115,14 @@ def lockin_time_series(recording_time, filename_head=None, filename=None, measur
     # close motors
     if not passed_measure_motors:
         close_motors(mobj_measure_dict)
-    if not passed_meta_motors:
-        close_motors(meta_objs_dict)
 
     return time_record, demod_x, demod_y, demod_r
 
-def rotate_scan(start_angle, end_angle, step_size, filename_head=None, filename=None, axis_index=1, measure_motors=[], mobj_measure_dict={}, showplot=True, time_constant=0.3, channel_index=1, R_channel_index=2, daq_objs=None, axis_1=None, axis_2=None, meta_objs_dict={}):
+def rotate_scan(start_angle, end_angle, step_size, filename_head=None, filename=None, axis_index=1, measure_motors=[], mobj_measure_dict={}, showplot=True, time_constant=0.3, channel_index=1, R_channel_index=2, daq_objs=None, axis_1=None, axis_2=None, metadata={}):
+
+    # setup metadata
+    if metadata=={}:
+        metadata = generate_metadata()
 
     # initialize zurich lockin and setup read function
     if daq_objs==None:
@@ -174,16 +170,6 @@ def rotate_scan(start_angle, end_angle, step_size, filename_head=None, filename=
         passed_measure_motors = False
         mobj_measure_dict = initialize_motors(measure_motors)
 
-    # metadata motors
-    passed_meta_motors = True
-    if meta_objs_dict=={}:
-        passed_meta_motors = False
-        all_motors = set(list(motor_dict.keys()))
-        used_motors = set(['axis_1', 'axis_2']+measure_motors)
-        exclude = set(meta_exclude)
-        meta_motors = list(all_motors - used_motors - exclude)
-        meta_objs_dict = initialize_meta_motors(meta_motors)
-
     # setup measureables
     position = np.array([])
     demod_x = np.array([])
@@ -202,7 +188,6 @@ def rotate_scan(start_angle, end_angle, step_size, filename_head=None, filename=
     # setup file for writing
     filename_head, filename = generate_filename(filename_head, filename, 'rotate_scan')
     fname = get_unique_filename(filename_head, filename)
-    metadata = generate_metadata(meta_objs_dict)
     header_motors = [motor_dict[m]['name'] for m in measure_motors]
     header = [motor_dict['axis_1']['name'], motor_dict['axis_2']['name']]+lockin_header+header_motors
     write_file_header(fname, header, metadata)
@@ -273,12 +258,10 @@ def rotate_scan(start_angle, end_angle, step_size, filename_head=None, filename=
     # close motors
     if not passed_measure_motors:
         close_motors(mobj_measure_dict)
-    if not passed_meta_motors:
-        close_motors(meta_objs_dict)
 
     return position, demod_x, demod_y, demod_r
 
-def corotate_scan(start_angle, end_angle, step_size, angle_offset, rate_axis_2=1, filename_head=None, filename=None, measure_motors=[], mobj_measure_dict={}, showplot=True, time_constant=0.3, channel_index=1, R_channel_index=2, daq_objs=None, axis_1=None, axis_2=None, meta_objs_dict={}):
+def corotate_scan(start_angle, end_angle, step_size, angle_offset, rate_axis_2=1, filename_head=None, filename=None, measure_motors=[], mobj_measure_dict={}, showplot=True, time_constant=0.3, channel_index=1, R_channel_index=2, daq_objs=None, axis_1=None, axis_2=None, metadata={}):
     '''
     Takes a corotation scan moving axes 1 and 2, typically representing half wave plates. axis 2 can be specificied to move at a rate greater than axis 1, such that axis_2_move = rate*axis_1_move
 
@@ -286,6 +269,11 @@ def corotate_scan(start_angle, end_angle, step_size, angle_offset, rate_axis_2=1
         - build in ability to change scan direction
 
     '''
+
+    # setup metadata
+    if metadata=={}:
+        metadata = generate_metadata()
+
     # initialize zurich lockin and setup read function
     if daq_objs==None:
         init_func = instrument_dict['zurich_lockin']['init']
@@ -312,16 +300,6 @@ def corotate_scan(start_angle, end_angle, step_size, angle_offset, rate_axis_2=1
         passed_measure_motors = False
         mobj_measure_dict = initialize_motors(measure_motors)
 
-    # metadata motors
-    passed_meta_motors = True
-    if meta_objs_dict=={}:
-        passed_meta_motors = False
-        all_motors = set(list(motor_dict.keys()))
-        used_motors = set(['axis_1', 'axis_2']+measure_motors)
-        exclude = set(meta_exclude)
-        meta_motors = list(all_motors - used_motors - exclude)
-        meta_objs_dict = initialize_meta_motors(meta_motors)
-
     # setup measureables
     position = np.array([])
     demod_x = np.array([])
@@ -341,7 +319,6 @@ def corotate_scan(start_angle, end_angle, step_size, angle_offset, rate_axis_2=1
     # setup file for writing
     filename_head, filename = generate_filename(filename_head, filename, 'corotate_scan')
     fname = get_unique_filename(filename_head, filename)
-    metadata = generate_metadata(meta_objs_dict)
     header_motors = [motor_dict[m]['name'] for m in measure_motors]
     header = header = [motor_dict['axis_1']['name'], motor_dict['axis_2']['name']]+lockin_header+header_motors
     write_file_header(fname, header, metadata)
@@ -415,8 +392,6 @@ def corotate_scan(start_angle, end_angle, step_size, angle_offset, rate_axis_2=1
     # close motors
     if not passed_measure_motors:
         close_motors(mobj_measure_dict)
-    if not passed_meta_motors:
-        close_motors(meta_objs_dict)
 
     return position, demod_x, demod_y, demod_r
 
@@ -425,6 +400,9 @@ def motor_scan(map_dict, filename_head=None, filename=None, measure_motors=[], s
     utility to record lockin measurement as a function of motors specified by dictionary map_dict.
 
     '''
+
+    # setup metadata
+    metadata = generate_metadata()
 
     # Lock-in Amplifier initialization
     daq_objs = instrument_dict['zurich_lockin']['init']()
@@ -435,13 +413,6 @@ def motor_scan(map_dict, filename_head=None, filename=None, measure_motors=[], s
     mobj_dict = initialize_motors(motors)
     mobj_measure_dict = initialize_motors(measure_motors)
 
-    # setup metadata
-    all_motors = set(list(motor_dict.keys()))
-    used_motors = set(motors+measure_motors)
-    exclude = set(meta_exclude)
-    meta_motors = list(all_motors - used_motors - exclude)
-    meta_objs_dict = initialize_meta_motors(meta_motors)
-
     # generate positions recursively
     positions = gen_positions_recurse(mranges, len(mranges)-1)
     #print(positions)
@@ -451,7 +422,6 @@ def motor_scan(map_dict, filename_head=None, filename=None, measure_motors=[], s
     for m in motors:
         filename = filename+f'_{m}'
     fname = get_unique_filename(filename_head, filename)
-    metadata = generate_metadata(meta_objs_dict)
     header_motors = [motor_dict[m]['name'] for m in measure_motors]
     header = [motor_dict[m]['name'] for m in motors]+[motor_dict[m]['name']+str(' measured') for m in motors]+lockin_header+header_motors
     write_file_header(fname, header, metadata)
@@ -593,9 +563,11 @@ def motor_scan(map_dict, filename_head=None, filename=None, measure_motors=[], s
     # close motors
     close_motors(mobj_dict)
     close_motors(mobj_measure_dict)
-    close_motors(meta_objs_dict)
 
 def rotate_map(map_dict, start_angle, end_angle, step_size, filename_head=None, filename=None, axis_index=1, measure_motors=[], showplot=False, time_constant=0.3, channel_index=1, R_channel_index=2, daq_objs=None, print_flag=False):
+
+    # setup metadata
+    metadata = generate_metadata()
 
     # Lock-in Amplifier initialization
     daq_objs = instrument_dict['zurich_lockin']['init']()
@@ -608,13 +580,6 @@ def rotate_map(map_dict, start_angle, end_angle, step_size, filename_head=None, 
     motors, mranges, mkwargs_dict = capture_motor_information(map_dict)
     mobj_dict = initialize_motors(motors)
     mobj_measure_dict = initialize_motors(measure_motors)
-
-    # setup metadata
-    all_motors = set(list(motor_dict.keys()))
-    used_motors = set(motors+measure_motors+['axis_1', 'axis_2'])
-    exclude = set(meta_exclude)
-    meta_motors = list(all_motors - used_motors - exclude)
-    meta_objs_dict = initialize_meta_motors(meta_motors)
 
     # generate positions recursively
     positions = gen_positions_recurse(mranges, len(mranges)-1)
@@ -642,14 +607,13 @@ def rotate_map(map_dict, start_angle, end_angle, step_size, filename_head=None, 
             expanded_filename = expanded_filename+f'_{m}{p}'
 
         # scan
-        rotate_scan(start_angle, end_angle, step_size, filename_head=filename_head, filename=expanded_filename, axis_index=axis_index, measure_motors=measure_motors, mobj_measure_dict=mobj_measure_dict, showplot=showplot, time_constant=time_constant, channel_index=channel_index, R_channel_index=R_channel_index, daq_objs=daq_objs, axis_1=axis_1, axis_2=axis_2, meta_objs_dict=meta_objs_dict)
+        rotate_scan(start_angle, end_angle, step_size, filename_head=filename_head, filename=expanded_filename, axis_index=axis_index, measure_motors=measure_motors, mobj_measure_dict=mobj_measure_dict, showplot=showplot, time_constant=time_constant, channel_index=channel_index, R_channel_index=R_channel_index, daq_objs=daq_objs, axis_1=axis_1, axis_2=axis_2, metadatat=metadata)
 
         current_pos = pos
 
     # close motors
     close_motors(mobj_dict)
     close_motors(mobj_measure_dict)
-    close_motors(meta_objs_dict)
 
 def corotate_map(map_dict, start_angle, end_angle, step_size, angle_offset, rate_axis_2=1, filename_head=None, filename=None, measure_motors=[], showplot=False, time_constant=0.3, channel_index=1, R_channel_index=2, print_flag=False):
     '''
@@ -658,6 +622,9 @@ def corotate_map(map_dict, start_angle, end_angle, step_size, angle_offset, rate
     map_dict = {'temp':(10,20,1,{'tolerance':0.01, 'wait_time':30})}
 
     '''
+
+    # setup metadata
+    metadata = generate_metadata()
 
     # Lock-in Amplifier initialization
     daq_objs = instrument_dict['zurich_lockin']['init']()
@@ -670,13 +637,6 @@ def corotate_map(map_dict, start_angle, end_angle, step_size, angle_offset, rate
     motors, mranges, mkwargs_dict = capture_motor_information(map_dict)
     mobj_dict = initialize_motors(motors)
     mobj_measure_dict = initialize_motors(measure_motors)
-
-    # setup metadata
-    all_motors = set(list(motor_dict.keys()))
-    used_motors = set(motors+measure_motors+['axis_1', 'axis_2'])
-    exclude = set(meta_exclude)
-    meta_motors = list(all_motors - used_motors - exclude)
-    meta_objs_dict = initialize_meta_motors(meta_motors)
 
     # generate positions recursively
     positions = gen_positions_recurse(mranges, len(mranges)-1)
@@ -706,14 +666,13 @@ def corotate_map(map_dict, start_angle, end_angle, step_size, angle_offset, rate
             expanded_filename = expanded_filename+f'_{m}{p}'
 
         # scan
-        corotate_scan(start_angle, end_angle, step_size, angle_offset, rate_axis_2=rate_axis_2, filename_head=filename_head, filename=expanded_filename, measure_motors=measure_motors, mobj_measure_dict=mobj_measure_dict, showplot=showplot, time_constant=time_constant, channel_index=channel_index, R_channel_index=R_channel_index, daq_objs=daq_objs, axis_1=axis_1, axis_2=axis_2, meta_objs_dict=meta_objs_dict)
+        corotate_scan(start_angle, end_angle, step_size, angle_offset, rate_axis_2=rate_axis_2, filename_head=filename_head, filename=expanded_filename, measure_motors=measure_motors, mobj_measure_dict=mobj_measure_dict, showplot=showplot, time_constant=time_constant, channel_index=channel_index, R_channel_index=R_channel_index, daq_objs=daq_objs, axis_1=axis_1, axis_2=axis_2, metadata=metadata)
 
         current_pos = pos
 
     # close motors
     close_motors(mobj_dict)
     close_motors(mobj_measure_dict)
-    close_motors(meta_objs_dict)
 
 def find_balance_angle(start_angle, end_angle, step_size, balance_at=0, offset=0, go_to_balance_angle=True, axis_index=2, channel_index=1, time_constant=0.3, R_channel_index=2):
     '''
@@ -1148,26 +1107,12 @@ def initialize_motors(motors):
         mobj_dict[m] = init_func()
     return mobj_dict
 
-def initialize_meta_motors(motors):
-    '''
-    essentially like initialize motors, but doesn't error if a motor doesn't connect since it is usually not critical.
-    '''
-        mobj_dict = {}
-        for m in motors:
-            init_func = motor_dict[m]['init']
-            try:
-                mobj_dict[m] = init_func()
-            except:
-                mobj_dict[m] = None
-        return mobj_dict
-
 def close_motors(mobj_dict):
     motors = list(mobj_dict.keys())
     for m in motors:
         obj = mobj_dict[m]
         close_func = motor_dict[m]['close']
-        if obj!=None:
-            close_func(obj)
+        close_func(obj)
 
 def move_motors_to_start(mobj_dict, mkwargs_dict, positions, print_flag=False):
     motors = list(mobj_dict.keys())
@@ -1241,6 +1186,8 @@ def gen_positions_recurse(range_list, n, pos_list=[], current_pos=None):
 def generate_filename(filename_head, filename, current_func):
     '''
     Generates filename_head and filename. If we supply it with no filename head or filename it autogenerates both. If we only supply a filaname it inferes the head to be current working directory.
+
+
     '''
     if filename_head==None:
         if filename==None:
@@ -1268,21 +1215,23 @@ def get_unique_filename(filename_head, filename):
         if not os.path.exists(uni_fn):
             return uni_fn
 
-def generate_metadata(meta_objs_dict):
+def generate_metadata():
     '''
     helper function that returns metadata dictionary
     '''
 
     metadata = {}
-    for m in list(meta_objs_dict.keys()):
-        obj = meta_objs_dict[m]
-        read = motor_dict[m]['read']
+    for m in meta_motors:
         name = motor_dict[m]['name']
         try:
+            obj = motor_dict[m]['init']()
+            close = motor_dict[m]['close']
+            read = motor_dict[m]['read']
             pos = read(obj)
+            close(obj)
+            metadata[name] = pos
         except:
-            pos = None
-        metadata[name] = pos
+            metadata[name] = None
     return metadata
 
 def write_file_header(fname, header, metadata=None):

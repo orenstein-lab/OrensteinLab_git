@@ -10,6 +10,8 @@ Measurement/Yue/__pycache__/
 
 # ignore attocube handle file
 attocube_handle
+zurich_handle
+opticool_handle
 
 # ignore config file
 Measurement/Alex/motors.py

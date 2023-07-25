@@ -50,8 +50,8 @@ motor_dict = {
 'galvo_y':{'move':zurich.set_zurich_aux_offset_2, 'read':zurich.get_zurich_aux_offset_2, 'init':zurich.initialize_zurich_lockin, 'close':zurich.close_zurich_lockin, 'move_back':0, 'name':'Galvo y Voltage (V)'}
 }
 
-meta_exclude = ['corotate_axes12', 'zurich_output', 'strain_ps', 'strain_cap']
-
+#meta_exclude = ['corotate_axes12', 'zurich_output', 'strain_ps', 'strain_cap']
+meta_exclude = list(motor_dict.keys())
 
 ##########################
 ### System Instruments ###

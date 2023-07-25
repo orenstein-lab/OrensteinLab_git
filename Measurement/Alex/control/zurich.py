@@ -5,6 +5,7 @@ from OrensteinLab_git.configuration import config_dict
 import time
 
 device_id = config_dict['Zurich Lockin ID']
+ZURICH_HANDLE_NAME = config_dict['Zurich Lockin Handle']
 
 ######################
 ### Core Functions ###
@@ -100,7 +101,7 @@ def read_zurich_frequency(daq_objs=None, osc=2):
     return freq
 
 def set_zurich_aux_offset(offset, daq_objs=None, wait_time=0, channel=1):
-    
+
     # initialize
     if daq_objs==None:
         daq, device, props = initialize_zurich_lockin()
@@ -111,7 +112,7 @@ def set_zurich_aux_offset(offset, daq_objs=None, wait_time=0, channel=1):
     time.sleep(wait_time)
 
 def get_zurich_aux_offset(daq_objs=None, wait_time=0, channel=1):
-    
+
     # initialize
     if daq_objs==None:
         daq, device, props = initialize_zurich_lockin()
@@ -122,8 +123,15 @@ def get_zurich_aux_offset(daq_objs=None, wait_time=0, channel=1):
     return offset
 
 def initialize_zurich_lockin():
-    apilevel=6
-    (daq, device, props) = ziutils.create_api_session(device_id, apilevel)
+    try:
+        with open(ZURICH_HANDLE_FNAME, 'rb') as f:
+            obj = pickle.load(f)
+    except: # if there is not already a connection, above fails and we instantiate a new handle
+        apilevel=6
+        obj = ziutils.create_api_session(device_id, apilevel)
+        with open(ZURICH_HANDLE_FNAME, 'wb') as f:
+            pickle.dump(obj, f)
+    daq, device, props = obj
     return daq, device, props
 
 def close_zurich_lockin(obj):
@@ -147,4 +155,3 @@ def get_zurich_aux_offset_1(daq_objs=None, wait_time=0):
 
 def get_zurich_aux_offset_2(daq_objs=None, wait_time=0):
     return get_zurich_aux_offset(daq_objs, wait_time, 2)
-

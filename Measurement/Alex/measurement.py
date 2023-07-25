@@ -22,6 +22,7 @@ from OrensteinLab_git.Measurement.Alex.motors import motor_dict, instrument_dict
 Features to add:
     - default save files, calling
     - add default saving of metadata into header. This should be done only once for certain motors and so it is so not to be handled via measure_motors. Rather we should add a measure_header variable which automatically measures everything in motor dict that is not in the map_dict or whatever other associated thing.
+        - This seems to be pretty slow. Another approach would be to try to take a snapshot of everything before each scan in such a way that aquiring metadata need not be so general. Then I can just have one somewhat ugly function that generates the metadata and I can put it in motors, for example. This may still have issues with the motor objects conflicting, but I do like the idea of having more complete information beyond motors in motor_dict. For example, the lockin has many many paramters that would be nice to have saved.
     - autobalancing function and associated mapping for balancing before all measurements in a map. Lets begin by writing a new function but it could be wrapped into the corotate scans or motor_scan.
 '''
 

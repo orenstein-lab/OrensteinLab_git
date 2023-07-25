@@ -82,13 +82,13 @@ def initialize_attocube():
     attocube initialization function, which checks if an initialization already exists at attocube_handle before initalizizing another instance.
     '''
 
-    try: # if there is already a connection, this fails and we search for the handle in file.
+    try:
+        with open(ATTOCUBE_HANDLE_FNAME, 'rb') as f:
+            anc = pickle.load(f)
+    except: # if there is not already a connection, above fails and we instantiate a new handle
         anc = Positioner()
         with open(ATTOCUBE_HANDLE_FNAME, 'wb') as f:
             pickle.dump(anc, f)
-    except:
-        with open(ATTOCUBE_HANDLE_FNAME, 'rb') as f:
-            anc = pickle.load(f)
     return anc
 
 def close_attocube(anc):

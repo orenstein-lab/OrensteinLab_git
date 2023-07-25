@@ -4,6 +4,7 @@ from OrensteinLab_git.configuration import config_dict
 
 host = config_dict['Opticool IP']
 port = config_dict['Opticool Port']
+OPTICOOL_HANDLE_NAME = config_dict['Opticool Handle']
 
 ######################
 ### Core Functions ###
@@ -88,8 +89,14 @@ def read_opticool_field(optc=None):
     return field
 
 def initialize_opticool():
-    optc=telnetlib.Telnet(host, port,timeout=15)
-    optc.read_until(('Connected to QDInstrument Socket Server.\r\n').encode('ascii'))
+    try:
+        with open(OPTICOOL_HANDLE_FNAME, 'rb') as f:
+            optc = pickle.load(f)
+    except: # if there is not already a connection, above fails and we instantiate a new handle
+        optc=telnetlib.Telnet(host, port, timeout=15)
+        optc.read_until(('Connected to QDInstrument Socket Server.\r\n').encode('ascii'))
+        with open(OPTICOOL_HANDLE_FNAME, 'wb') as f:
+            pickle.dump(optc, f)
     return optc
 
 def close_opticool(optc):

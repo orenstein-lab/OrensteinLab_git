@@ -10,7 +10,9 @@ import os
 import time
 import threading
 from tqdm.auto import tqdm
+import scipy.optimize as opt
 import inspect
+import pickle
 import OrensteinLab_git.Measurement.Alex.control.newport as newport
 import OrensteinLab_git.Measurement.Alex.control.lakeshore as ls
 import OrensteinLab_git.Measurement.Alex.control.zurich as zurich
@@ -18,29 +20,31 @@ import OrensteinLab_git.Measurement.Alex.control.opticool as oc
 import OrensteinLab_git.Measurement.Alex.control.razorbill as razorbill
 import OrensteinLab_git.Measurement.Alex.control.attocube as atto
 from OrensteinLab_git.Measurement.Alex.motors import motor_dict, instrument_dict, meta_motors
+from orenstein_analysis.measurement import loader, process
 
 '''
 Features to add:
     - overhaul how I handle lockin data acquisition and possible link this to metadata
 '''
 
-lockin_header = ['Demod x', 'Demod y', 'r', 'Demod x_R', 'Demod y_R', 'Demod r_R'] # this should be moved to zurich file somehow
+lockin_header = ['Demod x', 'Demod y', 'r', 'Demod x_R', 'Demod y_R', 'Demod r_R'] # this should be moved to zurich file somehow, ie, the output of reading zurich itself should tell us what the header are.
 
 ################
 ### Medthods ###
 ################
 
-def lockin_time_series(recording_time, filename_head=None, filename=None, measure_motors=[], mobj_measure_dict={}, time_constant=0.3, channel_index=1, R_channel_index=2, metadata={}):
+def lockin_time_series(recording_time, filename_head=None, filename=None, measure_motors=[], mobj_measure_dict={}, time_constant=0.3, channel_index=1, R_channel_index=2, metadata={}, save_metadata=True, savefile=True, daq_objs=None, plot_flag=True):
     '''
     aquires data on the lockin over a specified length of time.
     '''
 
     # setup metadata
-    if metadata=={}:
+    if metadata=={} and save_metadata==True:
         metadata = generate_metadata()
 
     # initialize zurich lockin and setup read function
-    daq_objs  = instrument_dict['zurich_lockin']['init']()
+    if daq_objs==None:
+        daq_objs  = instrument_dict['zurich_lockin']['init']()
     read_lockin = instrument_dict['zurich_lockin']['read']
 
     # initialize additional motors to measure during scan
@@ -56,24 +60,26 @@ def lockin_time_series(recording_time, filename_head=None, filename=None, measur
     demod_r = np.array([])
 
     # setup plot
-    fig, axes = plt.subplots(3,1, figsize=(8,10))
-    y_labels = ['Demod x', 'Demod y', 'R']
-    for ii, ax in enumerate(axes):
-        ax.set_xlabel('Time (s)')
-        ax.set_ylabel(y_labels[ii])
-        ax.grid(True)
-    draw_x, = axes[0].plot([],'-o')
-    draw_y, = axes[1].plot([],'-o')
-    draw_r, = axes[2].plot([],'-o')
-    fig.canvas.draw()
-    fig.show()
+    if plot_flag==True:
+        fig, axes = plt.subplots(3,1, figsize=(8,10))
+        y_labels = ['Demod x', 'Demod y', 'R']
+        for ii, ax in enumerate(axes):
+            ax.set_xlabel('Time (s)')
+            ax.set_ylabel(y_labels[ii])
+            ax.grid(True)
+        draw_x, = axes[0].plot([],'-o')
+        draw_y, = axes[1].plot([],'-o')
+        draw_r, = axes[2].plot([],'-o')
+        fig.canvas.draw()
+        fig.show()
 
     # setup file for writing
-    filename_head, filename = generate_filename(filename_head, filename, 'lockin_time_series')
-    fname = get_unique_filename(filename_head, filename)
-    header_motors = [motor_dict[m]['name'] for m in measure_motors]
-    header = ['Time (s)', 'Demod x', 'Demod y', 'R']+header_motors
-    write_file_header(fname, header, metadata)
+    if savefile:
+        filename_head, filename = generate_filename(filename_head, filename, 'lockin_time_series')
+        fname = get_unique_filename(filename_head, filename)
+        header_motors = [motor_dict[m]['name'] for m in measure_motors]
+        header = ['Time (s)', 'Demod x', 'Demod y', 'R']+header_motors
+        write_file_header(fname, header, metadata)
 
     # loop
     t_delay = 0
@@ -95,17 +101,18 @@ def lockin_time_series(recording_time, filename_head=None, filename=None, measur
         demod_r = np.append(demod_r, r)
 
         # update plot
-        draw_x.set_data(time_record-time_record[0],demod_x)
-        draw_y.set_data(time_record-time_record[0],demod_y)
-        draw_r.set_data(time_record-time_record[0],demod_r)
-        for ax in axes:
-            ax.relim()
-            ax.autoscale()
-        fig.canvas.draw()
-        fig.canvas.flush_events()
+        if plot_flag==True:
+            draw_x.set_data(time_record-time_record[0],demod_x)
+            draw_y.set_data(time_record-time_record[0],demod_y)
+            draw_r.set_data(time_record-time_record[0],demod_r)
+            for ax in axes:
+                ax.relim()
+                ax.autoscale()
+            fig.canvas.draw()
+            fig.canvas.flush_events()
 
         # update file
-        if filename_head!=None and filename!=None:
+        if savefile:
             vars = [t_delay, x, y, r]+measured_positions
             append_data_to_file(fname, vars)
 
@@ -115,10 +122,10 @@ def lockin_time_series(recording_time, filename_head=None, filename=None, measur
 
     return time_record, demod_x, demod_y, demod_r
 
-def rotate_scan(start_angle, end_angle, step_size, filename_head=None, filename=None, axis_index=1, measure_motors=[], mobj_measure_dict={}, showplot=True, time_constant=0.3, channel_index=1, R_channel_index=2, daq_objs=None, axis_1=None, axis_2=None, metadata={}):
+def rotate_scan(start_angle, end_angle, step_size, filename_head=None, filename=None, axis_index=1, measure_motors=[], mobj_measure_dict={}, showplot=True, time_constant=0.3, channel_index=1, R_channel_index=2, daq_objs=None, axis_1=None, axis_2=None, metadata={}, save_metadata=True, savefile=True):
 
     # setup metadata
-    if metadata=={}:
+    if metadata=={} and save_metadata==True:
         metadata = generate_metadata()
 
     # initialize zurich lockin and setup read function
@@ -183,11 +190,12 @@ def rotate_scan(start_angle, end_angle, step_size, filename_head=None, filename=
     demod_r = np.array([])
 
     # setup file for writing
-    filename_head, filename = generate_filename(filename_head, filename, 'rotate_scan')
-    fname = get_unique_filename(filename_head, filename)
-    header_motors = [motor_dict[m]['name'] for m in measure_motors]
-    header = [motor_dict['axis_1']['name'], motor_dict['axis_2']['name']]+lockin_header+header_motors
-    write_file_header(fname, header, metadata)
+    if savefile:
+        filename_head, filename = generate_filename(filename_head, filename, 'rotate_scan')
+        fname = get_unique_filename(filename_head, filename)
+        header_motors = [motor_dict[m]['name'] for m in measure_motors]
+        header = [motor_dict['axis_1']['name'], motor_dict['axis_2']['name']]+lockin_header+header_motors
+        write_file_header(fname, header, metadata)
 
     # setup plot
     if showplot==True:
@@ -244,7 +252,7 @@ def rotate_scan(start_angle, end_angle, step_size, filename_head=None, filename=
             fig.canvas.flush_events()
 
         # write to file
-        if filename_head!=None and filename!=None:
+        if savefile:
             vars = [angle_pos_1, angle_pos_2, x, y, r, x_R, y_R, r_R]+measured_positions
             append_data_to_file(fname, vars)
 
@@ -258,7 +266,7 @@ def rotate_scan(start_angle, end_angle, step_size, filename_head=None, filename=
 
     return position, demod_x, demod_y, demod_r
 
-def corotate_scan(start_angle, end_angle, step_size, angle_offset, rate_axis_2=1, filename_head=None, filename=None, measure_motors=[], mobj_measure_dict={}, showplot=True, time_constant=0.3, channel_index=1, R_channel_index=2, daq_objs=None, axis_1=None, axis_2=None, metadata={}):
+def corotate_scan(start_angle, end_angle, step_size, angle_offset, rate_axis_2=1, filename_head=None, filename=None, measure_motors=[], mobj_measure_dict={}, showplot=True, time_constant=0.3, channel_index=1, R_channel_index=2, daq_objs=None, axis_1=None, axis_2=None, metadata={}, save_metadata=True, savefile=True):
     '''
     Takes a corotation scan moving axes 1 and 2, typically representing half wave plates. axis 2 can be specificied to move at a rate greater than axis 1, such that axis_2_move = rate*axis_1_move
 
@@ -268,7 +276,7 @@ def corotate_scan(start_angle, end_angle, step_size, angle_offset, rate_axis_2=1
     '''
 
     # setup metadata
-    if metadata=={}:
+    if metadata=={} and save_metadata==True:
         metadata = generate_metadata()
 
     # initialize zurich lockin and setup read function
@@ -314,11 +322,12 @@ def corotate_scan(start_angle, end_angle, step_size, angle_offset, rate_axis_2=1
     demod_r = np.array([])
 
     # setup file for writing
-    filename_head, filename = generate_filename(filename_head, filename, 'corotate_scan')
-    fname = get_unique_filename(filename_head, filename)
-    header_motors = [motor_dict[m]['name'] for m in measure_motors]
-    header = header = [motor_dict['axis_1']['name'], motor_dict['axis_2']['name']]+lockin_header+header_motors
-    write_file_header(fname, header, metadata)
+    if savefile:
+        filename_head, filename = generate_filename(filename_head, filename, 'corotate_scan')
+        fname = get_unique_filename(filename_head, filename)
+        header_motors = [motor_dict[m]['name'] for m in measure_motors]
+        header = header = [motor_dict['axis_1']['name'], motor_dict['axis_2']['name']]+lockin_header+header_motors
+        write_file_header(fname, header, metadata)
 
     # setup plot
     if showplot==True:
@@ -366,7 +375,7 @@ def corotate_scan(start_angle, end_angle, step_size, angle_offset, rate_axis_2=1
         demod_r = np.append(demod_r, r)
 
         # write to file
-        if filename_head!=None and filename!=None:
+        if savefile:
             vars = [angle_pos_1, angle_pos_2, x, y, r, x_R, y_R, r_R]+measured_positions
             append_data_to_file(fname, vars)
 
@@ -392,7 +401,7 @@ def corotate_scan(start_angle, end_angle, step_size, angle_offset, rate_axis_2=1
 
     return position, demod_x, demod_y, demod_r
 
-def motor_scan(map_dict, filename_head=None, filename=None, measure_motors=[], showplot=True, time_constant=0.3, channel_index=1, R_channel_index=3, print_flag=False):
+def motor_scan(map_dict, filename_head=None, filename=None, measure_motors=[], showplot=True, time_constant=0.3, channel_index=1, R_channel_index=3, print_flag=False, savefile=True):
     '''
     utility to record lockin measurement as a function of motors specified by dictionary map_dict.
     '''
@@ -414,13 +423,14 @@ def motor_scan(map_dict, filename_head=None, filename=None, measure_motors=[], s
     #print(positions)
 
     # setup file for writing
-    filename_head, filename = generate_filename(filename_head, filename, 'motor_scan')
-    for m in motors:
-        filename = filename+f'_{m}'
-    fname = get_unique_filename(filename_head, filename)
-    header_motors = [motor_dict[m]['name'] for m in measure_motors]
-    header = [motor_dict[m]['name'] for m in motors]+[motor_dict[m]['name']+str(' measured') for m in motors]+lockin_header+header_motors
-    write_file_header(fname, header, metadata)
+    if savefile:
+        filename_head, filename = generate_filename(filename_head, filename, 'motor_scan')
+        for m in motors:
+            filename = filename+f'_{m}'
+        fname = get_unique_filename(filename_head, filename)
+        header_motors = [motor_dict[m]['name'] for m in measure_motors]
+        header = [motor_dict[m]['name'] for m in motors]+[motor_dict[m]['name']+str(' measured') for m in motors]+lockin_header+header_motors
+        write_file_header(fname, header, metadata)
 
     # move motors to start position, using move_back to handle initial case
     move_motors_to_start(mobj_dict, mkwargs_dict, positions, print_flag=print_flag)
@@ -514,7 +524,7 @@ def motor_scan(map_dict, filename_head=None, filename=None, measure_motors=[], s
         demod_r = np.append(demod_r, r)
 
         # add to file
-        if filename_head!=None and filename!=None:
+        if savefile:
             append_data_to_file(fname, list(pos)+list(measured_positions)+list(lockin_meas)+list(measured_motors_positions))
 
         # update plots
@@ -559,11 +569,13 @@ def motor_scan(map_dict, filename_head=None, filename=None, measure_motors=[], s
     close_motors(mobj_dict)
     close_motors(mobj_measure_dict)
 
-def motor_scan_autobalance(map_dict, autobalance_axis, slope, tol, autobalance_channel=1, filename_head=None, filename=None, measure_motors=[], showplot=True, time_constant=0.3, channel_index=1, R_channel_index=3, print_flag=False):
+def motor_scan_balance(map_dict, balance_table, balance_channel=1, autobalance=True, filename_head=None, filename=None, measure_motors=[], showplot=True, time_constant=0.3, channel_index=1, R_channel_index=3, print_flag=False, savefile=True):
     '''
     utility to record lockin measurement as a function of motors specified by dictionary map_dict.
 
-    autobalance feature takes a string correspond to motor along which axis to autobalance. for example, if autobalance is 'delay_stage' then everytime delay stage gets to start position system will autobalance using specified channel. For this to work, axis_1 and axis_2 must be in the map_dict
+    autobalance before each scan of last motor in map_dict according to balance table, which has the form of an xarray object with balance angle data over the various coordinates.
+
+    only works if corotate_axes12 is in the map_dict
     '''
 
     # setup metadata
@@ -577,19 +589,25 @@ def motor_scan_autobalance(map_dict, autobalance_axis, slope, tol, autobalance_c
     motors, mranges, mkwargs_dict = capture_motor_information(map_dict)
     mobj_dict = initialize_motors(motors)
     mobj_measure_dict = initialize_motors(measure_motors)
+    if 'corotate_axes12' not in motors:
+        raise ValueError('corotate_axes12 must be in map_dict.')
+    coords = motors.copy().remove('corotate_axes12')+['axis_1']
+    if set(balance_table.coords) != set(coords):
+        raise ValueError(f'balance table coordinates {balance_table.coords} and map_dict coordinate {coords} are not equivalent.')
 
     # generate positions recursively
     positions = gen_positions_recurse(mranges, len(mranges)-1)
     #print(positions)
 
     # setup file for writing
-    filename_head, filename = generate_filename(filename_head, filename, 'motor_scan')
-    for m in motors:
-        filename = filename+f'_{m}'
-    fname = get_unique_filename(filename_head, filename)
-    header_motors = [motor_dict[m]['name'] for m in measure_motors]
-    header = [motor_dict[m]['name'] for m in motors]+[motor_dict[m]['name']+str(' measured') for m in motors]+lockin_header+header_motors+['Balance Angle (Deg)']
-    write_file_header(fname, header, metadata)
+    if savefile:
+        filename_head, filename = generate_filename(filename_head, filename, 'motor_scan')
+        for m in motors:
+            filename = filename+f'_{m}'
+        fname = get_unique_filename(filename_head, filename)
+        header_motors = [motor_dict[m]['name'] for m in measure_motors]
+        header = [motor_dict[m]['name'] for m in motors]+[motor_dict[m]['name']+str(' measured') for m in motors]+lockin_header+header_motors+['Balance Angle (Deg)']
+        write_file_header(fname, header, metadata)
 
     # move motors to start position, using move_back to handle initial case
     move_motors_to_start(mobj_dict, mkwargs_dict, positions, print_flag=print_flag)
@@ -648,33 +666,19 @@ def motor_scan_autobalance(map_dict, autobalance_axis, slope, tol, autobalance_c
         else:
             print('Cannot plot scans that are greater than 2 dimensions.')
 
-
     # setup for autobalancing
-    autobalance_idx = motors.index(autobalance_axis)
-    if 'corotate_axes12' in motors:
-        axis_1, axis_2 = mobj_dict['corotate_axes12']
-        corotate_axes_idx = motors.index('corotate_axes12')
-    else:
-        if 'axis_1' in motors:
-            axis_1 = mobj_dict['axis_1']
-        elif 'axis_1' in measure_motors:
-            axis_1 = mobj_measure_dict['axis_1']
-        else:
-            axis_1 = motor_dict['axis_1']['init']()
-            axis_1_close = motor_dict['axis_1']['close']
-        if 'axis_2' in motors:
-            axis_2 = mobj_dict['axis_2']
-        elif 'axis_2' in measure_motors:
-            axis_2 = mobj_measure_dict['axis_2']
-        else:
-            axis_2 = motor_dict['axis_2']['init']()
-            axis_2_close = motor_dict['axis_2']['close']
+    axis_1, axis_2 = mobj_dict['corotate_axes12']
+    move_axis_1 = motor_dict['axis_1']['move']
+    move_axis_2 = motor_dict['axis_2']['move']
+    read_axis_1 = motor_dict['axis_1']['read']
+    read_axis_2 = motor_dict['axis_2']['read']
+    corotate_axes_idx = motors.index('corotate_axes12')
 
     # loop over positions, only moving a motor if its target position has changed.
     start_pos = positions[0]
     current_pos = start_pos
     num_pos = len(positions)
-    bal_angle=0
+    bal_angle=mkwargs_dict['corotate_axes12']['bal_angle']
     for ii in tqdm(range(num_pos)):
         pos = positions[ii]
 
@@ -686,11 +690,20 @@ def motor_scan_autobalance(map_dict, autobalance_axis, slope, tol, autobalance_c
         move_motors(mobj_dict, mkwargs_dict, current_pos, start_pos, pos, print_flag=print_flag)
         current_pos = pos
 
-        if current_pos[autobalance_idx] == start_pos[autobalance_idx]:
-            bal_angle = autobalance(slope, tol, daq_objs=daq_objs, axis_1=axis_1, axis_2=axis_2, channel_index=autobalance_channel)
-            if 'corotate_axes12' in motors:
-                mkwargs_dict['corotate_axes12']['bal_angle'] = bal_angle
-                motor_dict['corotate_axes12']['move'](current_pos[corotate_axes_idx], mobj_dict['corotate_axes12'], **mkwargs_dict['corotate_axes12'])
+        # somehow must turn ac off during balancing.
+        if current_pos[-1] == start_pos[-1]:
+            pos_dict = {}
+            for ii, p in enumerate(pos):
+                m = motors[ii]
+                if m == 'corotate_axes12':
+                    m = 'axis_1'
+                name = motor_dict[m]['name']
+                pos_dict[motors[ii]] = p
+            bal_angle_approx, slope, tol = interp_balance_angle(pos_dict, balance_table)
+            move_axis_2(pos_dict['axis_1']+bal_angle_approx, axis_2)
+            bal_angle = autobalance(slope, tol, daq_objs=daq_objs, axis_1=axis_1, axis_2=axis_2, channel_index=balance_channel)
+            mkwargs_dict['corotate_axes12']['bal_angle'] = bal_angle
+            move_axis_2(pos_dict['axis_1']+bal_angle, axis_2)
 
         # acquire data
         lockin_meas = read_lockin(daq_objs=daq_objs, time_constant=time_constant, channel_index=channel_index, R_channel_index=R_channel_index)
@@ -712,7 +725,7 @@ def motor_scan_autobalance(map_dict, autobalance_axis, slope, tol, autobalance_c
         demod_r = np.append(demod_r, r)
 
         # add to file
-        if filename_head!=None and filename!=None:
+        if savefile:
             append_data_to_file(fname, list(pos)+list(measured_positions)+list(lockin_meas)+list(measured_motors_positions)+[bal_angle])
 
         # update plots
@@ -756,12 +769,8 @@ def motor_scan_autobalance(map_dict, autobalance_axis, slope, tol, autobalance_c
     # close motors
     close_motors(mobj_dict)
     close_motors(mobj_measure_dict)
-    try: axis_1_close(axis_1)
-    except: pass
-    try: axis_2_close(axis_2)
-    except: pass
 
-def rotate_map(map_dict, start_angle, end_angle, step_size, filename_head=None, filename=None, axis_index=1, measure_motors=[], showplot=False, time_constant=0.3, channel_index=1, R_channel_index=2, daq_objs=None, print_flag=False):
+def rotate_map(map_dict, start_angle, end_angle, step_size, filename_head=None, filename=None, axis_index=1, measure_motors=[], showplot=False, time_constant=0.3, channel_index=1, R_channel_index=2, daq_objs=None, print_flag=False, savefile=True):
 
     # setup metadata
     metadata = generate_metadata()
@@ -804,7 +813,7 @@ def rotate_map(map_dict, start_angle, end_angle, step_size, filename_head=None, 
             expanded_filename = expanded_filename+f'_{m}{p}'
 
         # scan
-        rotate_scan(start_angle, end_angle, step_size, filename_head=filename_head, filename=expanded_filename, axis_index=axis_index, measure_motors=measure_motors, mobj_measure_dict=mobj_measure_dict, showplot=showplot, time_constant=time_constant, channel_index=channel_index, R_channel_index=R_channel_index, daq_objs=daq_objs, axis_1=axis_1, axis_2=axis_2, metadatat=metadata)
+        rotate_scan(start_angle, end_angle, step_size, filename_head=filename_head, filename=expanded_filename, axis_index=axis_index, measure_motors=measure_motors, mobj_measure_dict=mobj_measure_dict, showplot=showplot, time_constant=time_constant, channel_index=channel_index, R_channel_index=R_channel_index, daq_objs=daq_objs, axis_1=axis_1, axis_2=axis_2, metadatat=metadata, savefile=savefile)
 
         current_pos = pos
 
@@ -812,7 +821,7 @@ def rotate_map(map_dict, start_angle, end_angle, step_size, filename_head=None, 
     close_motors(mobj_dict)
     close_motors(mobj_measure_dict)
 
-def corotate_map(map_dict, start_angle, end_angle, step_size, angle_offset, rate_axis_2=1, filename_head=None, filename=None, measure_motors=[], showplot=False, time_constant=0.3, channel_index=1, R_channel_index=2, print_flag=False):
+def corotate_map(map_dict, start_angle, end_angle, step_size, angle_offset, rate_axis_2=1, filename_head=None, filename=None, measure_motors=[], showplot=False, time_constant=0.3, channel_index=1, R_channel_index=2, print_flag=False, savefile=True):
     '''
     Takes a corotation scan at each point in a map specified by dictionary map_dict, which entries of the form 'axis':(start, end, step_size, kwargs), where kwargs is a dictionary of key/value pairs appropriate for each motor 'move' function. For example, a temperature map might take the following map dictionary:
 
@@ -863,7 +872,7 @@ def corotate_map(map_dict, start_angle, end_angle, step_size, angle_offset, rate
             expanded_filename = expanded_filename+f'_{m}{p}'
 
         # scan
-        corotate_scan(start_angle, end_angle, step_size, angle_offset, rate_axis_2=rate_axis_2, filename_head=filename_head, filename=expanded_filename, measure_motors=measure_motors, mobj_measure_dict=mobj_measure_dict, showplot=showplot, time_constant=time_constant, channel_index=channel_index, R_channel_index=R_channel_index, daq_objs=daq_objs, axis_1=axis_1, axis_2=axis_2, metadata=metadata)
+        corotate_scan(start_angle, end_angle, step_size, angle_offset, rate_axis_2=rate_axis_2, filename_head=filename_head, filename=expanded_filename, measure_motors=measure_motors, mobj_measure_dict=mobj_measure_dict, showplot=showplot, time_constant=time_constant, channel_index=channel_index, R_channel_index=R_channel_index, daq_objs=daq_objs, axis_1=axis_1, axis_2=axis_2, metadata=metadata, savefile=savefile)
 
         current_pos = pos
 
@@ -871,18 +880,27 @@ def corotate_map(map_dict, start_angle, end_angle, step_size, angle_offset, rate
     close_motors(mobj_dict)
     close_motors(mobj_measure_dict)
 
-def find_balance_angle(start_angle, end_angle, step_size, balance_at=0, offset=0, go_to_balance_angle=True, axis_index=2, channel_index=1, time_constant=0.3, R_channel_index=2):
-    '''
-    Assuming we are measuring in DC mode above a transition or on GaAs, carries out a rotate_scan. Find angle by carrying out a linear fit, such that the angle range should be taken to be very small.
+#########################
+### Balancing Methods ###
+#########################
 
-    By default, moves axis 2 to find balance angle.
+def find_balance_angle_macro(start_angle, end_angle, step_size, step_size_fine=0.2, window=3, axis_index=2, balance_at=0, offset=0, channel_index=1, time_constant=0.3, daq_objs=None, axis_1=None, axis_2=None):
 
-    If go_to_balance_angle is set to true, moves stages to
-    '''
+    # initialize zurich lockin and setup read function
+    if daq_objs==None:
+        init_func = instrument_dict['zurich_lockin']['init']
+        daq_objs = init_func()
+    read_lockin = instrument_dict['zurich_lockin']['read']
 
-    # initialize axes
-    axis_1 = motor_dict['axis_1']['init']()
-    axis_2 = motor_dict['axis_2']['init']()
+    # initialize axes and setup move functions
+    if axis_1 == None:
+        init_func = motor_dict['axis_1']['init']
+        axis_1 = init_func()
+    if axis_2 == None:
+        init_func = motor_dict['axis_2']['init']
+        axis_2 = init_func()
+
+    # initialize axes funcs
     move_axis_1 = motor_dict['axis_1']['move']
     move_axis_2 = motor_dict['axis_2']['move']
     move_back_1 = motor_dict['axis_1']['move_back']
@@ -894,13 +912,72 @@ def find_balance_angle(start_angle, end_angle, step_size, balance_at=0, offset=0
     move_axis_1(balance_at)
     move_axis_2(balance_at)
 
-    positions, demod_x, demod_y, demod_r = rotate_scan(balance_at+start_angle, balance_at+end_angle, step_size, axis_index=axis_index, channel_index=channel_index, time_constant=time_constant, R_channel_index=R_channel_index)
+    coarse_scan = rotate_scan(start_angle+balance_at, end_angle+balance_at, step_size, channel_index=channel_index, time_constant=time_constant, daq_objs=daq_objs, axis_1=axis_1, axis_2=axis_2, save_metadata=False, savefile=False)
+
+    fitf = lambda x, a, phi, c: a*np.cos(4*(2*np.pi/360)*(x-phi)) + c
+    popt, pcov = opt.curve_fit(fitf, coarse_scan[0], coarse_scan[1], p0=[np.max(coarse_scan[1]), 0, 0])
+
+    fig, ax = plt.subplots(1)
+    xvect = np.linspace(start_angle+balance_at,end_angle+balance_at,1000)
+    ys = [fitf(i, *popt) for i in xvect]
+    ax.plot(coarse_scan[0], coarse_scan[1], 'o')
+    ax.plot(xvect, ys, '-', color='black')
+
+    a_opt = popt[0]
+    phi_opt = popt[1]
+    c_opt = popt[2]
+    bal_angle_approx = (180/np.pi)*np.arccos(-c_opt/a_opt)/4 + phi_opt - balance_at
+    print(bal_angle_approx)
+
+    bal_angle, slope, tol = find_balance_angle(bal_angle_approx-window, bal_angle_approx+window, step_size_fine, balance_at=balance_at, offset=offset, go_to_balance_angle=True, axis_index=2, channel_index=channel_index, time_constant=time_constant, daq_objs=daq_objs, axis_1=axis_1, axis_2=axis_2)
+
+    return bal_angle, slope, tol
+
+def find_balance_angle(start_angle, end_angle, step_size, balance_at=0, offset=0, go_to_balance_angle=True, axis_index=2, channel_index=1, time_constant=0.3, R_channel_index=2, daq_objs=None, axis_1=None, axis_2=None):
+    '''
+    Assuming we are measuring in DC mode above a transition or on GaAs, carries out a rotate_scan. Find angle by carrying out a linear fit, such that the angle range should be taken to be very small.
+
+    By default, moves axis 2 to find balance angle.
+
+    If go_to_balance_angle is set to true, moves stages to
+    '''
+
+    # initialize zurich lockin and setup read function
+    if daq_objs==None:
+        init_func = instrument_dict['zurich_lockin']['init']
+        daq_objs = init_func()
+    read_lockin = instrument_dict['zurich_lockin']['read']
+
+    # initialize axes and setup move functions
+    if axis_1 == None:
+        init_func = motor_dict['axis_1']['init']
+        axis_1 = init_func()
+    if axis_2 == None:
+        init_func = motor_dict['axis_2']['init']
+        axis_2 = init_func()
+
+    # initialize axes funcs
+    move_axis_1 = motor_dict['axis_1']['move']
+    move_axis_2 = motor_dict['axis_2']['move']
+    move_back_1 = motor_dict['axis_1']['move_back']
+    move_back_2 = motor_dict['axis_2']['move_back']
+
+    # move both motors to 0
+    move_axis_1(balance_at-move_back_1)
+    move_axis_2(balance_at-move_back_2)
+    move_axis_1(balance_at)
+    move_axis_2(balance_at)
+
+    positions, demod_x, demod_y, demod_r = rotate_scan(balance_at+start_angle, balance_at+end_angle, step_size, axis_index=axis_index, channel_index=channel_index, time_constant=time_constant, R_channel_index=R_channel_index, daq_objs=daq_objs, axis_1=axis_1, axis_2=axis_2, save_metadata=False, savefile=False)
 
     # linear fit
-    fit_params = np.polyfit(positions, demod_x-offset, 1)
-    balance_angle = -fit_params[1]/fit_params[0]
+    fitf = lambda x, m, b: m*x+b
+    popt, pcov = opt.curve_fit(fitf, positions, demod_x-offset)
+    balance_angle = -popt[1]/popt[0]
+    slope = popt[0]
+    tol = np.mean(lockin_time_series(5, daq_objs=daq_objs, save_metadata=False, savefile=False, channel_index=channel_index, plot_flag=False)[1])*1.5
     angles_vect = np.linspace(start_angle+balance_at, balance_at+end_angle, 1000)
-    fit = fit_params[0]*angles_vect + fit_params[1]
+    fit = popt[0]*angles_vect + popt[1]
 
     # display result
     fig, ax = plt.subplots(1)
@@ -919,7 +996,7 @@ def find_balance_angle(start_angle, end_angle, step_size, balance_at=0, offset=0
             move_axis_2(balance_angle+balance_at)
 
     print(f'Balance angle: {balance_angle}')
-    return balance_angle
+    return balance_angle, slope, tol
 
 def autobalance(slope, tolerance, daq_objs=None, axis_1=None, axis_2=None, balance_at=None, offset=0, channel_index=1, time_constant=0.3, print_flag=True, lockin_index=0):
     '''
@@ -962,12 +1039,83 @@ def autobalance(slope, tolerance, daq_objs=None, axis_1=None, axis_2=None, balan
         #print(curr_pos)
         time.sleep(time_constant*4)
         pid_signal = read_lockin(daq_objs=daq_objs, time_constant=time_constant, channel_index=channel_index)[lockin_index]
-        new_pos = curr_pos+(1/slope)*(pid_signal-offset)
+        new_pos = curr_pos-(1/slope)*(pid_signal-offset)
         move_axis_2(new_pos, axis=axis_2)
         curr_pos = new_pos
     if print_flag:
         print(f'Balanced PID at {balance_at}. Balance angle: {curr_pos}.')
     return curr_pos
+
+def create_balance_table(map_dict, start_angle, end_angle, step_size, step_size_fine=0.2, window=3, balance_at=0, offset=0, filename_head=None, filename=None, channel_index=1, time_constant=0.3, daq_objs=None, axis_1=None, axis_2=None, print_flag=False):
+    '''
+    create balance table for axis_1 and any other parameters in map_dict.
+    '''
+   
+    # capture motor information and initialize
+    motors, mranges, mkwargs_dict = capture_motor_information(map_dict)
+    mobj_dict = initialize_motors(motors)
+    if 'axis_1' not in motors:
+        raise ValueError('axis_1 must be in the map_dict')
+    if 'axis_2' in motors:
+        raise ValueError('axis 2 cannot be in the map_dict')
+
+    # initialize rotation axes
+    axis_1 = mobj_dict['axis_1']
+    axis_2 = motor_dict['axis_2']['init']()
+
+    # generate positions recursively
+    positions = gen_positions_recurse(mranges, len(mranges)-1)
+    #print(positions)
+
+    # setup file for writing
+    filename_head, filename = generate_filename(filename_head, filename, 'create_balance_table')
+    for m in motors:
+        filename = filename+f'_{m}'
+    fname = get_unique_filename(filename_head, filename)
+    header = [motor_dict[m]['name'] for m in motors]+['Balance Angle (deg)', 'Slope', 'Tolerance']
+    write_file_header(fname, header)
+
+    # move motors to start position, using move_back to handle initial case
+    move_motors_to_start(mobj_dict, mkwargs_dict, positions, print_flag=print_flag)
+
+    # loop over positions, only moving a motor if its target position has changed.
+    start_pos = positions[0]
+    current_pos = start_pos
+    num_pos = len(positions)
+    for ii in tqdm(range(num_pos)):
+        pos = positions[ii]
+
+        # move motors to go back position if starting new raster - NEEDS WORK
+        #if pos[0]!=current_pos[0] and pos[1]!=current_pos[1]:
+        #    move_motors(mobj_dict, mkwargs_dict, current_pos, pos-10)
+
+        # move motors if position has changed
+        move_motors(mobj_dict, mkwargs_dict, current_pos, start_pos, pos, print_flag=print_flag)
+        current_pos = pos
+
+        # find balance angle
+        bal_angle, slope, tol = find_balance_angle_macro(start_angle, end_angle, step_size, step_size_fine=step_size_fine, window=window, axis_index=2, balance_at=balance_at, offset=offset, channel_index=channel_index, time_constant=time_constant, daq_objs=daq_objs, axis_1=axis_1, axis_2=axis_2)
+
+        # add to file
+        append_data_to_file(fname, list(pos)+[bal_angle, slope, tol])
+
+    # close motors
+    close_motors(mobj_dict)
+
+    # process the results using orensteinanalysis and pickle
+    motor_names = [motor_dict[m]['name'] for m in motors]
+    obj = loader.load_measurement(fname)
+    obj  = process.reshape(obj, motor_names)
+    pickle_filename = f'{fname[:-4]}_obj'
+    with open(pickle_filename, 'wb') as f:
+            pickle.dump(obj, f)
+
+    return obj
+
+
+###################
+### Lab Helpers ###
+###################
 
 def align_delay_stage(wait_time=5, range=(-125,125)):
 
@@ -1394,6 +1542,9 @@ def generate_filename(filename_head, filename, current_func):
             filename = current_func
         else:
             filename_head = os.getcwd()
+    else:
+        if filename==None:
+            filename = current_func
     return filename_head, filename
 
 def get_unique_filename(filename_head, filename):

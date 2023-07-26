@@ -1,11 +1,12 @@
 import sys
 import telnetlib
 import pickle
+import time
+import numpy as np
 from OrensteinLab_git.configuration import config_dict
 
 host = config_dict['Opticool IP']
 port = config_dict['Opticool Port']
-OPTICOOL_HANDLE_FNAME = config_dict['Opticool Handle']
 
 ######################
 ### Core Functions ###
@@ -50,21 +51,22 @@ def read_opticool_temperature(optc=None):
 
     return temp
 
-def set_opticool_field(field, optc=None, rate=110, mode=0):
+def set_opticool_field(field, optc=None, rate=110, mode=0, tol=1):
 
     obj_passed=True
     if optc==None:
         optc = initialize_opticool()
         obj_passed==False
 
-    message=('FIELD '+str(set_point)+', '+str(rate)+', '+str(mode)+', 1').encode('ascii')
+    message=('FIELD '+str(field)+', '+str(rate)+', '+str(mode)+', 1').encode('ascii')
     optc.write(message+('\r\n').encode('ascii'))
     output=optc.read_some().decode('ascii')
 
+    #while np.abs(read_opticool_field(optc)-field) <= tol:
+    #    time.sleep(1)
+
     if obj_passed==False:
         close_opticool(optc)
-
-    return output
 
 def read_opticool_field(optc=None):
 
@@ -90,14 +92,8 @@ def read_opticool_field(optc=None):
     return field
 
 def initialize_opticool():
-    try:
-        with open(OPTICOOL_HANDLE_FNAME, 'rb') as f:
-            optc = pickle.load(f)
-    except: # if there is not already a connection, above fails and we instantiate a new handle
-        optc=telnetlib.Telnet(host, port, timeout=15)
-        optc.read_until(('Connected to QDInstrument Socket Server.\r\n').encode('ascii'))
-        with open(OPTICOOL_HANDLE_FNAME, 'wb') as f:
-            pickle.dump(optc, f)
+    optc=telnetlib.Telnet(host, port, timeout=15)
+    optc.read_until(('Connected to QDInstrument Socket Server.\r\n').encode('ascii'))
     return optc
 
 def close_opticool(optc):

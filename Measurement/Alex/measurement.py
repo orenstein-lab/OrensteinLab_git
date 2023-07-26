@@ -1447,7 +1447,7 @@ def capture_motor_information(map_dict):
         if len(map_dict[m])==2:
             range = map_dict[0]
             kwargs = map_dict[1]
-        elif len(map_dict[m]==4):
+        elif len(map_dict[m])==4:
             start = map_dict[m][0]
             end = map_dict[m][1]
             step_size = map_dict[m][2]

@@ -424,9 +424,13 @@ def motor_scan(map_dict, filename_head=None, filename=None, measure_motors=[], s
 
     # setup file for writing
     if savefile:
+        append=False
+        if filename==None:
+            append=True
         filename_head, filename = generate_filename(filename_head, filename, 'motor_scan')
-        for m in motors:
-            filename = filename+f'_{m}'
+        if append==True:
+            for m in motors:
+                filename = filename+f'_{m}'
         fname = get_unique_filename(filename_head, filename)
         header_motors = [motor_dict[m]['name'] for m in measure_motors]
         header = [motor_dict[m]['name'] for m in motors]+[motor_dict[m]['name']+str(' measured') for m in motors]+lockin_header+header_motors
@@ -601,9 +605,13 @@ def motor_scan_balance(map_dict, balance_table, balance_channel=1, autobalance=T
 
     # setup file for writing
     if savefile:
+        append=False
+        if filename==None:
+            append=True
         filename_head, filename = generate_filename(filename_head, filename, 'motor_scan')
-        for m in motors:
-            filename = filename+f'_{m}'
+        if append==True:
+            for m in motors:
+                filename = filename+f'_{m}'
         fname = get_unique_filename(filename_head, filename)
         header_motors = [motor_dict[m]['name'] for m in measure_motors]
         header = [motor_dict[m]['name'] for m in motors]+[motor_dict[m]['name']+str(' measured') for m in motors]+lockin_header+header_motors+['Balance Angle (Deg)']

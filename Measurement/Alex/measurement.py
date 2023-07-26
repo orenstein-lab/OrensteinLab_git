@@ -701,9 +701,12 @@ def motor_scan_balance(map_dict, balance_table, balance_channel=1, autobalance=T
                 pos_dict[motors[ii]] = p
             bal_angle_approx, slope, tol = interp_balance_angle(pos_dict, balance_table)
             move_axis_2(pos_dict['axis_1']+bal_angle_approx, axis_2)
-            bal_angle = autobalance(slope, tol, daq_objs=daq_objs, axis_1=axis_1, axis_2=axis_2, channel_index=balance_channel)
+            if autobalance==True:
+                bal_angle = autobalance(slope, tol, daq_objs=daq_objs, axis_1=axis_1, axis_2=axis_2, channel_index=balance_channel)
+                move_axis_2(pos_dict['axis_1']+bal_angle, axis_2)
+            else:
+                bal_angle = bal_angle_approx
             mkwargs_dict['corotate_axes12']['bal_angle'] = bal_angle
-            move_axis_2(pos_dict['axis_1']+bal_angle, axis_2)
 
         # acquire data
         lockin_meas = read_lockin(daq_objs=daq_objs, time_constant=time_constant, channel_index=channel_index, R_channel_index=R_channel_index)
@@ -912,7 +915,7 @@ def find_balance_angle_macro(start_angle, end_angle, step_size, step_size_fine=0
     move_axis_1(balance_at)
     move_axis_2(balance_at)
 
-    coarse_scan = rotate_scan(start_angle+balance_at, end_angle+balance_at, step_size, channel_index=channel_index, time_constant=time_constant, daq_objs=daq_objs, axis_1=axis_1, axis_2=axis_2, save_metadata=False, savefile=False)
+    coarse_scan = rotate_scan(start_angle+balance_at, end_angle+balance_at, step_size, channel_index=channel_index, time_constant=time_constant, daq_objs=daq_objs, axis_1=axis_1, axis_2=axis_2, save_metadata=False, savefile=False, axis_index=2)
 
     fitf = lambda x, a, phi, c: a*np.cos(4*(2*np.pi/360)*(x-phi)) + c
     popt, pcov = opt.curve_fit(fitf, coarse_scan[0], coarse_scan[1], p0=[np.max(coarse_scan[1]), 0, 0])
@@ -1050,7 +1053,7 @@ def create_balance_table(map_dict, start_angle, end_angle, step_size, step_size_
     '''
     create balance table for axis_1 and any other parameters in map_dict.
     '''
-   
+
     # capture motor information and initialize
     motors, mranges, mkwargs_dict = capture_motor_information(map_dict)
     mobj_dict = initialize_motors(motors)
@@ -1112,6 +1115,12 @@ def create_balance_table(map_dict, start_angle, end_angle, step_size, step_size_
 
     return obj
 
+def interp_balance_angle(pos_dict, balance_table):
+    '''
+    given a balance table and a dictionary giving positions within that balance table, interpolate the value of balance angle, slope, and tolerance.
+    '''
+
+    return 1
 
 ###################
 ### Lab Helpers ###
@@ -1435,11 +1444,15 @@ def capture_motor_information(map_dict):
     for m in motors:
         if m not in valid_motors:
             raise ValueError(f'Invalid motor name. Please select motors from the list {valid_motors}.')
-        start = map_dict[m][0]
-        end = map_dict[m][1]
-        step_size = map_dict[m][2]
-        kwargs = map_dict[m][3]
-        range = get_motor_range(start, end, step_size)
+        if len(map_dict[m])==2:
+            range = map_dict[0]
+            kwargs = map_dict[1]
+        elif len(map_dict[m]==4):
+            start = map_dict[m][0]
+            end = map_dict[m][1]
+            step_size = map_dict[m][2]
+            kwargs = map_dict[m][3]
+            range = get_motor_range(start, end, step_size)
         mranges.append(range)
         mkwargs_dict[m] = kwargs
 

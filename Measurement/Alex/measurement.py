@@ -27,7 +27,7 @@ Features to add:
     - overhaul how I handle lockin data acquisition and possible link this to metadata
 '''
 
-lockin_header = ['Demod x', 'Demod y', 'r', 'Demod x_R', 'Demod y_R', 'Demod r_R'] # this should be moved to zurich file somehow, ie, the output of reading zurich itself should tell us what the header are.
+lockin_header = ['Demod x', 'Demod y', 'r', 'Demod x_R', 'Demod y_R', 'Demod r_R'] # this should be moved to zurich file somehow, ie, the output of reading zurich itself should tell us what the header are. Also I should make it so that all channels are saved and channel index just determines what gets plotted.
 
 ################
 ### Medthods ###

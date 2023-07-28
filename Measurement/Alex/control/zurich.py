@@ -132,6 +132,43 @@ def close_zurich_lockin(obj):
     return 0
 
 
+###############################
+### Chaning Lockin Settings ###
+###############################
+
+def set_zurich_select_signal(val, channel_index=1, daq_objs=None):
+    '''
+    selects signal source to be associated with demodulator on channel_index
+    '''
+
+    # initialize
+    if daq_objs==None:
+        daq, device, props = initialize_zurich_lockin()
+    else:
+        daq, device, props = daq_objs
+
+    daq.setInt(f'/{device}/demods/{int(channel_index)-1}/adcselect', val)
+
+
+def set_zurich_acfilter(val, sigin=0, daq_objs=None):
+    '''
+    defines input coupling for signal on sigin
+    '''
+
+    if val==True or val==False:
+        pass
+    else:
+        raise ValueError(f'value {val} must be a 1 or 0 or a bool')
+
+    # initialize
+    if daq_objs==None:
+        daq, device, props = initialize_zurich_lockin()
+    else:
+        daq, device, props = daq_objs
+
+    daq.setInt(f'/{device}/sigins/{sigin}/ac', int(val))
+
+
 
 
 #########################

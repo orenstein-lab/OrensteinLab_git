@@ -50,7 +50,7 @@ motor_dict = {
 'galvo_y':{'move':zurich.set_zurich_aux_offset_2, 'read':zurich.get_zurich_aux_offset_2, 'init':zurich.initialize_zurich_lockin, 'close':zurich.close_zurich_lockin, 'move_back':0, 'name':'Galvo y Voltage (V)'}
 }
 
-meta_motors = ['x', 'y', 'z', 'axis_1', 'axis_2', 'axis_3', 'delay_stage', 'temp', 'zurich_frequency', 'galvo_x', 'galvo_y']
+meta_motors = ['x', 'y', 'z', 'axis_1', 'axis_2', 'axis_3', 'delay_stage', 'temp', 'opticool_temp', 'opticool_field', 'zurich_frequency', 'galvo_x', 'galvo_y']
 #meta_motors=[]
 
 ##########################

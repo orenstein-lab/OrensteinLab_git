@@ -12,23 +12,28 @@ port = config_dict['Opticool Port']
 ### Core Functions ###
 #####################
 
-def set_opticool_temperature(temperature, optc=None, rate=10, mode=0):
+def set_opticool_temperature(temperature, optc=None, rate=10, mode=0, wait_time=0):
 
     obj_passed=True
     if optc==None:
         optc = initialize_opticool()
         obj_passed==False
 
-        message=('TEMP '+str(set_point)+', '+str(rate)+', '+str(mode)).encode('ascii')
+        message=f'TEMP {temperature}, {rate}, {mode}'.encode('ascii')
         optc.write(message+('\r\n').encode('ascii'))
         output=optc.read_some().decode('ascii')
+
+    while get_opticool_temp_info(optc)[1]!='Stable':
+        time.sleep(1)
 
     if obj_passed==False:
         close_opticool(optc)
 
-    return output
+    time.sleep(wait_time)
 
-def read_opticool_temperature(optc=None):
+    #return output
+
+def get_opticool_temp_info(optc=None):
 
     obj_passed=True
     if optc==None:
@@ -49,26 +54,32 @@ def read_opticool_temperature(optc=None):
     if obj_passed==False:
         close_opticool(optc)
 
-    return temp
+    return temp, output_status
 
-def set_opticool_field(field, optc=None, rate=110, mode=0, tol=1):
+def read_opticool_temperature(optc=None):
+    return get_opticool_temp_info(optc)[0]
+
+def set_opticool_field(field, optc=None, rate=110, approach=0, mode=0, wait_time=0):
 
     obj_passed=True
     if optc==None:
         optc = initialize_opticool()
         obj_passed==False
 
-    message=('FIELD '+str(field)+', '+str(rate)+', '+str(mode)+', 1').encode('ascii')
+    message=f'FIELD {field}, {rate}, {approach}, {mode}'.encode('ascii')
     optc.write(message+('\r\n').encode('ascii'))
     output=optc.read_some().decode('ascii')
 
-    #while np.abs(read_opticool_field(optc)-field) <= tol:
-    #    time.sleep(1)
+    time.sleep(3)
+    while get_opticool_field_info(optc)[1]!='Holding (Driven)':
+        time.sleep(1)
 
     if obj_passed==False:
         close_opticool(optc)
 
-def read_opticool_field(optc=None):
+    time.sleep(wait_time)
+
+def get_opticool_field_info(optc=None):
 
     obj_passed=True
     if optc==None:
@@ -89,7 +100,10 @@ def read_opticool_field(optc=None):
     if obj_passed==False:
         close_opticool(optc)
 
-    return field
+    return field, output_status
+
+def read_opticool_field(optc=None):
+    return get_opticool_field_info(optc)[0]
 
 def initialize_opticool():
     optc=telnetlib.Telnet(host, port, timeout=15)
@@ -97,4 +111,6 @@ def initialize_opticool():
     return optc
 
 def close_opticool(optc):
+    message=b'close\r'
+    optc.write(message)
     optc.close()

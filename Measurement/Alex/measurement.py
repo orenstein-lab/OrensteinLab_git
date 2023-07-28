@@ -710,7 +710,9 @@ def motor_scan_balance(map_dict, balance_table, balance_channel=1, autobalance=T
             bal_angle_approx, slope, tol = interp_balance_angle(pos_dict, balance_table)
             move_axis_2(pos_dict['axis_1']+bal_angle_approx, axis_2)
             if autobalance==True:
+                zurich.set_zurich_acfilter(0,daq_objs=daq_objs)
                 bal_angle = autobalance(slope, tol, daq_objs=daq_objs, axis_1=axis_1, axis_2=axis_2, channel_index=balance_channel)
+                zurich.set_zurich_acfilter(1,daq_objs=daq_objs)
                 move_axis_2(pos_dict['axis_1']+bal_angle, axis_2)
             else:
                 bal_angle = bal_angle_approx
@@ -926,7 +928,7 @@ def find_balance_angle_macro(start_angle, end_angle, step_size, step_size_fine=0
     coarse_scan = rotate_scan(start_angle+balance_at, end_angle+balance_at, step_size, channel_index=channel_index, time_constant=time_constant, daq_objs=daq_objs, axis_1=axis_1, axis_2=axis_2, save_metadata=False, savefile=False, axis_index=2)
 
     fitf = lambda x, a, phi, c: a*np.cos(4*(2*np.pi/360)*(x-phi)) + c
-    popt, pcov = opt.curve_fit(fitf, coarse_scan[0], coarse_scan[1], p0=[np.max(coarse_scan[1]), 0, 0])
+    popt, pcov = opt.curve_fit(fitf, coarse_scan[0], coarse_scan[1], p0=[np.max(coarse_scan[1]), balance_at, 0], bounds=([0,-np.inf,-np.inf], [np.inf,np.inf,np.inf]))
 
     fig, ax = plt.subplots(1)
     xvect = np.linspace(start_angle+balance_at,end_angle+balance_at,1000)
@@ -986,7 +988,7 @@ def find_balance_angle(start_angle, end_angle, step_size, balance_at=0, offset=0
     popt, pcov = opt.curve_fit(fitf, positions, demod_x-offset)
     balance_angle = -popt[1]/popt[0]
     slope = popt[0]
-    tol = np.mean(lockin_time_series(5, daq_objs=daq_objs, save_metadata=False, savefile=False, channel_index=channel_index, plot_flag=False)[1])*1.5
+    tol = np.mean(lockin_time_series(5, daq_objs=daq_objs, save_metadata=False, savefile=False, channel_index=channel_index, plot_flag=False)[1])*1.5 # something wrong here.
     angles_vect = np.linspace(start_angle+balance_at, balance_at+end_angle, 1000)
     fit = popt[0]*angles_vect + popt[1]
 
@@ -1057,16 +1059,19 @@ def autobalance(slope, tolerance, daq_objs=None, axis_1=None, axis_2=None, balan
         print(f'Balanced PID at {balance_at}. Balance angle: {curr_pos}.')
     return curr_pos
 
-def create_balance_table(map_dict, start_angle, end_angle, step_size, step_size_fine=0.2, window=3, balance_at=0, offset=0, filename_head=None, filename=None, channel_index=1, time_constant=0.3, daq_objs=None, axis_1=None, axis_2=None, print_flag=False):
+def create_balance_table(map_dict, start_angle, end_angle, step_size, step_size_fine=0.2, window=3, offset=0, filename_head=None, filename=None, channel_index=1, time_constant=0.3, daq_objs=None, axis_1=None, axis_2=None, print_flag=False, save_metadata=True):
     '''
     create balance table for axis_1 and any other parameters in map_dict.
     '''
 
+    # setup metadata
+    metadata = generate_metadata()
+    
     # capture motor information and initialize
     motors, mranges, mkwargs_dict = capture_motor_information(map_dict)
     mobj_dict = initialize_motors(motors)
     if 'axis_1' not in motors:
-        raise ValueError('axis_1 must be in the map_dict')
+        raise ValueError('axis_1 must be in the map_dict, even if making a balance table at a single angle')
     if 'axis_2' in motors:
         raise ValueError('axis 2 cannot be in the map_dict')
 
@@ -1079,17 +1084,18 @@ def create_balance_table(map_dict, start_angle, end_angle, step_size, step_size_
     #print(positions)
 
     # setup file for writing
-    filename_head, filename = generate_filename(filename_head, filename, 'create_balance_table')
+    filename_head, filename = generate_filename(filename_head, filename, 'balance_table')
     for m in motors:
         filename = filename+f'_{m}'
     fname = get_unique_filename(filename_head, filename)
     header = [motor_dict[m]['name'] for m in motors]+['Balance Angle (deg)', 'Slope', 'Tolerance']
-    write_file_header(fname, header)
+    write_file_header(fname, header, metadata)
 
     # move motors to start position, using move_back to handle initial case
     move_motors_to_start(mobj_dict, mkwargs_dict, positions, print_flag=print_flag)
 
     # loop over positions, only moving a motor if its target position has changed.
+    angle1_idx = motors.index('axis_1')
     start_pos = positions[0]
     current_pos = start_pos
     num_pos = len(positions)
@@ -1105,6 +1111,7 @@ def create_balance_table(map_dict, start_angle, end_angle, step_size, step_size_
         current_pos = pos
 
         # find balance angle
+        balance_at = pos[angle1_idx]
         bal_angle, slope, tol = find_balance_angle_macro(start_angle, end_angle, step_size, step_size_fine=step_size_fine, window=window, axis_index=2, balance_at=balance_at, offset=offset, channel_index=channel_index, time_constant=time_constant, daq_objs=daq_objs, axis_1=axis_1, axis_2=axis_2)
 
         # add to file
@@ -1453,8 +1460,8 @@ def capture_motor_information(map_dict):
         if m not in valid_motors:
             raise ValueError(f'Invalid motor name. Please select motors from the list {valid_motors}.')
         if len(map_dict[m])==2:
-            range = map_dict[0]
-            kwargs = map_dict[1]
+            range = map_dict[m][0]
+            kwargs = map_dict[m][1]
         elif len(map_dict[m])==4:
             start = map_dict[m][0]
             end = map_dict[m][1]

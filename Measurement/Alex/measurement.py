@@ -587,10 +587,8 @@ def motor_scan_balance(map_dict, balance, balance_table=None, slope=0, tol=0, ba
     metadata = generate_metadata()
     moving_motors = 1
 
-
     #def autobalance_thread():
     #   while moving_motors
-
 
     if balance_table==None:
         bal_table_flag=False
@@ -814,7 +812,6 @@ def motor_scan_balance(map_dict, balance, balance_table=None, slope=0, tol=0, ba
     close_motors(mobj_dict)
     close_motors(mobj_measure_dict)
 
->>>>>>> before discard
 def rotate_map(map_dict, start_angle, end_angle, step_size, filename_head=None, filename=None, axis_index=1, measure_motors=[], showplot=False, time_constant=0.3, channel_index=1, R_channel_index=2, daq_objs=None, print_flag=False, savefile=True):
 
     # setup metadata

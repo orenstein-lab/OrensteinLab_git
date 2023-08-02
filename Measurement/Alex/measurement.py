@@ -1066,7 +1066,7 @@ def create_balance_table(map_dict, start_angle, end_angle, step_size, step_size_
 
     # setup metadata
     metadata = generate_metadata()
-    
+
     # capture motor information and initialize
     motors, mranges, mkwargs_dict = capture_motor_information(map_dict)
     mobj_dict = initialize_motors(motors)

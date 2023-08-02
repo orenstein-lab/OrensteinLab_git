@@ -585,10 +585,13 @@ def motor_scan_balance(map_dict, balance, balance_table=None, slope=0, tol=0, ba
 
     # setup metadata
     metadata = generate_metadata()
-    moving_motors = 1
+    moving_motors = LockedVar(False)
 
-    #def autobalance_thread():
-    #   while moving_motors
+    # setup autobalancing thread
+    def autobalance_thread(slope, tolerance, kwargs):
+       while moving_motors.locked_read()==True:
+           autobalance(slope, tolerance, **kwargs)
+           time.sleep(0.5)
 
     if balance_table==None:
         bal_table_flag=False
@@ -708,6 +711,7 @@ def motor_scan_balance(map_dict, balance, balance_table=None, slope=0, tol=0, ba
     read_axis_1 = motor_dict['axis_1']['read']
     read_axis_2 = motor_dict['axis_2']['read']
     corotate_axes_idx = motors.index('corotate_axes12')
+    autobalkwrag_dict = {'daq_objs':daq_objs, 'axis_1':axis_1, 'axis_2':axis_2, 'channel_index':balance_channel}
 
     # loop over positions, only moving a motor if its target position has changed.
     start_pos = positions[0]
@@ -722,8 +726,13 @@ def motor_scan_balance(map_dict, balance, balance_table=None, slope=0, tol=0, ba
         #    move_motors(mobj_dict, mkwargs_dict, current_pos, pos-10)
 
         # move motors if position has changed
+        moving_motors.locked_update(True)
+        thread = threading.Thread(target=autobalance_thread, args=(slope, tol, autobalkwrag_dict))
+        thread.start()
         move_motors(mobj_dict, mkwargs_dict, current_pos, start_pos, pos, print_flag=print_flag)
         current_pos = pos
+        moving_motors.locked_update(False)
+        thread.join()
 
         if (current_pos[balance_idx] == start_pos[balance_idx]) or balance=='corotate_axes12':
             if bal_table_flag==True:
@@ -741,7 +750,7 @@ def motor_scan_balance(map_dict, balance, balance_table=None, slope=0, tol=0, ba
                 move_axis_2(pos_dict['Angle 1 (deg)']+bal_angle_approx, axis_2)
             if autobalance_flag==True:
                 zurich.set_zurich_acfilter(0,daq_objs=daq_objs)
-                bal_angle = autobalance(slope, tol, daq_objs=daq_objs, axis_1=axis_1, axis_2=axis_2, channel_index=balance_channel)
+                bal_angle = autobalance(slope, tol, **autobalkwrag_dict)
                 zurich.set_zurich_acfilter(1,daq_objs=daq_objs)
             elif bal_table_flag==True:
                 bal_angle = bal_angle_approx
@@ -1803,3 +1812,24 @@ def mapping(map_dict, single_point_function, function_args_dict):
         obj = mobj_dict[m]
         close_func = motor_dict[m]['close']
         close_func(obj)
+
+
+#############
+### Other ###
+#############
+
+class LockedVar:
+    '''
+    Minimal class to implement a locking variable. Contains two private attributes, a value and a lock, and a few methods for safetly reading writing value via the lock.
+    '''
+    def __init__(self, val):
+        self._value = val
+        self._lock = Lock()
+
+    def locked_read(self):
+        with self._lock:
+            return self._value
+
+    def locked_update(self, val):
+        with self._lock:
+            self._value = val

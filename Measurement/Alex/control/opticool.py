@@ -66,13 +66,18 @@ def set_opticool_field(field, optc=None, rate=110, approach=0, mode=0, wait_time
         optc = initialize_opticool()
         obj_passed==False
 
-    message=f'FIELD {field}, {rate}, {approach}, {mode}'.encode('ascii')
-    optc.write(message+('\r\n').encode('ascii'))
-    output=optc.read_some().decode('ascii')
+    while True:
+        try:
+            message=f'FIELD {field}, {rate}, {approach}, {mode}'.encode('ascii')
+            optc.write(message+('\r\n').encode('ascii'))
+            output=optc.read_some().decode('ascii')
 
-    time.sleep(3)
-    while get_opticool_field_info(optc)[1]!='Holding (Driven)':
-        time.sleep(1)
+            time.sleep(3)
+            while get_opticool_field_info(optc)[1]!='Holding (Driven)':
+                time.sleep(1)
+            break
+        except:
+            print('failed to set opticool field, trying again.')
 
     if obj_passed==False:
         close_opticool(optc)
@@ -86,16 +91,21 @@ def get_opticool_field_info(optc=None):
         optc = initialize_opticool()
         obj_passed==False
 
-    message=('FIELD?').encode('ascii')
-    optc.write(message+('\r\n').encode('ascii'))
-    output=optc.read_some().decode('ascii')
-    output_value = output.split(',')[1].strip()
-    output_status = output.split(',')[3].strip()
-    output_status = output_status.replace("\"","")
-    if output_value == 'nan':
-        field = output_value
-    else:
-        field = float(output_value)
+    while True:
+        try:
+            message=('FIELD?').encode('ascii')
+            optc.write(message+('\r\n').encode('ascii'))
+            output=optc.read_some().decode('ascii')
+            output_value = output.split(',')[1].strip()
+            output_status = output.split(',')[3].strip()
+            output_status = output_status.replace("\"","")
+            if output_value == 'nan':
+                field = output_value
+            else:
+                field = float(output_value)
+            break
+        except:
+            print('failed to get opticool field info')
 
     if obj_passed==False:
         close_opticool(optc)

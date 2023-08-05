@@ -574,7 +574,7 @@ def motor_scan(map_dict, filename_head=None, filename=None, measure_motors=[], s
     close_motors(mobj_dict)
     close_motors(mobj_measure_dict)
 
-def motor_scan_balance(map_dict, balance, balance_table=None, slope=0, tol=0, balance_channel=3, autobalance_flag=True, bal_table_flag=True, filename_head=None, filename=None, measure_motors=[], showplot=True, time_constant=0.3, channel_index=1, R_channel_index=2, print_flag=False, savefile=True):
+def motor_scan_balance(map_dict, balance, balance_table=None, slope=0, tol=0, balance_channel=3, autobalance_flag=True, bal_table_flag=True, filename_head=None, filename=None, measure_motors=[], showplot=True, time_constant=0.3, channel_index=1, R_channel_index=2, print_flag=False, savefile=True, save_metadata=True):
     '''
     utility to record lockin measurement as a function of motors specified by dictionary map_dict.
 
@@ -584,14 +584,28 @@ def motor_scan_balance(map_dict, balance, balance_table=None, slope=0, tol=0, ba
     '''
 
     # setup metadata
-    metadata = generate_metadata()
+    if save_metadata==True:
+        metadata = generate_metadata()
+    else:
+        metadata = {}
     moving_motors = LockedVar(False)
 
     # setup autobalancing thread
     def autobalance_thread(slope, tolerance, kwargs):
-       while moving_motors.locked_read()==True:
-           autobalance(slope, tolerance, **kwargs)
-           time.sleep(0.5)
+        #print('starting thread')
+        time.sleep(3) # only trigger if move is long
+        daq_objs = kwargs['daq_objs']
+        zurich.set_zurich_acfilter(0,daq_objs=daq_objs)
+        while moving_motors.locked_read()==True:
+            autobalance_cont(slope, tolerance, **kwargs)
+            #print('iterating thread')
+            time.sleep(0.5)
+        zurich.set_zurich_acfilter(0,daq_objs=daq_objs)
+        #print('ending thread')
+
+    def move_motors_thread(mobj_dict, mkwargs_dict, current_pos, start_pos, pos, kwargs):
+        move_motors(mobj_dict, mkwargs_dict, current_pos, start_pos, pos, **kwargs)
+        moving_motors.locked_update(False)
 
     if balance_table==None:
         bal_table_flag=False
@@ -726,13 +740,14 @@ def motor_scan_balance(map_dict, balance, balance_table=None, slope=0, tol=0, ba
         #    move_motors(mobj_dict, mkwargs_dict, current_pos, pos-10)
 
         # move motors if position has changed
+        bal_thread = threading.Thread(target=autobalance_thread, args=(slope, tol, autobalkwrag_dict))
+        move_thread = threading.Thread(target=move_motors_thread, args=(mobj_dict, mkwargs_dict, current_pos, start_pos, pos, {'print_flag':print_flag}))
         moving_motors.locked_update(True)
-        thread = threading.Thread(target=autobalance_thread, args=(slope, tol, autobalkwrag_dict))
-        thread.start()
-        move_motors(mobj_dict, mkwargs_dict, current_pos, start_pos, pos, print_flag=print_flag)
+        #bal_thread.start()
+        move_thread.start()
         current_pos = pos
-        moving_motors.locked_update(False)
-        thread.join()
+        move_thread.join()
+        #bal_thread.join()
 
         if (current_pos[balance_idx] == start_pos[balance_idx]) or balance=='corotate_axes12':
             if bal_table_flag==True:
@@ -1049,7 +1064,43 @@ def find_balance_angle(start_angle, end_angle, step_size, balance_at=0, offset=0
     print(f'Balance angle: {balance_angle}')
     return balance_angle, slope, tol
 
+def autobalance_cont(slope, tolerance=None, daq_objs=None, axis_1=None, axis_2=None, balance_at=None, offset=0, channel_index=1, time_constant=0.3, print_flag=True, lockin_index=0):
+
+    # initialize lockin
+    if daq_objs==None:
+        daq_objs = instrument_dict['zurich_lockin']['init']()
+    else:
+        pass
+    read_lockin = instrument_dict['zurich_lockin']['read']
+
+    # initialize axes and setup axis move functions
+    if axis_1 == None:
+        init_func = motor_dict['axis_1']['init']
+        axis_1 = init_func()
+    if axis_2 == None:
+        init_func = motor_dict['axis_2']['init']
+        axis_2 = init_func()
+    move_axis_1 = motor_dict['axis_1']['move']
+    move_axis_2 = motor_dict['axis_2']['move']
+    read_axis_1 = motor_dict['axis_1']['read']
+    read_axis_2 = motor_dict['axis_2']['read']
+    move_back_1 = motor_dict['axis_1']['move_back']
+    move_back_2 = motor_dict['axis_2']['move_back']
+
+    # move axis 1 to balance_at position if value given
+    if balance_at!=None:
+        move_axis_1(balance_at-move_back_1, axis=axis_1)
+        move_axis_1(balance_at, axis=axis_1)
+    else:
+        balance_at = read_axis_1(axis=axis_1)
+
+    curr_pos = read_axis_2(axis=axis_2)
+    pid_signal = read_lockin(daq_objs=daq_objs, time_constant=time_constant, channel_index=channel_index)[lockin_index]
+    new_pos = curr_pos-(1/slope)*(pid_signal-offset)
+    move_axis_2(new_pos, axis=axis_2)
+
 def autobalance(slope, tolerance, daq_objs=None, axis_1=None, axis_2=None, balance_at=None, offset=0, channel_index=1, time_constant=0.3, print_flag=True, lockin_index=0):
+    
     '''
     balance lockin at specified balance_at angle on the fly. Axis 1 is taken to be held fixed at balance_at and axis 2 is moved to balance PID (photodiode).
 
@@ -1824,7 +1875,7 @@ class LockedVar:
     '''
     def __init__(self, val):
         self._value = val
-        self._lock = Lock()
+        self._lock = threading.Lock()
 
     def locked_read(self):
         with self._lock:

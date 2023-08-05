@@ -12,8 +12,8 @@ port = config_dict['Opticool Port']
 ### Core Functions ###
 #####################
 
-def set_opticool_temperature(temperature, optc=None, rate=10, mode=0, wait_time=0):s
-
+def set_opticool_temperature(temperature, optc=None, rate=10, mode=0, wait_time=0):
+    
     obj_passed=True
     if optc==None:
         optc = initialize_opticool()

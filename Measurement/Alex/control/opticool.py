@@ -12,19 +12,24 @@ port = config_dict['Opticool Port']
 ### Core Functions ###
 #####################
 
-def set_opticool_temperature(temperature, optc=None, rate=10, mode=0, wait_time=0):
+def set_opticool_temperature(temperature, optc=None, rate=10, mode=0, wait_time=0):s
 
     obj_passed=True
     if optc==None:
         optc = initialize_opticool()
         obj_passed==False
 
-        message=f'TEMP {temperature}, {rate}, {mode}'.encode('ascii')
-        optc.write(message+('\r\n').encode('ascii'))
-        output=optc.read_some().decode('ascii')
+    while True:
+        try:
+            message=f'TEMP {temperature}, {rate}, {mode}'.encode('ascii')
+            optc.write(message+('\r\n').encode('ascii'))
+            output=optc.read_some().decode('ascii')
 
-    while get_opticool_temp_info(optc)[1]!='Stable':
-        time.sleep(1)
+            while get_opticool_temp_info(optc)[1]!='Stable':
+                time.sleep(1)
+            break
+        except:
+            print('failed to set opticool temperature, trying agian.')
 
     if obj_passed==False:
         close_opticool(optc)
@@ -40,16 +45,21 @@ def get_opticool_temp_info(optc=None):
         optc = initialize_opticool()
         obj_passed==False
 
-    message=('TEMP?').encode('ascii')
-    optc.write(message+('\r\n').encode('ascii'))
-    output=optc.read_some().decode('ascii')
-    output_value = output.split(',')[1].strip()
-    output_status = output.split(',')[3].strip()
-    output_status = output_status.replace("\"","")
-    if output_value == 'nan':
-        temp = output_value
-    else:
-        temp = float(output_value)
+    while True:
+        try:
+            message=('TEMP?').encode('ascii')
+            optc.write(message+('\r\n').encode('ascii'))
+            output=optc.read_some().decode('ascii')
+            output_value = output.split(',')[1].strip()
+            output_status = output.split(',')[3].strip()
+            output_status = output_status.replace("\"","")
+            if output_value == 'nan':
+                temp = output_value
+            else:
+                temp = float(output_value)
+            break
+        except:
+            print('failed to get opticool tmep info, trying agian.')
 
     if obj_passed==False:
         close_opticool(optc)

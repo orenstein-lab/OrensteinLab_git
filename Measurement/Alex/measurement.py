@@ -708,7 +708,10 @@ def motor_scan_balance(map_dict, balance, balance_table=None, slope=0, tol=0, ba
             print('Cannot plot scans that are greater than 2 dimensions.')
 
     # setup for autobalancing
-    balance_idx = motors.index(balance)
+    if balance!='all':
+        balance_idx = motors.index(balance)
+    else:
+        balance_idx = 0
     if 'corotate_axes12' in motors:
         axis_1, axis_2 = mobj_dict['corotate_axes12']
     else:
@@ -724,14 +727,17 @@ def motor_scan_balance(map_dict, balance, balance_table=None, slope=0, tol=0, ba
     move_axis_2 = motor_dict['axis_2']['move']
     read_axis_1 = motor_dict['axis_1']['read']
     read_axis_2 = motor_dict['axis_2']['read']
-    corotate_axes_idx = motors.index('corotate_axes12')
+    #corotate_axes_idx = motors.index('corotate_axes12')
     autobalkwrag_dict = {'daq_objs':daq_objs, 'axis_1':axis_1, 'axis_2':axis_2, 'channel_index':balance_channel}
 
     # loop over positions, only moving a motor if its target position has changed.
     start_pos = positions[0]
     current_pos = start_pos
     num_pos = len(positions)
-    bal_angle=mkwargs_dict['corotate_axes12']['bal_angle']
+    if 'corotate_axes12' in motors:
+        bal_angle=mkwargs_dict['corotate_axes12']['bal_angle']
+    else:
+        bal_angle = read_axis_2()
     for ii in tqdm(range(num_pos)):
         pos = positions[ii]
 
@@ -749,7 +755,7 @@ def motor_scan_balance(map_dict, balance, balance_table=None, slope=0, tol=0, ba
         move_thread.join()
         #bal_thread.join()
 
-        if (current_pos[balance_idx] == start_pos[balance_idx]) or balance=='corotate_axes12':
+        if (current_pos[balance_idx] == start_pos[balance_idx]) or balance=='corotate_axes12' or balance=='all':
             if bal_table_flag==True:
                 pos_dict = {}
                 for ii, p in enumerate(pos):
@@ -769,7 +775,8 @@ def motor_scan_balance(map_dict, balance, balance_table=None, slope=0, tol=0, ba
                 zurich.set_zurich_acfilter(1,daq_objs=daq_objs)
             elif bal_table_flag==True:
                 bal_angle = bal_angle_approx
-            mkwargs_dict['corotate_axes12']['bal_angle'] = bal_angle
+            if 'corotate_axes12' in motors:
+                mkwargs_dict['corotate_axes12']['bal_angle'] = bal_angle
 
         # acquire data
         lockin_meas = read_lockin(daq_objs=daq_objs, time_constant=time_constant, channel_index=channel_index, R_channel_index=R_channel_index)
@@ -950,7 +957,7 @@ def corotate_map(map_dict, start_angle, end_angle, step_size, angle_offset, rate
 ### Balancing Methods ###
 #########################
 
-def find_balance_angle_macro(start_angle, end_angle, step_size, step_size_fine=0.2, window=3, axis_index=2, balance_at=0, offset=0, channel_index=1, time_constant=0.3, daq_objs=None, axis_1=None, axis_2=None):
+def find_balance_angle_macro(start_angle, end_angle, step_size, step_size_fine=0.2, window=3, axis_index=2, balance_at=0, channel_index=1, time_constant=0.3, daq_objs=None, axis_1=None, axis_2=None):
 
     # initialize zurich lockin and setup read function
     if daq_objs==None:
@@ -994,6 +1001,7 @@ def find_balance_angle_macro(start_angle, end_angle, step_size, step_size_fine=0
     c_opt = popt[2]
     bal_angle_approx = (180/np.pi)*np.arccos(-c_opt/a_opt)/4 + phi_opt - balance_at
     print(bal_angle_approx)
+    offset=c_opt
 
     bal_angle, slope, tol = find_balance_angle(bal_angle_approx-window, bal_angle_approx+window, step_size_fine, balance_at=balance_at, offset=offset, go_to_balance_angle=True, axis_index=2, channel_index=channel_index, time_constant=time_constant, daq_objs=daq_objs, axis_1=axis_1, axis_2=axis_2)
 
@@ -1141,7 +1149,7 @@ def autobalance(slope, tolerance, daq_objs=None, axis_1=None, axis_2=None, balan
         #print(curr_pos)
         time.sleep(time_constant*4)
         pid_signal = read_lockin(daq_objs=daq_objs, time_constant=time_constant, channel_index=channel_index)[lockin_index]
-        new_pos = curr_pos-(1/slope)*(pid_signal-offset)
+        new_pos = (curr_pos-(1/slope)*(pid_signal-offset))%360
         move_axis_2(new_pos, axis=axis_2)
         curr_pos = new_pos
     if print_flag:

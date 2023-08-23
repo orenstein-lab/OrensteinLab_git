@@ -1049,7 +1049,7 @@ def find_balance_angle(start_angle, end_angle, step_size, balance_at=0, offset=0
     popt, pcov = opt.curve_fit(fitf, positions, demod_x-offset)
     balance_angle = -popt[1]/popt[0]
     slope = popt[0]
-    tol = np.min(demod_x)*1.5
+    tol = np.abs(np.min(demod_x)*1.5)
     angles_vect = np.linspace(start_angle+balance_at, balance_at+end_angle, 1000)
     fit = popt[0]*angles_vect + popt[1]
 

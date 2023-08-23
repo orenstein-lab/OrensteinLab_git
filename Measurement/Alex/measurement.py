@@ -1156,7 +1156,7 @@ def autobalance(slope, tolerance, daq_objs=None, axis_1=None, axis_2=None, balan
         print(f'Balanced PID at {balance_at}. Balance angle: {curr_pos-balance_at}.')
     return curr_pos-balance_at
 
-def create_balance_table(map_dict, start_angle, end_angle, step_size, step_size_fine=0.2, window=3, offset=0, filename_head=None, filename=None, channel_index=1, time_constant=0.3, daq_objs=None, axis_1=None, axis_2=None, print_flag=False, save_metadata=True):
+def create_balance_table(map_dict, start_angle=0, end_angle=90, step_size=5, step_size_fine=0.2, window=3, offset=0, filename_head=None, filename=None, channel_index=1, time_constant=0.3, daq_objs=None, axis_1=None, axis_2=None, print_flag=False, save_metadata=True):
     '''
     create balance table for axis_1 and any other parameters in map_dict.
     '''

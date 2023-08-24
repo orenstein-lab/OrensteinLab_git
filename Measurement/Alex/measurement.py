@@ -574,7 +574,7 @@ def motor_scan(map_dict, filename_head=None, filename=None, measure_motors=[], s
     close_motors(mobj_dict)
     close_motors(mobj_measure_dict)
 
-def motor_scan_balance(map_dict, balance, balance_table=None, slope=0, tol=0, balance_channel=3, autobalance_flag=True, bal_table_flag=True, filename_head=None, filename=None, measure_motors=[], showplot=True, time_constant=0.3, channel_index=1, R_channel_index=2, print_flag=False, savefile=True, save_metadata=True):
+def motor_scan_balance(map_dict, balance, balance_table=None, slope=0, tol=0, balance_channel=3, autobalance_flag=True, filename_head=None, filename=None, measure_motors=[], showplot=True, time_constant=0.3, channel_index=1, R_channel_index=2, print_flag=False, savefile=True, save_metadata=True):
     '''
     utility to record lockin measurement as a function of motors specified by dictionary map_dict.
 
@@ -607,7 +607,8 @@ def motor_scan_balance(map_dict, balance, balance_table=None, slope=0, tol=0, ba
         move_motors(mobj_dict, mkwargs_dict, current_pos, start_pos, pos, **kwargs)
         moving_motors.locked_update(False)
 
-    if balance_table==None:
+    bal_table_flag = True
+    if balance_table is None:
         bal_table_flag=False
 
     # Lock-in Amplifier initialization
@@ -647,7 +648,7 @@ def motor_scan_balance(map_dict, balance, balance_table=None, slope=0, tol=0, ba
                 filename = filename+f'_{m}'
         fname = get_unique_filename(filename_head, filename)
         header_motors = [motor_dict[m]['name'] for m in measure_motors]
-        header = [motor_dict[m]['name'] for m in motors]+[motor_dict[m]['name']+str(' measured') for m in motors]+lockin_header+header_motors+['Balance Angle (Deg)']
+        header = [motor_dict[m]['name'] for m in motors]+[motor_dict[m]['name']+str(' measured') for m in motors]+lockin_header+header_motors+['Balance Angle (deg)']
         write_file_header(fname, header, metadata)
 
     # move motors to start position, using move_back to handle initial case
@@ -762,13 +763,18 @@ def motor_scan_balance(map_dict, balance, balance_table=None, slope=0, tol=0, ba
                     m = motors[ii]
                     if m == 'corotate_axes12':
                         m = 'axis_1'
+                        axis_1_pos = p
                     name = motor_dict[m]['name']
                     pos_dict[name] = p
                 if 'axis_1' not in list(pos_dict.keys()):
                     name = motor_dict['axis_1']['name']
                     pos_dict[name] = read_axis_1()
-                bal_angle_approx, slope, tol = interp_balance_angle(pos_dict, balance_table)
-                move_axis_2(pos_dict['Angle 1 (deg)']+bal_angle_approx, axis_2)
+                if list(balance_table.coords) == ['Corotation Axes (deg)']: # handle bal table with just angles
+                    pos_dict = {'Corotation Axes (deg)':pos_dict['Angle 1 (deg)']}
+                    bal_angle_approx, slope, tol = interp_balance_angle(pos_dict, balance_table)
+                else:
+                    bal_angle_approx, slope, tol = interp_balance_angle(pos_dict, balance_table)
+                move_axis_2(axis_1_pos+bal_angle_approx, axis_2)
             if autobalance_flag==True:
                 zurich.set_zurich_acfilter(0,daq_objs=daq_objs)
                 bal_angle = autobalance(slope, tol, **autobalkwrag_dict)
@@ -1231,9 +1237,56 @@ def create_balance_table(map_dict, start_angle=0, end_angle=90, step_size=5, ste
     motor_names = [motor_dict[m]['name'] for m in motors]
     obj = loader.load_measurement(fname)
     obj  = process.reshape(obj, motor_names)
-    pickle_filename = f'{fname[:-4]}_obj'
-    with open(pickle_filename, 'wb') as f:
-            pickle.dump(obj, f)
+    obj_filename = f'{fname[:-4]}_obj.cdf'
+    obj.to_netcdf(obj_filename)
+
+
+    return obj
+
+def create_balance_table_quick(slope, tol, start_angle, end_angle, step_size, bal_angle_init, offset=0, filename_head=None, filename=None, channel_index=1, time_constant=0.3, daq_objs=None, axis_1=None, axis_2=None, print_flag=False, save_metadata=True):
+    '''
+    create balance table for axis_1 and any other parameters in map_dict.
+    '''
+
+    # setup metadata
+    metadata = generate_metadata()
+
+    daq_objs = instrument_dict['zurich_lockin']['init']()
+
+    # initialize rotation axes
+    axis_1 = motor_dict['axis_1']['init']()
+    axis_2 = motor_dict['axis_2']['init']()
+
+    # setup file for writing
+    filename_head, filename = generate_filename(filename_head, filename, 'balance_table')
+    fname = get_unique_filename(filename_head, filename)
+    header = ['Corotation Axes (deg)']+['Balance Angle (deg)', 'Slope', 'Tolerance']
+    write_file_header(fname, header, metadata)
+
+    positions = get_motor_range(start_angle, end_angle, step_size)
+
+    # move motors to start position
+    motor_dict['axis_1']['move'](0, axis_1)
+    motor_dict['axis_2']['move'](0+bal_angle_init, axis_2)
+
+    bal_angle = bal_angle_init
+    for ii in tqdm(range(len(positions))):
+        pos = positions[ii]
+
+        # move motors
+        motor_dict['axis_1']['move'](pos, axis_1)
+        motor_dict['axis_2']['move'](pos+bal_angle, axis_2)
+
+        # find balance angle
+        bal_angle = autobalance(slope, tol, daq_objs=daq_objs, axis_1=axis_1, axis_2=axis_2, channel_index=channel_index)
+        # add to file
+        append_data_to_file(fname,[pos]+[bal_angle, slope, tol])
+
+    # process the results using orensteinanalysis and pickle
+    obj = loader.load_measurement(fname)
+    obj  = process.reshape(obj, ['Corotation Axes (deg)'])
+    obj_filename = f'{fname[:-4]}_obj.cdf'
+    obj.to_netcdf(obj_filename)
 
     return obj
 

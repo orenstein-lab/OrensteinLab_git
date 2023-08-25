@@ -574,7 +574,7 @@ def motor_scan(map_dict, filename_head=None, filename=None, measure_motors=[], s
     close_motors(mobj_dict)
     close_motors(mobj_measure_dict)
 
-def motor_scan_balance(map_dict, balance, balance_table=None, slope=0, tol=0, balance_channel=3, autobalance_flag=True, filename_head=None, filename=None, measure_motors=[], showplot=True, time_constant=0.3, channel_index=1, R_channel_index=2, print_flag=False, savefile=True, save_metadata=True):
+def motor_scan_balance(map_dict, balance, balance_table=None, slope=0, tol=0, balance_channel=3, autobalance_flag=True, filename_head=None, filename=None, measure_motors=[], showplot=True, time_constant=0.3, channel_index=1, R_channel_index=4, print_flag=False, savefile=True, save_metadata=True):
     '''
     utility to record lockin measurement as a function of motors specified by dictionary map_dict.
 

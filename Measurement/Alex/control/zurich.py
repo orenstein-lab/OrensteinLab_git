@@ -11,52 +11,7 @@ device_id = config_dict['Zurich Lockin ID']
 ### Core Functions ###
 ######################
 
-def read_zurich_lockin(daq_objs=None, time_constant=0.3, poll_timeout=500, channel_index=1, R_channel_index=1):
-    '''
-    in the future, change this to output a dictionary such that function that call this can pull out any variety of infomation. alternatively, make the subscriptions flexible (ie some list of objects we want to subscribe to with a convenient default) and then the output dictionary with names that make sense. I'll then have to change upstream functions to pull out the right values, or really they should just save everything that comes out. This is a fairly straight forwward thing to implement.
-
-    Functions I'll have to modify: autobalance, find_balance_angle, lockin_time_series, corotate_scan, rotate_scan, motor_scan
-    '''
-
-    # initialize
-    if daq_objs==None:
-        daq, device, props = initialize_zurich_lockin()
-    else:
-        daq, device, props = daq_objs
-
-    daq.setDouble(f'/%s/demods/{channel_index-1}/timeconstant' % device, time_constant)
-    daq.setDouble(f'/%s/demods/{R_channel_index-1}/timeconstant' % device, time_constant)
-    poll_length = time_constant
-    poll_timeout = poll_timeout # ms
-    poll_flags = 0
-    poll_return_flat_dict = True
-
-    # subscribe to channels and read mfli
-    time.sleep(time_constant*4)
-    daq.subscribe(f'/%s/demods/{channel_index-1}/sample' % device)
-    daq.subscribe(f'/%s/demods/{R_channel_index-1}/sample' % device)
-    mfli_dict = daq.poll(poll_length, poll_timeout, poll_flags, poll_return_flat_dict)
-    data_dict = mfli_dict[f'/%s/demods/{channel_index-1}/sample' % device]
-    R_dict = mfli_dict[f'/%s/demods/{R_channel_index-1}/sample' % device]
-    daq.unsubscribe('*')
-
-    # extract data from mfli_dict
-    x = data_dict['x']
-    y = data_dict['y']
-    r = np.abs(x + 1j*y)
-    x_avg = np.mean(x)
-    y_avg = np.mean(y)
-    r_avg = np.mean(r)
-    x_R = R_dict['x']
-    y_R = R_dict['y']
-    r_R = np.abs(x_R + 1j*y_R)
-    x_R_avg = np.mean(x_R)
-    y_R_avg = np.mean(y_R)
-    r_R_avg = np.mean(r_R)
-
-    return x_avg, y_avg, r_avg, x_R_avg, y_R_avg, r_R_avg
-
-def read_zurich_lockin2(daq_objs=None, time_constant=0.3, poll_timeout=500):
+def read_zurich_lockin(daq_objs=None, time_constant=0.3, poll_timeout=500, channel_index=1, R_channel_index=4):
     '''
     in the future, change this to output a dictionary such that function that call this can pull out any variety of infomation. alternatively, make the subscriptions flexible (ie some list of objects we want to subscribe to with a convenient default) and then the output dictionary with names that make sense. I'll then have to change upstream functions to pull out the right values, or really they should just save everything that comes out. This is a fairly straight forwward thing to implement.
 
@@ -86,8 +41,22 @@ def read_zurich_lockin2(daq_objs=None, time_constant=0.3, poll_timeout=500):
     mfli_dict = daq.poll(poll_length, poll_timeout, poll_flags, poll_return_flat_dict)
     daq.unsubscribe('*')
 
-    # extract data from mfli_dict
     data_dict = {}
+    # Give data and R channel index separtely for convenience
+    x = np.mean(mfli_dict[f'/{device}/demods/{channel_index-1}/sample']['x'])
+    y = np.mean(mfli_dict[f'/{device}/demods/{channel_index-1}/sample']['y'])
+    x_R = np.mean(mfli_dict[f'/{device}/demods/{R_channel_index-1}/sample']['x'])
+    y_R = np.mean(mfli_dict[f'/{device}/demods/{R_channel_index-1}/sample']['y'])
+    data_dict[f'Demod x'] = x
+    data_dict[f'Demod y'] = y
+    data_dict[f'Demod r'] = np.abs(x + 1j*y)
+    data_dict[f'Demod phase'] = np.arctan(x/y)
+    data_dict[f'R_x'] = x_R
+    data_dict[f'R_y'] = y_R
+    data_dict[f'R_r'] = np.abs(x_R + 1j*y_R)
+    data_dict[f'R_phase'] = np.arctan(x_R/y_R)
+
+    # extract data from mfli_dict
     for channel in channels:
         x = np.mean(mfli_dict[f'/{device}/demods/{channel-1}/sample']['x'])
         y = np.mean(mfli_dict[f'/{device}/demods/{channel-1}/sample']['y'])

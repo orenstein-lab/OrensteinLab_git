@@ -34,7 +34,7 @@ lockin_header = ['Demod x', 'Demod y', 'r', 'Demod x_R', 'Demod y_R', 'Demod r_R
 ### Medthods ###
 ################
 
-def lockin_time_series(recording_time, filename_head=None, filename=None, measure_motors=[], mobj_measure_dict={}, time_constant=0.3, channel_index=1, R_channel_index=2, metadata={}, save_metadata=True, savefile=True, daq_objs=None, plot_flag=True):
+def lockin_time_series(recording_time, filename_head=None, filename=None, measure_motors=[], mobj_measure_dict={}, time_constant=0.3, channel_index=1, metadata={}, save_metadata=True, savefile=True, daq_objs=None, plot_flag=True):
     '''
     aquires data on the lockin over a specified length of time.
     '''
@@ -74,12 +74,15 @@ def lockin_time_series(recording_time, filename_head=None, filename=None, measur
         fig.canvas.draw()
         fig.show()
 
+    # get lockin header
+    lockin_header = list(read_lockin(daq_objs).keys())
+
     # setup file for writing
     if savefile:
         filename_head, filename = generate_filename(filename_head, filename, 'lockin_time_series')
         fname = get_unique_filename(filename_head, filename)
         header_motors = [motor_dict[m]['name'] for m in measure_motors]
-        header = ['Time (s)', 'Demod x', 'Demod y', 'R']+header_motors
+        header = ['Time (s)']+lockin_header+header_motors
         write_file_header(fname, header, metadata)
 
     # loop
@@ -90,7 +93,10 @@ def lockin_time_series(recording_time, filename_head=None, filename=None, measur
         toc = time.perf_counter()
         t_delay = toc - tic
 
-        x, y, r, x_R, y_R, r_R = read_lockin(daq_objs=daq_objs, time_constant=time_constant, channel_index=channel_index, R_channel_index=R_channel_index)
+        lockin_data = read_lockin(daq_objs=daq_objs, time_constant=time_constant)
+        x = lockin_data[f'Demod {channel_index} x']
+        y = lockin_data[f'Demod {channel_index} y']
+        r = lockin_data[f'Demod {channel_index} r']
 
         # read additional motors
         measured_positions_dict = read_motors(mobj_measure_dict)
@@ -114,7 +120,7 @@ def lockin_time_series(recording_time, filename_head=None, filename=None, measur
 
         # update file
         if savefile:
-            vars = [t_delay, x, y, r]+measured_positions
+            vars = [t_delay]+list(lockin_data.values())+measured_positions
             append_data_to_file(fname, vars)
 
     # close motors

@@ -11,7 +11,7 @@ device_id = config_dict['Zurich Lockin ID']
 ### Core Functions ###
 ######################
 
-def read_zurich_lockin(daq_objs=None, time_constant=0.3, poll_timeout=500, channel_index=1, R_channel_index=1):
+def read_zurich_lockin(daq_objs=None, time_constant=0.3, poll_timeout=500):
     '''
     in the future, change this to output a dictionary such that function that call this can pull out any variety of infomation. alternatively, make the subscriptions flexible (ie some list of objects we want to subscribe to with a convenient default) and then the output dictionary with names that make sense. I'll then have to change upstream functions to pull out the right values, or really they should just save everything that comes out. This is a fairly straight forwward thing to implement.
 
@@ -24,8 +24,9 @@ def read_zurich_lockin(daq_objs=None, time_constant=0.3, poll_timeout=500, chann
     else:
         daq, device, props = daq_objs
 
-    daq.setDouble(f'/%s/demods/{channel_index-1}/timeconstant' % device, time_constant)
-    daq.setDouble(f'/%s/demods/{R_channel_index-1}/timeconstant' % device, time_constant)
+    channels = [1,2,3,4]
+    for channel in channels:
+        daq.setDouble(f'/{device}/demods/{i-1}/timeconstant', time_constant)
     poll_length = time_constant
     poll_timeout = poll_timeout # ms
     poll_flags = 0
@@ -33,28 +34,26 @@ def read_zurich_lockin(daq_objs=None, time_constant=0.3, poll_timeout=500, chann
 
     # subscribe to channels and read mfli
     time.sleep(time_constant*4)
-    daq.subscribe(f'/%s/demods/{channel_index-1}/sample' % device)
-    daq.subscribe(f'/%s/demods/{R_channel_index-1}/sample' % device)
+    for channel in channels:
+        daq.subscribe(f'/{device}/demods/{channel-1}/sample')
+
+    # read lockin
     mfli_dict = daq.poll(poll_length, poll_timeout, poll_flags, poll_return_flat_dict)
-    data_dict = mfli_dict[f'/%s/demods/{channel_index-1}/sample' % device]
-    R_dict = mfli_dict[f'/%s/demods/{R_channel_index-1}/sample' % device]
     daq.unsubscribe('*')
 
     # extract data from mfli_dict
-    x = data_dict['x']
-    y = data_dict['y']
-    r = np.abs(x + 1j*y)
-    x_avg = np.mean(x)
-    y_avg = np.mean(y)
-    r_avg = np.mean(r)
-    x_R = R_dict['x']
-    y_R = R_dict['y']
-    r_R = np.abs(x_R + 1j*y_R)
-    x_R_avg = np.mean(x_R)
-    y_R_avg = np.mean(y_R)
-    r_R_avg = np.mean(r_R)
+    data_dict = {}
+    for channel in channels:
+        x = np.mean(mfli_dict[f'/{device}/demods/{channel-1}/sample']['x'])
+        y = np.mean(mfli_dict[f'/{device}/demods/{channel-1}/sample']['y'])
+        data_dict[f'Demod {channel} x'] = x
+        data_dict[f'Demod {channel} y'] = y
+        data_dict[f'Demod {channel} r'] = np.abs(x + 1j*y)
+        data_dict[f'Demod {channel} phase'] = np.arctan(x/y)
 
-    return x_avg, y_avg, r_avg, x_R_avg, y_R_avg, r_R_avg
+    # add any other data from lockin to data_dict
+
+    return data_dict
 
 def set_zurich_output_amplitude(amplitude, daq_objs=None, wait_time=0, channel=1):
 

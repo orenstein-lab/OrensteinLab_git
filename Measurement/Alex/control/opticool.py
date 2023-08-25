@@ -87,7 +87,8 @@ def set_opticool_field(field, optc=None, rate=110, approach=0, mode=0, wait_time
                 time.sleep(1)
             break
         except:
-            print('failed to set opticool field, trying again.')
+            #print('failed to set opticool field, trying again.')
+            pass
 
     if obj_passed==False:
         close_opticool(optc)
@@ -115,7 +116,8 @@ def get_opticool_field_info(optc=None):
                 field = float(output_value)
             break
         except:
-            print('failed to get opticool field info')
+            #print('failed to get opticool field info')
+            pass
 
     if obj_passed==False:
         close_opticool(optc)

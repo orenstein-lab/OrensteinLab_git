@@ -1127,7 +1127,7 @@ def autobalance_cont(slope, tolerance=None, daq_objs=None, axis_1=None, axis_2=N
     new_pos = curr_pos-(1/slope)*(pid_signal-offset)
     move_axis_2(new_pos, axis=axis_2)
 
-def autobalance(slope, tolerance, daq_objs=None, axis_1=None, axis_2=None, balance_at=None, offset=0, channel_index=1, time_constant=0.3, print_flag=True, lockin_index=0):
+def autobalance(slope, tolerance, daq_objs=None, axis_1=None, axis_2=None, balance_at=None, offset=0, channel_index=1, time_constant=0.3, print_flag=True):
     
     '''
     balance lockin at specified balance_at angle on the fly. Axis 1 is taken to be held fixed at balance_at and axis 2 is moved to balance PID (photodiode).
@@ -1168,7 +1168,7 @@ def autobalance(slope, tolerance, daq_objs=None, axis_1=None, axis_2=None, balan
     while (np.abs(pid_signal-offset)>tolerance):
         #print(curr_pos)
         time.sleep(time_constant*4)
-        pid_signal = read_lockin(daq_objs=daq_objs, time_constant=time_constant, channel_index=channel_index)['Demod x']
+        pid_signal = read_lockin(daq_objs=daq_objs, time_constant=time_constant, channel_index=channel_index)[f'Demod {channel_index} x']
         new_pos = (curr_pos-(1/slope)*(pid_signal-offset))%360
         move_axis_2(new_pos, axis=axis_2)
         curr_pos = new_pos

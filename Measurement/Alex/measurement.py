@@ -1168,7 +1168,7 @@ def autobalance(slope, tolerance, daq_objs=None, axis_1=None, axis_2=None, balan
     while (np.abs(pid_signal-offset)>tolerance):
         #print(curr_pos)
         time.sleep(time_constant*4)
-        pid_signal = read_lockin(daq_objs=daq_objs, time_constant=time_constant, channel_index=channel_index)[lockin_index]
+        pid_signal = read_lockin(daq_objs=daq_objs, time_constant=time_constant, channel_index=channel_index)['Demod x']
         new_pos = (curr_pos-(1/slope)*(pid_signal-offset))%360
         move_axis_2(new_pos, axis=axis_2)
         curr_pos = new_pos

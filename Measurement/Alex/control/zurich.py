@@ -26,7 +26,7 @@ def read_zurich_lockin(daq_objs=None, time_constant=0.3, poll_timeout=500, chann
 
     channels = [1,2,3,4]
     for channel in channels:
-        daq.setDouble(f'/{device}/demods/{i-1}/timeconstant', time_constant)
+        daq.setDouble(f'/{device}/demods/{channel-1}/timeconstant', time_constant)
     poll_length = time_constant
     poll_timeout = poll_timeout # ms
     poll_flags = 0

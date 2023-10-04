@@ -20,3 +20,6 @@ Configuration.txt
 
 # other files that pop up:
 .DS_Store
+attocube_handle
+configuration.py
+Measurement/Alex/motors.py

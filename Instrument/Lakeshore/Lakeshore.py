@@ -5,7 +5,10 @@
 
 import lakeshore
 
-def initialization_lakeshore336():
+def initialize_lakeshore335():
+    return lakeshore.model_335.Model335(57600)
+
+def initialize_lakeshore336():
     return lakeshore.model_336.Model336()
 
 def read_temperature(inst):
@@ -26,6 +29,19 @@ def read_ramp(inst):
 def set_ramp(inst, output, on_off, rate):
     inst.command("RAMP "+str(output)+','+str(int(on_off))+','+str(rate))
 
-def close_lakeshore336(inst):
-    inst.disconnect_usb()
+def set_range(inst, output, range):
+    '''
+    sets lakeshore range to low, med, or high
 
+    args:
+        - output:   1 or 2
+        - range:    0=off, 1=low, 2=med, 3=high
+    '''
+    inst.command(f'RANGE {output},{range}')
+
+def read_range(inst):
+    range = inst.query('Range?')
+    return range
+
+def close_lakeshore(inst):
+    inst.disconnect_usb()

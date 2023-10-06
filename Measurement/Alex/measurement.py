@@ -20,6 +20,7 @@ import OrensteinLab_git.Measurement.Alex.control.zurich as zurich
 import OrensteinLab_git.Measurement.Alex.control.opticool as oc
 import OrensteinLab_git.Measurement.Alex.control.razorbill as razorbill
 import OrensteinLab_git.Measurement.Alex.control.attocube as atto
+from OrensteinLab_git.Measurement.Alex.control.concurrency_classes import LockedVar, StoppableThread
 from OrensteinLab_git.Measurement.Alex.motors import motor_dict, instrument_dict, meta_motors
 from orenstein_analysis.measurement import loader, process
 
@@ -516,7 +517,7 @@ def motor_scan(map_dict, filename_head=None, filename=None, measure_motors=[], s
 
         # acquire data
         lockin_data = read_lockin(daq_objs=daq_objs, time_constant=time_constant, channel_index=channel_index, R_channel_index=R_channel_index)
-        
+
         # extract lockin data
         x = lockin_data['Demod x']
         y = lockin_data['Demod y']
@@ -973,6 +974,77 @@ def corotate_map(map_dict, start_angle, end_angle, step_size, angle_offset, rate
     close_motors(mobj_dict)
     close_motors(mobj_measure_dict)
 
+def monitor_motor(motor, filename_head=None, filename=None, savefile=False, showplot=True):
+    '''
+    Utility to measure the value of a motor as function of time.
+    '''
+    # setup file for writing
+    if savefile:
+        append=False
+        if filename==None:
+            append=True
+        filename_head, filename = generate_filename(filename_head, filename, 'monitor_motor')
+        if append==True:
+                filename = filename+f'_{motor}'
+        fname = get_unique_filename(filename_head, filename)
+        header = ['Time (s)', motor_dict[motor]['name']]
+        write_file_header(fname, header)
+
+    # setup locked variable
+    run = LockedVar(True)
+
+    # setup thread function to stop function via user input
+    def get_user_input(run_var):
+        answer = input('Press any key to stop:')
+        run_var.locked_update(False)
+
+    mobj_dict = initialize_motors([motor])
+
+    time_vect = []
+    motor_vals = []
+
+    if showplot==True:
+        fig, ax = plt.subplots(1, 1, figsize=(6,4))
+        x_label = 'Time (ps)'
+        y_label = motor_dict[motor]['name']
+        ax.set_xlabel(x_label)
+        ax.set_ylabel(y_label)
+        ax.grid(True)
+        draw_motor, = ax.plot([],'-o')
+        fig.canvas.draw()
+        fig.show()
+
+    # start user input thread
+    user_input_thread = threading.Thread(target=get_user_input, args=(run,))
+    user_input_thread.start()
+
+    t0 = time.time()
+    while run.locked_read():
+
+        measured_position = read_motors(mobj_dict)[motor]
+        t = time.time() - t0
+
+        time_vect.append(t)
+        motor_vals.append(measured_position)
+
+        # add to file
+        if savefile:
+            append_data_to_file(fname, [t, measured_position])
+
+        # update plots
+        if showplot==True:
+            draw_motor.set_data(time_vect, motor_vals)
+            ax.relim()
+            ax.autoscale()
+            fig.canvas.draw()
+            fig.canvas.flush_events()
+        time.sleep(0.1)
+        
+    user_input_thread.join()
+
+    # close motors
+    close_motors(mobj_dict)
+
 #########################
 ### Balancing Methods ###
 #########################
@@ -1128,7 +1200,7 @@ def autobalance_cont(slope, tolerance=None, daq_objs=None, axis_1=None, axis_2=N
     move_axis_2(new_pos, axis=axis_2)
 
 def autobalance(slope, tolerance, daq_objs=None, axis_1=None, axis_2=None, balance_at=None, offset=0, channel_index=1, time_constant=0.3, print_flag=True):
-    
+
     '''
     balance lockin at specified balance_at angle on the fly. Axis 1 is taken to be held fixed at balance_at and axis 2 is moved to balance PID (photodiode).
 

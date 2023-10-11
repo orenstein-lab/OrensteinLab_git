@@ -1005,7 +1005,7 @@ def monitor_motor(motor, filename_head=None, filename=None, savefile=False, show
 
     if showplot==True:
         fig, ax = plt.subplots(1, 1, figsize=(6,4))
-        x_label = 'Time (ps)'
+        x_label = 'Time (s)'
         y_label = motor_dict[motor]['name']
         ax.set_xlabel(x_label)
         ax.set_ylabel(y_label)
@@ -1039,7 +1039,7 @@ def monitor_motor(motor, filename_head=None, filename=None, savefile=False, show
             fig.canvas.draw()
             fig.canvas.flush_events()
         time.sleep(0.1)
-        
+
     user_input_thread.join()
 
     # close motors

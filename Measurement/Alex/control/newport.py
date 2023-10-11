@@ -55,8 +55,13 @@ def move_esp301(axis_index, pos, axis=None):
     if axis==None:
         axis = initialize_esp301(axis_index)
 
-    axis.move(pos, absolute=True)
-    check_axis_stability301(axis)
+    while True:
+        try:
+            axis.move(pos, absolute=True)
+            check_axis_stability301(axis)
+            break
+        except:
+            print('failed to move axis, trying again')
 
 def read_esp301(axis_index, axis=None, print_flag=True):
     '''
@@ -69,13 +74,13 @@ def read_esp301(axis_index, axis=None, print_flag=True):
         obj_passed = False
 
     while True:
-        time.sleep(0.1)
         try:
             pos = float(axis.position)
             break
         except:
             print('failed to read axis, trying again.')
             #pass
+        time.sleep(0.1)
 
     if print_flag==True and obj_passed==False:
         print(pos)
@@ -86,22 +91,27 @@ def check_axis_stability301(axis):
     helper function for rotate_axis.
     '''
     while True:
-        time.sleep(0.1)
         try:
             if axis.is_motion_done==True:
                 break
         except:
             print('failed to check axis stability, trying agian.')
             #pass
+        time.sleep(0.1)
 
 def move_esp300(axis_index, pos, axis=None):
 
     if axis==None:
         axis = initialize_esp300(axis_index)
 
-    axis.position = pos
-    check_axis_stability300(axis)
-            #pass
+    while True:
+        try:
+            axis.position = pos
+            check_axis_stability300(axis)
+            break
+        except:
+            print('failed to move axis, trying again.')
+        time.sleep(0.1)
 
 def read_esp300(axis_index, axis=None, print_flag=True):
     obj_passed = True
@@ -110,13 +120,13 @@ def read_esp300(axis_index, axis=None, print_flag=True):
         obj_passed = False
 
     while True:
-        time.sleep(0.1)
         try:
             pos = float(axis.position)
             break
         except:
             print('failed to read axis, trying again.')
             #pass
+        time.sleep(0.1)
 
     if print_flag==True and obj_passed==False:
         print(pos)

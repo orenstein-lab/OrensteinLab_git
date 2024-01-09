@@ -162,7 +162,6 @@ def set_zurich_select_signal(val, channel_index=1, daq_objs=None):
 
     daq.setInt(f'/{device}/demods/{int(channel_index)-1}/adcselect', val)
 
-
 def set_zurich_acfilter(val, sigin=0, daq_objs=None):
     '''
     defines input coupling for signal on sigin

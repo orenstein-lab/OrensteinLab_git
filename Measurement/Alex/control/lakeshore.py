@@ -9,7 +9,7 @@ import numpy as np
 
 lakeshore_model = config_dict['Lakeshore Model']
 
-def set_temperature(temperature, lsobj=None, tolerance=0.05, avg_time=3, wait_time=0, max_check=750, output=1, on_off=0, rate=0, check_stability==True):
+def set_temperature(temperature, lsobj=None, tolerance=0.05, avg_time=3, wait_time=0, max_check=750, output=1, on_off=0, rate=0, check_stability=True):
     '''
     sets lakeshore setpoint, waits until temperature is within tolerance of setpoint, and waits for soak time before returning.
 

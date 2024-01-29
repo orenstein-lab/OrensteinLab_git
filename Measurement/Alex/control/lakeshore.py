@@ -31,12 +31,13 @@ def set_temperature(temperature, lsobj=None, tolerance=0.05, avg_time=3, wait_ti
         current_temp = []
         for m in range(max_check):
             current_temp.append(read_temperature(lsobj))
-            if m >= 10 and abs(np.mean(current_temp[-avg_time:]) - temp) < tolerance:
+            if m >= 5*avg_time and abs(np.mean(current_temp[-avg_time:]) - temp) < tolerance:
                 time.sleep(wait_time)
                 break
             else:
                 time.sleep(1)
         if m==max_check-1:
+            time.sleep(wait_time)
             print(f'Maximum time exceeded. Temperature: {read_temperature(lsobj)}')
 
     if lsobj_passed==False:
@@ -59,6 +60,18 @@ def read_temperature(lsobj=None):
     if lsobj_passed==False:
         close_lakeshore(lsobj)
     return temp
+
+def check_lakeshore_stability(lsobj=None, tolerance=0.01, max_check=750, avg_time=30, wait_time=30):
+
+    current_temp = []
+    for m in range(max_check):
+        current_temp.append(read_temperature(lsobj))
+        if m >= 3*avg_time and np.std(current_temp[-avg_time:]) < tolerance:
+            break
+        else:
+            time.sleep(1)
+
+    time.sleep(wait_time)
 
 def set_setpoint(set_temperature, lsobj=None, output=1):
     lsobj, lsobj_passed = get_lsobj(lsobj)

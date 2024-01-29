@@ -1,4 +1,4 @@
-from OrensteinLab_git.Measurement.Alex.control import attocube, lakeshore, newport, opticool, razorbill, zurich
+from OrensteinLab_git.Measurement.Alex.control import attocube, lakeshore, newport, opticool, razorbill, zurich, montana_temp
 
 '''
 This file contains system specific motor and instrument configurations.
@@ -49,10 +49,12 @@ motor_dict = {
 
 'galvo_x':{'move':zurich.set_zurich_aux_offset_1, 'read':zurich.get_zurich_aux_offset_1, 'init':zurich.initialize_zurich_lockin, 'close':zurich.close_zurich_lockin, 'move_back':0, 'name':'Galvo x Voltage (V)'},
 
-'galvo_y':{'move':zurich.set_zurich_aux_offset_2, 'read':zurich.get_zurich_aux_offset_2, 'init':zurich.initialize_zurich_lockin, 'close':zurich.close_zurich_lockin, 'move_back':0, 'name':'Galvo y Voltage (V)'}
+'galvo_y':{'move':zurich.set_zurich_aux_offset_2, 'read':zurich.get_zurich_aux_offset_2, 'init':zurich.initialize_zurich_lockin, 'close':zurich.close_zurich_lockin, 'move_back':0, 'name':'Galvo y Voltage (V)'},
+
+'montana_temp':{'move':montana_temp.set_montana_temperature, 'read':montana_temp.read_montana_temperature, 'init':montana_temp.initialize_montana, 'close':montana_temp.close_montana, 'move_back':0, 'name':'Montana Platform Temperature (K)'}
 }
 
-meta_motors = ['x', 'y', 'z', 'axis_1', 'axis_2', 'axis_3', 'temp', 'zurich_frequency', 'strain_ps', 'strain_cap']
+meta_motors = ['x', 'y', 'z', 'axis_1', 'axis_2', 'axis_3', 'temp', 'zurich_frequency', 'strain_ps', 'strain_cap', 'montana_temp']
 #meta_motors=[]
 
 ##########################

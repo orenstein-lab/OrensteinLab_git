@@ -18,5 +18,6 @@ config_dict = {
 'Attocube Handle': f'{os.path.dirname(__file__)}\\attocube_handle',
 'Opticool Handle': f'{os.path.dirname(__file__)}\\opticool_handle',
 'Opticool IP':'131.243.163.240',
-'Opticool Port':'5000'
+'Opticool Port':'5000',
+'Montana Address':'10.1.1.15'
 }

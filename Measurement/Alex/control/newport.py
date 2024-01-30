@@ -152,8 +152,14 @@ def corotate_axes301(axis_1_index, axis_2_index, angle_1, angle_2, axis_1=None, 
     if axis_2==None:
         axis_2 = initialize_esp301(axis_2_index)
 
-    axis_1.move(angle_1, absolute=True)
-    axis_2.move(angle_2, absolute=True)
+    while True:
+        try:
+            axis_1.move(angle_1, absolute=True)
+            axis_2.move(angle_2, absolute=True)
+            break
+        except:
+            print('failed to check axis stability, trying again')
+            time.sleep(0.1)
     while True:
         time.sleep(0.1)
         try:
@@ -170,8 +176,14 @@ def corotate_axes300(axis_1_index, axis_2_index, angle_1, angle_2, axis_1=None, 
     if axis_2==None:
         axis_2 = initialize_esp300(axis_2_index)
 
-    axis_1.position = angle_1
-    axis_2.position = angle_2
+        while True:
+            try:
+                axis_1.position = angle_1
+                axis_2.position = angle_2
+                break
+            except:
+                print('failed to check axis stability, trying again')
+                time.sleep(0.1)
     while True:
         time.sleep(0.1)
         try:

@@ -140,14 +140,29 @@ def read_attocubes():
     anc.close()
     return pos
 
-def rotate_axis(angle, axis_index):
+def rotate_axis(angle, axis_index, go_back=1):
     #ESP301 initialization
     controller = newport.NewportESP301.open_serial(port=port_id, baud=921600)
 
     axis_rot = newport.NewportESP301Axis(controller,axis_index-1)
     axis_rot.enable()
 
+    axis_rot.move(angle-go_back,absolute=True)
+    while True:
+        time.sleep(0.03)
+        try:
+            if axis_rot.is_motion_done==True:
+                break
+        except ValueError:
+            pass
     axis_rot.move(angle,absolute=True)
+    while True:
+            time.sleep(0.03)
+            try:
+                if axis_rot.is_motion_done==True:
+                    break
+            except ValueError:
+                pass
 
 def read_angle(axis_index):
     #ESP301 initialization

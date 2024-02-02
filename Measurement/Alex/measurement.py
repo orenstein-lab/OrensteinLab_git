@@ -1891,7 +1891,7 @@ def get_unique_filename(filename_head, filename):
         if not os.path.exists(uni_fn):
             return uni_fn
 
-def generate_metadata(metamotors):
+def generate_metadata(mobj_dict):
     '''
     helper function that returns metadata dictionary
     '''
@@ -1899,15 +1899,21 @@ def generate_metadata(metamotors):
     metadata = {}
     for m in meta_motors:
         name = motor_dict[m]['name']
-        try:
-            obj = motor_dict[m]['init']()
-            close = motor_dict[m]['close']
+        try: # if in mobj_dict, don't close
+            obj = mobj_dict[m]()
             read = motor_dict[m]['read']
             pos = read(obj)
-            close(obj)
             metadata[name] = pos
-        except:
-            metadata[name] = None
+        except: # if not in mobj_dict for whatever reason, try to initialize and then close
+            try:
+                obj = motor_dict[m]['init']()
+                close = motor_dict[m]['close']
+                read = motor_dict[m]['read']
+                pos = read(obj)
+                close(obj)
+                metadata[name] = pos
+            except:
+                metadata[name]=None
     return metadata
 
 def write_file_header(fname, header, metadata=None):

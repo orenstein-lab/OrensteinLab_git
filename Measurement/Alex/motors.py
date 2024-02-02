@@ -33,7 +33,7 @@ motor_dict = {
 
 'strain_cap':{'move':razorbill.set_strain_capacitance, 'read':razorbill.read_strain_capacitance, 'init':razorbill.initialize_strain_cell_client, 'close':razorbill.close_strain_cell_client, 'move_back':0, 'name':'Capacitance (pF)'},
 
-'strain_ps':{'move':razorbill.set_strain_ps, 'read':razorbill.read_strain_ps, 'init':razorbill.initialize_strain_cell_client, 'close':razorbill.close_strain_cell_client, 'move_back':0, 'name':'Voltage (V)'},
+'strain_ps':{'move':razorbill.set_strain_ps, 'read':razorbill.read_strain_ps, 'init':razorbill.initialize_strain_cell_client, 'close':razorbill.close_strain_cell_client, 'move_back':0, 'name':'Strain Cell Voltage (V)'},
 
 'zurich_output':{'move':zurich.set_zurich_output_amplitude, 'read':zurich.read_zurich_output_amplitude, 'init':zurich.initialize_zurich_lockin, 'close':zurich.close_zurich_lockin, 'move_back':0, 'name':'Lock-in Ouput Voltage (V)'},
 

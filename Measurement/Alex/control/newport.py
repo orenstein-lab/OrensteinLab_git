@@ -61,8 +61,9 @@ def move_esp301(axis_index, pos, axis=None):
             check_axis_stability301(axis, axis_index)
             break
         except:
-            axis = initialize_esp301(axis_index)
             print('failed to move axis, trying again')
+            axis = initialize_esp301(axis_index)
+        time.sleep(0.1)
 
 def read_esp301(axis_index, axis=None, print_flag=True):
     '''
@@ -79,8 +80,8 @@ def read_esp301(axis_index, axis=None, print_flag=True):
             pos = float(axis.position)
             break
         except:
-            axis = initialize_esp301(axis_index)
             print('failed to read axis, trying again.')
+            axis = initialize_esp301(axis_index)
             #pass
         time.sleep(0.1)
 
@@ -97,8 +98,8 @@ def check_axis_stability301(axis, axis_index):
             if axis.is_motion_done==True:
                 break
         except:
-            axis = initialize_esp301(axis_index)
             print('failed to check axis stability, trying agian.')
+            axis = initialize_esp301(axis_index)
             #pass
         time.sleep(0.1)
 
@@ -113,8 +114,8 @@ def move_esp300(axis_index, pos, axis=None):
             check_axis_stability300(axis, axis_index)
             break
         except:
-            axis = initialize_esp300(axis_index)
             print('failed to move axis, trying again.')
+            axis = initialize_esp300(axis_index)
         time.sleep(0.1)
 
 def read_esp300(axis_index, axis=None, print_flag=True):
@@ -128,8 +129,8 @@ def read_esp300(axis_index, axis=None, print_flag=True):
             pos = float(axis.position)
             break
         except:
-            axis = initialize_esp300(axis_index)
             print('failed to read axis, trying again.')
+            axis = initialize_esp300(axis_index)
             #pass
         time.sleep(0.1)
 
@@ -142,13 +143,13 @@ def check_axis_stability300(axis, axis_index):
     helper function for rotate_axis.
     '''
     while True:
-        time.sleep(0.1)
         try:
             if axis.motion_done==True:
                 break
         except:
-            axis = initialize_esp300(axis_index)
             print('failed to check axis stability, trying agian.')
+            axis = initialize_esp300(axis_index)
+        time.sleep(0.1)
             #pass
 
 def corotate_axes301(axis_1_index, axis_2_index, angle_1, angle_2, axis_1=None, axis_2=None):
@@ -165,16 +166,16 @@ def corotate_axes301(axis_1_index, axis_2_index, angle_1, angle_2, axis_1=None, 
             break
         except:
             print('failed to check axis stability, trying again')
-            time.sleep(0.1)
-    while True:
         time.sleep(0.1)
+    while True:
         try:
             if axis_1.is_motion_done==True and axis_2.is_motion_done==True:
                 break
         except:
+            print('failed to check axis stability, trying agian.')
             axis_1 = initialize_esp301(axis_1_index)
             axis_2 = initialize_esp301(axis_2_index)
-            print('failed to check axis stability, trying agian.')
+        time.sleep(0.1)
             #pass
 
 def corotate_axes300(axis_1_index, axis_2_index, angle_1, angle_2, axis_1=None, axis_2=None):
@@ -191,16 +192,16 @@ def corotate_axes300(axis_1_index, axis_2_index, angle_1, angle_2, axis_1=None, 
                 break
             except:
                 print('failed to check axis stability, trying again')
-                time.sleep(0.1)
+            time.sleep(0.1)
     while True:
-        time.sleep(0.1)
         try:
             if axis_1.motion_done==True and axis_2.motion_done==True:
                 break
         except:
+            print('failed to check axis stability, trying agian.')
             axis_1 = initialize_esp300(axis_1_index)
             axis_2 = initialize_esp300(axis_2_index)
-            print('failed to check axis stability, trying agian.')
+        time.sleep(0.1)
             #pass
 
 def initialize_esp301(axis_index):

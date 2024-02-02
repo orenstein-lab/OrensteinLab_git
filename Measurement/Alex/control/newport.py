@@ -45,7 +45,12 @@ def initialize_axis(axis_index):
     return axis
 
 def close_axis(axis):
-    return 0
+    if esp_model=='301':
+        close_esp301(axis)
+    elif esp_model=='300':
+        close_esp300(axis)
+    else:
+        raise ValueError(f'ESP Model {esp_model} not supported.')
 
 def move_esp301(axis_index, pos, axis=None):
     '''
@@ -61,8 +66,10 @@ def move_esp301(axis_index, pos, axis=None):
             check_axis_stability301(axis, axis_index)
             break
         except:
-            print('failed to move axis, trying again')
+            print(f'failed to move axis {axis_index}, trying again')
+            close_esp301(axis)
             axis = initialize_esp301(axis_index)
+            #print(f'reinitialized axis {axis_index}')
         time.sleep(0.1)
 
 def read_esp301(axis_index, axis=None, print_flag=True):
@@ -80,8 +87,10 @@ def read_esp301(axis_index, axis=None, print_flag=True):
             pos = float(axis.position)
             break
         except:
-            print('failed to read axis, trying again.')
+            print(f'failed to read axis {axis_index}, trying again')
+            close_esp301(axis)
             axis = initialize_esp301(axis_index)
+            #print(f'reinitialized axis {axis_index} at {axis}')
             #pass
         time.sleep(0.1)
 
@@ -98,8 +107,10 @@ def check_axis_stability301(axis, axis_index):
             if axis.is_motion_done==True:
                 break
         except:
-            print('failed to check axis stability, trying agian.')
+            print(f'failed to check stability axis {axis_index}, trying again')
+            close_esp301(axis)
             axis = initialize_esp301(axis_index)
+            #print(f'reinitialized axis {axis_index}')
             #pass
         time.sleep(0.1)
 
@@ -114,8 +125,10 @@ def move_esp300(axis_index, pos, axis=None):
             check_axis_stability300(axis, axis_index)
             break
         except:
-            print('failed to move axis, trying again.')
+            print(f'failed to move axis {axis_index}, trying again')
+            close_esp300(axis)
             axis = initialize_esp300(axis_index)
+            #print(f'reinitialized axis {axis_index}')
         time.sleep(0.1)
 
 def read_esp300(axis_index, axis=None, print_flag=True):
@@ -129,8 +142,10 @@ def read_esp300(axis_index, axis=None, print_flag=True):
             pos = float(axis.position)
             break
         except:
-            print('failed to read axis, trying again.')
+            print(f'failed to read axis {axis_index}, trying again')
+            close_esp300(axis)
             axis = initialize_esp300(axis_index)
+            #print(f'reinitialized axis {axis_index}')
             #pass
         time.sleep(0.1)
 
@@ -147,8 +162,10 @@ def check_axis_stability300(axis, axis_index):
             if axis.motion_done==True:
                 break
         except:
-            print('failed to check axis stability, trying agian.')
+            print(f'failed to check stability axis {axis_index}, trying again')
+            close_esp300(axis)
             axis = initialize_esp300(axis_index)
+            #print(f'reinitialized axis {axis_index}')
         time.sleep(0.1)
             #pass
 
@@ -165,16 +182,24 @@ def corotate_axes301(axis_1_index, axis_2_index, angle_1, angle_2, axis_1=None, 
             axis_2.move(angle_2, absolute=True)
             break
         except:
-            print('failed to check axis stability, trying again')
+            print('failed to corotate axes, trying agian.')
+            close_esp301(axis_1)
+            close_esp301(axis_2)
+            axis_1 = initialize_esp301(axis_1_index)
+            axis_2 = initialize_esp301(axis_2_index)
+            #print('reinitialized axes')
         time.sleep(0.1)
     while True:
         try:
             if axis_1.is_motion_done==True and axis_2.is_motion_done==True:
                 break
         except:
-            print('failed to check axis stability, trying agian.')
+            print('failed to check axis corotate axes stability, trying agian.')
+            close_esp301(axis_1)
+            close_esp301(axis_2)
             axis_1 = initialize_esp301(axis_1_index)
             axis_2 = initialize_esp301(axis_2_index)
+            print('reinitialized axes')
         time.sleep(0.1)
             #pass
 
@@ -191,45 +216,73 @@ def corotate_axes300(axis_1_index, axis_2_index, angle_1, angle_2, axis_1=None, 
                 axis_2.position = angle_2
                 break
             except:
-                print('failed to check axis stability, trying again')
+                print('failed to corotate axes, trying agian.')
+                close_esp300(axis_1)
+                close_esp300(axis_2)
+                axis_1 = initialize_esp300(axis_1_index)
+                axis_2 = initialize_esp300(axis_2_index)
+                #print('reinitialized axes')
             time.sleep(0.1)
     while True:
         try:
             if axis_1.motion_done==True and axis_2.motion_done==True:
                 break
         except:
-            print('failed to check axis stability, trying agian.')
+            print('failed to check axis corotate axes stability, trying agian.')
+            close_esp300(axis_1)
+            close_esp300(axis_2)
             axis_1 = initialize_esp300(axis_1_index)
             axis_2 = initialize_esp300(axis_2_index)
+            print('reinitialized axes')
         time.sleep(0.1)
             #pass
 
 def initialize_esp301(axis_index):
 
-    controller = newport.NewportESP301.open_serial(port=esp_port, baud=921600)
+    created_controller = False
     while True:
         try:
+            #print('connection to controller')
+            controller = newport.NewportESP301.open_serial(port=esp_port, baud=921600)
+            #print('creating axis')
+            created_controller = True
             axis = newport.NewportESP301Axis(controller, axis_index-1)
+            #print('enabling axis')
             axis.enable()
+            #print('breaking')
             break
         except:
+            if created_controller==True:
+                controller._file._conn.close()
+            print(f'failed to initialize axis {axis_index}, trying again')
             time.sleep(0.1)
     return axis
 
 def initialize_esp300(axis_index):
 
-    obj = ESP300(esp_port)
-    if axis_index==1:
-        axis = obj.x
-    elif axis_index==2:
-        axis = obj.y
-    elif axis_index==3:
-        axis = obj.phi
-    else:
-        ValueError('could not initialize ESP300. Please choose axis 1, 2, or 3')
-    axis.enable()
+    while True:
+        try:
+            obj = ESP300(esp_port)
+            if axis_index==1:
+                axis = obj.x
+            elif axis_index==2:
+                axis = obj.y
+            elif axis_index==3:
+                axis = obj.phi
+            else:
+                ValueError('could not initialize ESP300. Please choose axis 1, 2, or 3')
+            axis.enable()
+            break
+        except:
+            print(f'failed to initialize axis {axis_index}, trying again')
+            time.sleep(0.1)
     return axis
 
+def close_esp301(axis):
+    axis._controller._file._conn.close()
+
+def close_esp300(axis):
+    return 0
 
 #########################
 ### Wrapper Functions ###
@@ -282,13 +335,15 @@ def initialize_corotate_axes12():
     return axis_1, axis_2
 
 def close_axis_1(axis):
-    return 0
+    close_axis(axis)
 
 def close_axis_2(axis):
-    return 0
+    close_axis(axis)
 
 def close_axis_3(axis):
-    return 0
+    close_axis(axis)
 
 def close_corotate_axes12(axis):
-    return 0
+    ax1, ax2 = axis
+    close_axis(ax1)
+    close_axis(ax2)

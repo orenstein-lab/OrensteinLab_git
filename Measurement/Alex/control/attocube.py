@@ -87,13 +87,13 @@ def initialize_attocube():
         if os.path.exists(ATTOCUBE_HANDLE_FNAME):
             with open(ATTOCUBE_HANDLE_FNAME, 'rb') as f:
                 anc = pickle.load(f)
-                read_attocube(1,anc) # test the connection
+                read_attocube('x',anc) # test the connection
         else:
             anc = Positioner()
             with open(ATTOCUBE_HANDLE_FNAME, 'wb') as f:
                 pickle.dump(anc, f)
     except Exception as e:
-        print(f'initialization error: {e}')
+        #print(f'initialization error: {e}')
         os.remove(ATTOCUBE_HANDLE_FNAME)
         anc = Positioner()
         with open(ATTOCUBE_HANDLE_FNAME, 'wb') as f:

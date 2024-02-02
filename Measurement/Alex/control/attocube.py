@@ -92,7 +92,8 @@ def initialize_attocube():
             anc = Positioner()
             with open(ATTOCUBE_HANDLE_FNAME, 'wb') as f:
                 pickle.dump(anc, f)
-    except:
+    except Exception as e:
+        print(f'initialization error: {e}')
         os.remove(ATTOCUBE_HANDLE_FNAME)
         anc = Positioner()
         with open(ATTOCUBE_HANDLE_FNAME, 'wb') as f:

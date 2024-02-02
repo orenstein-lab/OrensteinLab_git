@@ -131,7 +131,7 @@ def lockin_time_series(recording_time, filename_head=None, filename=None, mobj_m
 
     return time_record, demod_x, demod_y, demod_r
 
-def rotate_scan(start_angle, end_angle, step_size, filename_head=None, filename=None, axis_index=1, mobj_measure_dict={}, showplot=True, time_constant=0.3, channel_index=1, R_channel_index=4, daq_objs=None, axis_1=None, axis_2=None, metadata={}, save_metadata=True, savefile=True):
+def rotate_scan(start_angle, end_angle, step_size, filename_head=None, filename=None, axis_index=1, mobj_measure_dict={}, showplot=True, time_constant=0.3, channel_index=1, R_channel_index=4, daq_objs=None, axis_1=None, axis_2=None, save_metadata=True, savefile=True):
 
     # initialize zurich lockin and setup read function
     if daq_objs==None:
@@ -278,7 +278,7 @@ def rotate_scan(start_angle, end_angle, step_size, filename_head=None, filename=
 
     return position, demod_x, demod_y, demod_r
 
-def corotate_scan(start_angle, end_angle, step_size, angle_offset, rate_axis_2=1, filename_head=None, filename=None, mobj_measure_dict={}, showplot=True, time_constant=0.3, channel_index=1, R_channel_index=4, daq_objs=None, axis_1=None, axis_2=None, metadata={}, save_metadata=True, savefile=True):
+def corotate_scan(start_angle, end_angle, step_size, angle_offset, rate_axis_2=1, filename_head=None, filename=None, mobj_measure_dict={}, showplot=True, time_constant=0.3, channel_index=1, R_channel_index=4, daq_objs=None, axis_1=None, axis_2=None, save_metadata=True, savefile=True):
     '''
     Takes a corotation scan moving axes 1 and 2, typically representing half wave plates. axis 2 can be specificied to move at a rate greater than axis 1, such that axis_2_move = rate*axis_1_move
 
@@ -929,7 +929,7 @@ def rotate_map(map_dict, start_angle, end_angle, step_size, filename_head=None, 
             expanded_filename = expanded_filename+f'_{m}{p}'
 
         # scan
-        rotate_scan(start_angle, end_angle, step_size, filename_head=filename_head, filename=expanded_filename, axis_index=axis_index, measure_motors=measure_motors, mobj_measure_dict=mobj_measure_dict, showplot=showplot, time_constant=time_constant, channel_index=channel_index, R_channel_index=R_channel_index, daq_objs=daq_objs, axis_1=axis_1, axis_2=axis_2, metadatat=metadata, savefile=savefile)
+        rotate_scan(start_angle, end_angle, step_size, filename_head=filename_head, filename=expanded_filename, axis_index=axis_index, mobj_measure_dict=mobj_measure_dict, showplot=showplot, time_constant=time_constant, channel_index=channel_index, R_channel_index=R_channel_index, daq_objs=daq_objs, axis_1=axis_1, axis_2=axis_2, savefile=savefile)
 
         current_pos = pos
 
@@ -992,7 +992,7 @@ def corotate_map(map_dict, start_angle, end_angle, step_size, angle_offset, rate
             expanded_filename = expanded_filename+f'_{m}{p}'
 
         # scan
-        corotate_scan(start_angle, end_angle, step_size, angle_offset, rate_axis_2=rate_axis_2, filename_head=filename_head, filename=expanded_filename, measure_motors=measure_motors, mobj_measure_dict=mobj_measure_dict, showplot=showplot, time_constant=time_constant, channel_index=channel_index, R_channel_index=R_channel_index, daq_objs=daq_objs, axis_1=axis_1, axis_2=axis_2, metadata=metadata, savefile=savefile)
+        corotate_scan(start_angle, end_angle, step_size, angle_offset, rate_axis_2=rate_axis_2, filename_head=filename_head, filename=expanded_filename, mobj_measure_dict=mobj_measure_dict, showplot=showplot, time_constant=time_constant, channel_index=channel_index, R_channel_index=R_channel_index, daq_objs=daq_objs, axis_1=axis_1, axis_2=axis_2, savefile=savefile)
 
         current_pos = pos
 

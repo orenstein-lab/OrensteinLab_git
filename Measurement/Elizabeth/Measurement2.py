@@ -602,7 +602,7 @@ def Find_balance_angle(incident_pol_angle, axis_index, start_pos, step_size, num
                     dh.update(str(axis_rot.position))
     thread1.join()
 
-def Rotate_quick(num_of_steps=19, axis_index_rot=2, start_angle=0, step_size=5, go_back=1, axis_index_const=1, angle_const=0, channel_index=1, time_constant=0.3):
+def Rotate_quick(num_of_steps, axis_index_rot, start_angle, step_size, go_back, axis_index_const, angle_const, channel_index, time_constant):
     #ESP301 initialization
     controller = newport.NewportESP301.open_serial(port=port_id, baud=921600)
 
@@ -801,7 +801,7 @@ def Corotate_measurement(num_of_steps, axis_index_1, start_pos_1, step_size_1, g
             file.close()
     thread1.join()
 
-def Corotate_quick(num_of_steps=19, axis_index_1=1, start_pos_1=0, step_size_1=5, go_back_1=1, axis_index_2=2, start_pos_2=0, step_size_2=5, go_back_2=1, channel_index=1, time_constant=0.3):
+def Corotate_quick(num_of_steps, axis_index_1, start_pos_1, step_size_1, go_back_1, axis_index_2, start_pos_2, step_size_2, go_back_2, channel_index, time_constant):
     #ESP301 initialization
     controller = newport.NewportESP301.open_serial(port=port_id, baud=921600)
 
@@ -904,18 +904,8 @@ def Corotate_quick(num_of_steps=19, axis_index_1=1, start_pos_1=0, step_size_1=5
         fig.canvas.draw()
         fig.canvas.flush_events()
 
-    axis_rot_1.move(start_pos_1-go_back_1,absolute=True)
-    axis_rot_2.move(start_pos_2-go_back_2,absolute=True)
-    while True:
-        time.sleep(0.03)
-        try:
-            if axis_rot_1.is_motion_done==True and axis_rot_2.is_motion_done==True:
-                break
-        except ValueError:
-            pass
     axis_rot_1.move(start_pos_1,absolute=True)
     axis_rot_2.move(start_pos_2,absolute=True)
-
 
 def Corotate(num_of_steps, axis_index_1, start_pos_1, step_size_1, go_back_1, axis_index_2, start_pos_2, step_size_2, go_back_2, channel_index, R_channel_index, time_constant, showplot, filename_head, filename):
     #ESP301 initialization
@@ -2835,7 +2825,6 @@ def Mapping_quicksave(x_start_pos, x_step_size, x_num_steps, x_tol, y_start_pos,
                         anc.moveAbsolute(ax['x'], int(x_target*1000))
                     if (y_error >= y_tor):
                         anc.moveAbsolute(ax['y'], int(y_target*1000))
-                        
 
             anc.moveAbsolute(ax['x'], int(x_pos*1000))
             anc.moveAbsolute(ax['y'], int(y_pos*1000))

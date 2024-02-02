@@ -3,6 +3,7 @@ from pyanc350.v2 import Positioner
 from OrensteinLab_git.configuration import config_dict
 import pickle
 import time
+import os
 
 axis_dict = {'x':0, 'y':1, 'z':2}
 ATTOCUBE_HANDLE_FNAME = config_dict['Attocube Handle']
@@ -82,21 +83,26 @@ def initialize_attocube():
     attocube initialization function, which checks if an initialization already exists at attocube_handle before initalizizing another instance.
     '''
 
-    try: # if there is already a connection, this fails and we search for a file
+    try:
+        if os.path.exists(ATTOCUBE_HANDLE_FNAME):
+            with open(ATTOCUBE_HANDLE_FNAME, 'rb') as f:
+                anc = pickle.load(f)
+        else:
+            anc = Positioner()
+            with open(ATTOCUBE_HANDLE_FNAME, 'wb') as f:
+                pickle.dump(anc, f)
+    except:
+        os.remove(ATTOCUBE_HANDLE_FNAME)
         anc = Positioner()
         with open(ATTOCUBE_HANDLE_FNAME, 'wb') as f:
             pickle.dump(anc, f)
-    except:
-        with open(ATTOCUBE_HANDLE_FNAME, 'rb') as f:
-            anc = pickle.load(f)
-        #read_attocube(1,anc=anc, print_flag=False)
+
     return anc
 
 def close_attocube(anc):
-    try:
-        anc.close()
-    except:
-        return 0
+        if os.path.exists(ATTOCUBE_HANDLE_FNAME):
+            os.remove(ATTOCUBE_HANDLE_FNAME)
+            anc.close()
 
 #########################
 ### Wrapper Functions ###

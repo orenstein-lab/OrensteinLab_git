@@ -7,7 +7,7 @@ This file contains system specific motor and instrument configurations.
 
     - insrtument_dict: a dictionary for defining system measurement instruments, such as a lockin or spectrometer
 
-    - default_record_dict: a dictionary for motors that should be automatically recorded and added to each file
+    - meta_motors: motors to always be saved during measurement, and to be added to file metadata header
 '''
 
 #####################
@@ -54,8 +54,8 @@ motor_dict = {
 'montana_temp':{'move':montana_temp.set_montana_temperature, 'read':montana_temp.read_montana_temperature, 'init':montana_temp.initialize_montana, 'close':montana_temp.close_montana, 'move_back':0, 'name':'Montana Platform Temperature (K)'}
 }
 
+# motors to always be saved during measurement, and to be added to file metadata header
 meta_motors = ['x', 'y', 'z', 'axis_1', 'axis_2', 'axis_3', 'temp', 'zurich_frequency', 'strain_ps', 'strain_cap', 'montana_temp']
-#meta_motors=[]
 
 ##########################
 ### System Instruments ###
@@ -64,5 +64,3 @@ meta_motors = ['x', 'y', 'z', 'axis_1', 'axis_2', 'axis_3', 'temp', 'zurich_freq
 instrument_dict = {
 'zurich_lockin':{'read':zurich.read_zurich_lockin, 'init':zurich.initialize_zurich_lockin}
 }
-
-default_record_dict = {}

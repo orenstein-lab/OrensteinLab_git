@@ -35,7 +35,7 @@ lockin_header = ['Demod x', 'Demod y', 'r', 'Demod x_R', 'Demod y_R', 'Demod r_R
 ### Medthods ###
 ################
 
-def lockin_time_series(recording_time, filename_head=None, filename=None, mobj_measure_dict={}, time_constant=0.3, channel_index=1, save_metadata=True, savefile=True, daq_objs=None, plot_flag=True):
+def lockin_time_series(recording_time, filename_head=None, filename=None, mobj_measure_dict={}, metadata={}, time_constant=0.3, channel_index=1, savefile=True, daq_objs=None, plot_flag=True, override_metadata=False):
     '''
     aquires data on the lockin over a specified length of time.
     '''
@@ -51,13 +51,13 @@ def lockin_time_series(recording_time, filename_head=None, filename=None, mobj_m
     if mobj_measure_dict=={}:
         passed_measure_motors = False
         mobj_measure_dict = initialize_motors(meta_motors)
+    measure_motors = list(mobj_measure_dict.keys())
 
     # setup metadata - ie, for quick reference of starting state before measurement
-    if save_metadata==True:
-        additional_motors = initialize_motors(list(set(meta_motors) - set(mobj_measure_dict.keys())))
-        metadata = generate_metadata({**mobj_measure_dict, **additional_motors})
+    if override_metadata==True:
+        pass
     else:
-        metadata = {}
+        metadata = {**metadata, **generate_metadata(mobj_measure_dict)}
 
     # initialize data bins
     time_record = np.array([])
@@ -131,7 +131,7 @@ def lockin_time_series(recording_time, filename_head=None, filename=None, mobj_m
 
     return time_record, demod_x, demod_y, demod_r
 
-def rotate_scan(start_angle, end_angle, step_size, filename_head=None, filename=None, axis_index=1, mobj_measure_dict={}, showplot=True, time_constant=0.3, channel_index=1, R_channel_index=4, daq_objs=None, axis_1=None, axis_2=None, save_metadata=True, savefile=True):
+def rotate_scan(start_angle, end_angle, step_size, filename_head=None, filename=None, axis_index=1, mobj_measure_dict={}, metadata={}, showplot=True, time_constant=0.3, channel_index=1, R_channel_index=4, daq_objs=None, axis_1=None, axis_2=None, savefile=True, override_metadata=False):
 
     # initialize zurich lockin and setup read function
     if daq_objs==None:
@@ -178,14 +178,14 @@ def rotate_scan(start_angle, end_angle, step_size, filename_head=None, filename=
     passed_measure_motors = True
     if mobj_measure_dict=={}:
         passed_measure_motors = False
-        mobj_measure_dict = initialize_motors(meta_motors)
+        mobj_measure_dict = initialize_motors(list(set(meta_motors) - set(['axis_1', 'axis_2'])))
+    measure_motors = list(mobj_measure_dict.keys())
 
     # setup metadata - ie, for quick reference of starting state before measurement
-    if save_metadata==True:
-        additional_motors = initialize_motors(list(set(meta_motors) - set(mobj_measure_dict.keys())))
-        metadata = generate_metadata({**mobj_measure_dict, **additional_motors})
+    if override_metadata==True:
+        pass
     else:
-        metadata = {}
+        metadata = {**metadata, **generate_metadata(mobj_measure_dict)}
 
     # setup measureables
     position = np.array([])
@@ -278,7 +278,7 @@ def rotate_scan(start_angle, end_angle, step_size, filename_head=None, filename=
 
     return position, demod_x, demod_y, demod_r
 
-def corotate_scan(start_angle, end_angle, step_size, angle_offset, rate_axis_2=1, filename_head=None, filename=None, mobj_measure_dict={}, showplot=True, time_constant=0.3, channel_index=1, R_channel_index=4, daq_objs=None, axis_1=None, axis_2=None, save_metadata=True, savefile=True):
+def corotate_scan(start_angle, end_angle, step_size, angle_offset, rate_axis_2=1, filename_head=None, filename=None, mobj_measure_dict={}, metadata={}, showplot=True, time_constant=0.3, channel_index=1, R_channel_index=4, daq_objs=None, axis_1=None, axis_2=None, savefile=True, override_metadata=False):
     '''
     Takes a corotation scan moving axes 1 and 2, typically representing half wave plates. axis 2 can be specificied to move at a rate greater than axis 1, such that axis_2_move = rate*axis_1_move
 
@@ -312,14 +312,14 @@ def corotate_scan(start_angle, end_angle, step_size, angle_offset, rate_axis_2=1
     passed_measure_motors = True
     if mobj_measure_dict=={}:
         passed_measure_motors = False
-        mobj_measure_dict = initialize_motors(meta_motors)
+        mobj_measure_dict = initialize_motors(list(set(meta_motors) - set(['axis_1', 'axis_2'])))
+    measure_motors = list(mobj_measure_dict.keys())
 
     # setup metadata - ie, for quick reference of starting state before measurement
-    if save_metadata==True:
-        additional_motors = initialize_motors(list(set(meta_motors) - set(mobj_measure_dict.keys())))
-        metadata = generate_metadata({**mobj_measure_dict, **additional_motors})
+    if override_metadata==True:
+        pass
     else:
-        metadata = {}
+        metadata = {**metadata, **generate_metadata(mobj_measure_dict)}
 
     # setup measureables
     position = np.array([])
@@ -416,7 +416,7 @@ def corotate_scan(start_angle, end_angle, step_size, angle_offset, rate_axis_2=1
 
     return position, demod_x, demod_y, demod_r
 
-def motor_scan(map_dict, filename_head=None, filename=None, showplot=True, time_constant=0.3, channel_index=1, R_channel_index=2, print_flag=False, savefile=True, save_metadata=True):
+def motor_scan(map_dict, filename_head=None, filename=None, showplot=True, time_constant=0.3, channel_index=1, R_channel_index=2, print_flag=False, savefile=True, metadata={}):
     '''
     utility to record lockin measurement as a function of motors specified by dictionary map_dict.
     '''
@@ -433,10 +433,7 @@ def motor_scan(map_dict, filename_head=None, filename=None, showplot=True, time_
     mobj_measure_dict = initialize_motors(measure_motors)
 
     # setup metadata - ie, for quick reference of starting state before measurement
-    if save_metadata==True:
-        metadata = generate_metadata({**mobj_dict, **mobj_measure_dict})
-    else:
-        metadata = {}
+    metadata = {**metadata, **generate_metadata({**mobj_dict, **mobj_measure_dict})}
 
     # generate positions recursively
     positions = gen_positions_recurse(mranges, len(mranges)-1)
@@ -597,7 +594,7 @@ def motor_scan(map_dict, filename_head=None, filename=None, showplot=True, time_
     close_motors(mobj_dict)
     close_motors(mobj_measure_dict)
 
-def motor_scan_balance(map_dict, balance, balance_table=None, slope=0, tol=0, balance_channel=3, autobalance_flag=True, filename_head=None, filename=None, showplot=True, time_constant=0.3, channel_index=1, R_channel_index=4, print_flag=False, savefile=True, save_metadata=True):
+def motor_scan_balance(map_dict, balance, balance_table=None, slope=0, tol=0, balance_channel=3, autobalance_flag=True, filename_head=None, filename=None, showplot=True, time_constant=0.3, channel_index=1, R_channel_index=4, print_flag=False, savefile=True, metadata={}):
     '''
     utility to record lockin measurement as a function of motors specified by dictionary map_dict.
 
@@ -642,10 +639,7 @@ def motor_scan_balance(map_dict, balance, balance_table=None, slope=0, tol=0, ba
     mobj_measure_dict = initialize_motors(measure_motors)
 
     # setup metadata - ie, for quick reference of starting state before measurement
-    if save_metadata==True:
-        metadata = generate_metadata({**mobj_dict, **mobj_measure_dict})
-    else:
-        metadata = {}
+    metadata = {**metadata, **generate_metadata({**mobj_dict, **mobj_measure_dict})}
 
 
     ''' must come up with a good test to check.
@@ -882,7 +876,7 @@ def motor_scan_balance(map_dict, balance, balance_table=None, slope=0, tol=0, ba
     close_motors(mobj_dict)
     close_motors(mobj_measure_dict)
 
-def rotate_map(map_dict, start_angle, end_angle, step_size, filename_head=None, filename=None, axis_index=1, showplot=False, time_constant=0.3, channel_index=1, R_channel_index=4, daq_objs=None, print_flag=False, savefile=True, save_metadata=True):
+def rotate_map(map_dict, start_angle, end_angle, step_size, filename_head=None, filename=None, axis_index=1, showplot=False, time_constant=0.3, channel_index=1, R_channel_index=4, daq_objs=None, print_flag=False, savefile=True, metadata={}):
 
     # Lock-in Amplifier initialization
     daq_objs = instrument_dict['zurich_lockin']['init']()
@@ -898,10 +892,7 @@ def rotate_map(map_dict, start_angle, end_angle, step_size, filename_head=None, 
     mobj_measure_dict = initialize_motors(measure_motors)
 
     # setup metadata - ie, for quick reference of starting state before measurement
-    if save_metadata==True:
-        metadata = generate_metadata({**mobj_dict, **mobj_measure_dict, 'axis_1':axis_1, 'axis_2':axis_2})
-    else:
-        metadata = {}
+    metadata = {**metadata, **generate_metadata({**mobj_dict, **mobj_measure_dict, **{axis_1, axis_2}})}
 
     # generate positions recursively
     positions = gen_positions_recurse(mranges, len(mranges)-1)
@@ -929,7 +920,7 @@ def rotate_map(map_dict, start_angle, end_angle, step_size, filename_head=None, 
             expanded_filename = expanded_filename+f'_{m}{p}'
 
         # scan
-        rotate_scan(start_angle, end_angle, step_size, filename_head=filename_head, filename=expanded_filename, axis_index=axis_index, mobj_measure_dict=mobj_measure_dict, showplot=showplot, time_constant=time_constant, channel_index=channel_index, R_channel_index=R_channel_index, daq_objs=daq_objs, axis_1=axis_1, axis_2=axis_2, savefile=savefile)
+        rotate_scan(start_angle, end_angle, step_size, filename_head=filename_head, filename=expanded_filename, axis_index=axis_index, mobj_measure_dict={**mobj_dict, **mobj_measure_dict}, metadata=metadata, showplot=showplot, time_constant=time_constant, channel_index=channel_index, R_channel_index=R_channel_index, daq_objs=daq_objs, axis_1=axis_1, axis_2=axis_2, savefile=savefile, override_metadata=True)
 
         current_pos = pos
 
@@ -937,7 +928,7 @@ def rotate_map(map_dict, start_angle, end_angle, step_size, filename_head=None, 
     close_motors(mobj_dict)
     close_motors(mobj_measure_dict)
 
-def corotate_map(map_dict, start_angle, end_angle, step_size, angle_offset, rate_axis_2=1, filename_head=None, filename=None, measure_motors=[], showplot=False, time_constant=0.3, channel_index=1, R_channel_index=4, print_flag=False, savefile=True, save_metadata=True):
+def corotate_map(map_dict, start_angle, end_angle, step_size, angle_offset, rate_axis_2=1, filename_head=None, filename=None, measure_motors=[], showplot=False, time_constant=0.3, channel_index=1, R_channel_index=4, print_flag=False, savefile=True, metadata={}):
     '''
     Takes a corotation scan at each point in a map specified by dictionary map_dict, which entries of the form 'axis':(start, end, step_size, kwargs), where kwargs is a dictionary of key/value pairs appropriate for each motor 'move' function. For example, a temperature map might take the following map dictionary:
 
@@ -959,10 +950,7 @@ def corotate_map(map_dict, start_angle, end_angle, step_size, angle_offset, rate
     mobj_measure_dict = initialize_motors(measure_motors)
 
     # setup metadata - ie, for quick reference of starting state before measurement
-    if save_metadata==True:
-        metadata = generate_metadata({**mobj_dict, **mobj_measure_dict, 'axis_1':axis_1, 'axis_2':axis_2})
-    else:
-        metadata = {}
+    metadata = {**metadata, **generate_metadata({**mobj_dict, **mobj_measure_dict, **{axis_1, axis_2}})}
 
     # generate positions recursively
     positions = gen_positions_recurse(mranges, len(mranges)-1)
@@ -992,7 +980,7 @@ def corotate_map(map_dict, start_angle, end_angle, step_size, angle_offset, rate
             expanded_filename = expanded_filename+f'_{m}{p}'
 
         # scan
-        corotate_scan(start_angle, end_angle, step_size, angle_offset, rate_axis_2=rate_axis_2, filename_head=filename_head, filename=expanded_filename, mobj_measure_dict=mobj_measure_dict, showplot=showplot, time_constant=time_constant, channel_index=channel_index, R_channel_index=R_channel_index, daq_objs=daq_objs, axis_1=axis_1, axis_2=axis_2, savefile=savefile)
+        corotate_scan(start_angle, end_angle, step_size, angle_offset, rate_axis_2=rate_axis_2, filename_head=filename_head, filename=expanded_filename, mobj_measure_dict={**mobj_dict, **mobj_measure_dict}, metadata=metadata, showplot=showplot, time_constant=time_constant, channel_index=channel_index, R_channel_index=R_channel_index, daq_objs=daq_objs, axis_1=axis_1, axis_2=axis_2, savefile=savefile, override_metadata=True)
 
         current_pos = pos
 

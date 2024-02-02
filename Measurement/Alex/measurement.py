@@ -892,7 +892,7 @@ def rotate_map(map_dict, start_angle, end_angle, step_size, filename_head=None, 
     mobj_measure_dict = initialize_motors(measure_motors)
 
     # setup metadata - ie, for quick reference of starting state before measurement
-    metadata = {**metadata, **generate_metadata({**mobj_dict, **mobj_measure_dict, **{axis_1, axis_2}})}
+    metadata = {**metadata, **generate_metadata({**mobj_dict, **mobj_measure_dict, **{'axis_1':axis_1, 'axis_2':axis_2}})}
 
     # generate positions recursively
     positions = gen_positions_recurse(mranges, len(mranges)-1)
@@ -950,7 +950,7 @@ def corotate_map(map_dict, start_angle, end_angle, step_size, angle_offset, rate
     mobj_measure_dict = initialize_motors(measure_motors)
 
     # setup metadata - ie, for quick reference of starting state before measurement
-    metadata = {**metadata, **generate_metadata({**mobj_dict, **mobj_measure_dict, **{axis_1, axis_2}})}
+    metadata = {**metadata, **generate_metadata({**mobj_dict, **mobj_measure_dict, **{'axis_1':axis_1, 'axis_2':axis_2}})}
 
     # generate positions recursively
     positions = gen_positions_recurse(mranges, len(mranges)-1)

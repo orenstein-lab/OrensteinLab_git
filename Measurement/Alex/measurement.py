@@ -1900,7 +1900,7 @@ def generate_metadata(mobj_dict):
     for m in meta_motors:
         name = motor_dict[m]['name']
         try: # if in mobj_dict, don't close
-            obj = mobj_dict[m]()
+            obj = mobj_dict[m]
             read = motor_dict[m]['read']
             pos = read(obj)
             metadata[name] = pos

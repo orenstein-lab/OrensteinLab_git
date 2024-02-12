@@ -19,8 +19,9 @@ def read_zurich_lockin(daq_objs=None, time_constant=0.3, poll_timeout=500, chann
     '''
 
     # initialize
-    if daq_objs==None:
+    if daq_objs is None:
         daq, device, props = initialize_zurich_lockin()
+        daq_objs = [daq, device, props]
     else:
         daq, device, props = daq_objs
 
@@ -40,6 +41,7 @@ def read_zurich_lockin(daq_objs=None, time_constant=0.3, poll_timeout=500, chann
     # read lockin
     mfli_dict = daq.poll(poll_length, poll_timeout, poll_flags, poll_return_flat_dict)
     daq.unsubscribe('*')
+    #print(list(mfli_dict.keys()))
 
     data_dict = {}
     # Give data and R channel index separtely for convenience
@@ -60,19 +62,32 @@ def read_zurich_lockin(daq_objs=None, time_constant=0.3, poll_timeout=500, chann
     for channel in channels:
         x = np.mean(mfli_dict[f'/{device}/demods/{channel-1}/sample']['x'])
         y = np.mean(mfli_dict[f'/{device}/demods/{channel-1}/sample']['y'])
+        autophase = read_zurich_autophase(daq_objs, channel) # shouldn't change during measurement
         data_dict[f'Demod {channel} x'] = x
         data_dict[f'Demod {channel} y'] = y
         data_dict[f'Demod {channel} r'] = np.abs(x + 1j*y)
         data_dict[f'Demod {channel} phase'] = np.arctan(x/y)
+        data_dict[f'Demod {channel} autophase'] = autophase
 
     # add any other data from lockin to data_dict
 
     return data_dict
 
+def set_zurich_autophase(angle, daq_objs=None, wait_time=0, channel=1):
+
+    # initialize
+    if daq_objs is None:
+        daq, device, props = initialize_zurich_lockin()
+    else:
+        daq, device, props = daq_objs
+
+    daq.setDouble(f'/{device}/demods/{channel-1}/phaseshift', angle)
+    time.sleep(wait_time)
+
 def set_zurich_output_amplitude(amplitude, daq_objs=None, wait_time=0, channel=1):
 
     # initialize
-    if daq_objs==None:
+    if daq_objs is None:
         daq, device, props = initialize_zurich_lockin()
     else:
         daq, device, props = daq_objs
@@ -80,10 +95,21 @@ def set_zurich_output_amplitude(amplitude, daq_objs=None, wait_time=0, channel=1
     daq.setDouble(f'/%s/sigouts/0/amplitudes/{channel-1}'%device, amplitude)
     time.sleep(wait_time)
 
+def read_zurich_autophase(daq_objs=None, channel=1):
+
+    # initialize
+    if daq_objs is None:
+        daq, device, props = initialize_zurich_lockin()
+    else:
+        daq, device, props = daq_objs
+
+    angle = daq.getDouble(f'/{device}/demods/{channel-1}/phaseshift')
+    return angle
+
 def read_zurich_output_amplitude(daq_objs=None, channel=1):
 
     # initialize
-    if daq_objs==None:
+    if daq_objs is None:
         daq, device, props = initialize_zurich_lockin()
     else:
         daq, device, props = daq_objs
@@ -94,7 +120,7 @@ def read_zurich_output_amplitude(daq_objs=None, channel=1):
 def set_zurich_frequency(freq, daq_objs=None, wait_time=0, osc=2):
 
     # initialize
-    if daq_objs==None:
+    if daq_objs is None:
         daq, device, props = initialize_zurich_lockin()
     else:
         daq, device, props = daq_objs
@@ -105,7 +131,7 @@ def set_zurich_frequency(freq, daq_objs=None, wait_time=0, osc=2):
 def read_zurich_frequency(daq_objs=None, osc=2):
 
     # initialize
-    if daq_objs==None:
+    if daq_objs is None:
         daq, device, props = initialize_zurich_lockin()
     else:
         daq, device, props = daq_objs
@@ -116,7 +142,7 @@ def read_zurich_frequency(daq_objs=None, osc=2):
 def set_zurich_aux_offset(offset, daq_objs=None, wait_time=0, channel=1):
 
     # initialize
-    if daq_objs==None:
+    if daq_objs is None:
         daq, device, props = initialize_zurich_lockin()
     else:
         daq, device, props = daq_objs
@@ -127,7 +153,7 @@ def set_zurich_aux_offset(offset, daq_objs=None, wait_time=0, channel=1):
 def get_zurich_aux_offset(daq_objs=None, wait_time=0, channel=1):
 
     # initialize
-    if daq_objs==None:
+    if daq_objs is None:
         daq, device, props = initialize_zurich_lockin()
     else:
         daq, device, props = daq_objs
@@ -155,7 +181,7 @@ def set_zurich_select_signal(val, channel_index=1, daq_objs=None):
     '''
 
     # initialize
-    if daq_objs==None:
+    if daq_objs is None:
         daq, device, props = initialize_zurich_lockin()
     else:
         daq, device, props = daq_objs
@@ -173,7 +199,7 @@ def set_zurich_acfilter(val, sigin=0, daq_objs=None):
         raise ValueError(f'value {val} must be a 1 or 0 or a bool')
 
     # initialize
-    if daq_objs==None:
+    if daq_objs is None:
         daq, device, props = initialize_zurich_lockin()
     else:
         daq, device, props = daq_objs

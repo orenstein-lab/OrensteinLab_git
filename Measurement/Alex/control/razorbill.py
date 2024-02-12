@@ -40,7 +40,7 @@ def read_strain_ps(sc=None):
     voltage = sc.get_ps()
 
     if sc_passed == False:
-        print(pos)
+        print(voltage)
 
     return voltage
 
@@ -54,7 +54,7 @@ def read_strain_capacitance(sc=None):
     cap = sc.get_cap()
 
     if sc_passed == False:
-        print(pos)
+        print(cap)
 
     return cap
 

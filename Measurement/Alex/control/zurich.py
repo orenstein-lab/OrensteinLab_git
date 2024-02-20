@@ -4,8 +4,11 @@ import zhinst.core as zicore
 from OrensteinLab_git.configuration import config_dict
 import time
 import pickle
+import os
+import dill
 
 device_id = config_dict['Zurich Lockin ID']
+ZURICH_HANDLE_FNAME = config_dict['Zurich Handle']
 
 ######################
 ### Core Functions ###
@@ -163,8 +166,30 @@ def get_zurich_aux_offset(daq_objs=None, wait_time=0, channel=1):
 
 def initialize_zurich_lockin():
     apilevel=6
-    obj = ziutils.create_api_session(device_id, apilevel)
-    daq, device, props = obj
+    objs = ziutils.create_api_session(device_id, apilevel)
+    daq, device, props = objs
+
+    '''
+    # future - 
+    try:
+        if os.path.exists(ZURICH_HANDLE_FNAME):
+            with open(ZURICH_HANDLE_FNAME, 'rb') as f:
+                objs = dill.loads(f)
+                read_zurich_frequency(objs) # test the connection
+        else:
+            objs = ziutils.create_api_session(device_id, apilevel)
+            daq, device, props = objs
+            with open(ZURICH_HANDLE_FNAME, 'wb') as f:
+                dill.dumps(objs, f)
+    except Exception as e:
+        #print(f'initialization error: {e}')
+        os.remove(ZURICH_HANDLE_FNAME)
+        objs = ziutils.create_api_session(device_id, apilevel)
+        daq, device, props = objs
+        with open(ZURICH_HANDLE_FNAME, 'wb') as f:
+            dill.dumps(objs, f)
+    '''
+
     return daq, device, props
 
 def close_zurich_lockin(obj):

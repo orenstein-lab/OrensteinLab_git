@@ -416,13 +416,14 @@ def corotate_scan(start_angle, end_angle, step_size, angle_offset, rate_axis_2=1
 
     return position, demod_x, demod_y, demod_r
 
-def motor_scan(map_dict, filename_head=None, filename=None, showplot=True, time_constant=0.3, channel_index=1, R_channel_index=2, print_flag=False, savefile=True, metadata={}):
+def motor_scan(map_dict, filename_head=None, filename=None, showplot=True, time_constant=0.3, channel_index=1, R_channel_index=2, print_flag=False, savefile=True, metadata={}, daq_objs=None):
     '''
     utility to record lockin measurement as a function of motors specified by dictionary map_dict.
     '''
 
     # Lock-in Amplifier initialization
-    daq_objs = instrument_dict['zurich_lockin']['init']()
+    if daq_objs is None:
+        daq_objs = instrument_dict['zurich_lockin']['init']()
     read_lockin = instrument_dict['zurich_lockin']['read']
     lockin_header = list(read_lockin(daq_objs=daq_objs, time_constant=time_constant, channel_index=channel_index, R_channel_index=R_channel_index).keys())
 
@@ -594,7 +595,7 @@ def motor_scan(map_dict, filename_head=None, filename=None, showplot=True, time_
     close_motors(mobj_dict)
     close_motors(mobj_measure_dict)
 
-def motor_scan_balance(map_dict, balance, balance_table=None, slope=0, tol=0, balance_channel=3, autobalance_flag=True, filename_head=None, filename=None, showplot=True, time_constant=0.3, channel_index=1, R_channel_index=4, print_flag=False, savefile=True, metadata={}):
+def motor_scan_balance(map_dict, balance, balance_table=None, slope=0, tol=0, balance_channel=3, autobalance_flag=True, filename_head=None, filename=None, showplot=True, time_constant=0.3, channel_index=1, R_channel_index=4, print_flag=False, savefile=True, metadata={}, daq_objs=None):
     '''
     utility to record lockin measurement as a function of motors specified by dictionary map_dict.
 
@@ -628,7 +629,8 @@ def motor_scan_balance(map_dict, balance, balance_table=None, slope=0, tol=0, ba
         bal_table_flag=False
 
     # Lock-in Amplifier initialization
-    daq_objs = instrument_dict['zurich_lockin']['init']()
+    if daq_objs is None:
+        daq_objs = instrument_dict['zurich_lockin']['init']()
     read_lockin = instrument_dict['zurich_lockin']['read']
     lockin_header = list(read_lockin(daq_objs=daq_objs, time_constant=time_constant, channel_index=channel_index, R_channel_index=R_channel_index).keys())
 

@@ -170,7 +170,7 @@ def initialize_zurich_lockin():
     daq, device, props = objs
 
     '''
-    # future - 
+    # future - reuse zurich connection
     try:
         if os.path.exists(ZURICH_HANDLE_FNAME):
             with open(ZURICH_HANDLE_FNAME, 'rb') as f:

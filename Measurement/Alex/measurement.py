@@ -200,7 +200,7 @@ def rotate_scan(start_angle, end_angle, step_size, filename_head=None, filename=
     if savefile:
         filename_head, filename = generate_filename(filename_head, filename, 'rotate_scan')
         fname = get_unique_filename(filename_head, filename)
-        header_motors = [motor_dict[m]['name'] for m in measure_motors]
+        header_motors = [motor_dict[m]['name']+str(' measured') for m in measure_motors]
         header = [motor_dict['axis_1']['name'], motor_dict['axis_2']['name']]+lockin_header+header_motors
         write_file_header(fname, header, metadata)
 
@@ -335,7 +335,7 @@ def corotate_scan(start_angle, end_angle, step_size, angle_offset, rate_axis_2=1
     if savefile:
         filename_head, filename = generate_filename(filename_head, filename, 'corotate_scan')
         fname = get_unique_filename(filename_head, filename)
-        header_motors = [motor_dict[m]['name'] for m in measure_motors]
+        header_motors = [motor_dict[m]['name']+str(' measured') for m in measure_motors]
         header = header = [motor_dict['axis_1']['name'], motor_dict['axis_2']['name']]+lockin_header+header_motors
         write_file_header(fname, header, metadata)
 
@@ -450,7 +450,7 @@ def motor_scan(map_dict, filename_head=None, filename=None, showplot=True, time_
             for m in motors:
                 filename = filename+f'_{m}'
         fname = get_unique_filename(filename_head, filename)
-        header_motors = [motor_dict[m]['name'] for m in measure_motors]
+        header_motors = [motor_dict[m]['name']+str(' measured') for m in measure_motors]
         header = [motor_dict[m]['name'] for m in motors]+[motor_dict[m]['name']+str(' measured') for m in motors]+lockin_header+header_motors
         write_file_header(fname, header, metadata)
 
@@ -672,7 +672,7 @@ def motor_scan_balance(map_dict, balance, balance_table=None, slope=0, tol=0, ba
             for m in motors:
                 filename = filename+f'_{m}'
         fname = get_unique_filename(filename_head, filename)
-        header_motors = [motor_dict[m]['name'] for m in measure_motors]
+        header_motors = [motor_dict[m]['name']+str(' measured') for m in measure_motors]
         header = [motor_dict[m]['name'] for m in motors]+[motor_dict[m]['name']+str(' measured') for m in motors]+lockin_header+header_motors+['Balance Angle (deg)']
         write_file_header(fname, header, metadata)
 

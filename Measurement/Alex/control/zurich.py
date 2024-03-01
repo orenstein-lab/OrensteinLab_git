@@ -52,11 +52,11 @@ def read_zurich_lockin(daq_objs=None, time_constant=0.3, poll_timeout=500, chann
     data_dict[f'Demod x'] = x
     data_dict[f'Demod y'] = y
     data_dict[f'Demod r'] = np.abs(x + 1j*y)
-    data_dict[f'Demod phase'] = np.arctan(x/y)
+    data_dict[f'Demod phase'] = np.arctan2(y,x)
     data_dict[f'R_x'] = x_R
     data_dict[f'R_y'] = y_R
     data_dict[f'R_r'] = np.abs(x_R + 1j*y_R)
-    data_dict[f'R_phase'] = np.arctan(x_R/y_R)
+    data_dict[f'R_phase'] = np.arctan2(y_R, x_R)
 
     # extract data from mfli_dict
     for channel in channels:
@@ -66,7 +66,7 @@ def read_zurich_lockin(daq_objs=None, time_constant=0.3, poll_timeout=500, chann
         data_dict[f'Demod {channel} x'] = x
         data_dict[f'Demod {channel} y'] = y
         data_dict[f'Demod {channel} r'] = np.abs(x + 1j*y)
-        data_dict[f'Demod {channel} phase'] = np.arctan(x/y)
+        data_dict[f'Demod {channel} phase'] = np.arctan2(y,x)
         data_dict[f'Demod {channel} autophase'] = autophase
 
     # add any other data from lockin to data_dict

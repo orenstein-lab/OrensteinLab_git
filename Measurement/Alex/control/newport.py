@@ -69,7 +69,9 @@ def move_esp301(axis_index, pos, axis=None):
             print(f'failed to move axis {axis_index}, trying again')
             close_esp301(axis)
             axis = initialize_esp301(axis_index)
-            #print(f'reinitialized axis {axis_index}')
+            print(f'reinitialized axis {axis_index}')
+            check_axis_stability301(axis, axis_index)
+            break
         time.sleep(0.1)
 
 def read_esp301(axis_index, axis=None, print_flag=True):

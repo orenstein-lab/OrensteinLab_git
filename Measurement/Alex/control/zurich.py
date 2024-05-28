@@ -37,11 +37,12 @@ def read_zurich_lockin(daq_objs=None, time_constant=0.3, poll_timeout=500, chann
     poll_return_flat_dict = True
 
     # subscribe to channels and read mfli
-    time.sleep(time_constant*4)
+    #time.sleep(time_constant*4)
     for channel in channels:
         daq.subscribe(f'/{device}/demods/{channel-1}/sample')
 
     # read lockin
+    daq.sync()
     mfli_dict = daq.poll(poll_length, poll_timeout, poll_flags, poll_return_flat_dict)
     daq.unsubscribe('*')
     #print(list(mfli_dict.keys()))

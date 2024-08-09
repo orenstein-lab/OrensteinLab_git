@@ -23,4 +23,3 @@ Configuration.txt
 attocube_handle
 configuration.py
 Measurement/Alex/motors.py
-Measurement/Alex/control/zurich.py

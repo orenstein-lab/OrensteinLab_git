@@ -12,8 +12,8 @@ s
 ############################
 config_dict = {
 'Zurich Lockin ID':'dev3537',
-'ESP COM Port':'COM5',
-'ESP Model':'301',
+'ESP COM Port':'GPIB2::17::INSTR',
+'ESP Model':'300',
 'Lakeshore Model':'335',
 'Attocube Handle': f'{os.path.dirname(__file__)}\\attocube_handle',
 'Opticool Handle': f'{os.path.dirname(__file__)}\\opticool_handle',

@@ -137,6 +137,22 @@ def read_range(lsobj=None):
         close_lakeshore(lsobj)
     return range
 
+def set_pid(p, i, d, lsobj=None, output=1):
+
+    lsobj, lsobj_passed = get_lsobj(lsobj)
+    lsobj.command(f'PID {output}, {p}, {i}, {d}')
+    if lsobj_passed==False:
+        close_lakeshore(lsobj)
+
+def read_pid(lsobj=None, output=1):
+
+    lsobj, lsobj_passed = get_lsobj(lsobj)
+    pid = lsobj.query('PID?')
+    p, i, d = [float(i) for i in pid.split(',')]
+    if lsobj_passed==False:
+        close_lakeshore(lsobj)
+    return p, i, d
+
 def initialize_lakeshore():
     if lakeshore_model == '335':
         return ls.model_335.Model335(57600)

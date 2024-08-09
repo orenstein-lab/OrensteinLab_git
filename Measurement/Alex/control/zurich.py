@@ -4,8 +4,11 @@ import zhinst.core as zicore
 from OrensteinLab_git.configuration import config_dict
 import time
 import pickle
+import os
+import dill
 
 device_id = config_dict['Zurich Lockin ID']
+ZURICH_HANDLE_FNAME = config_dict['Zurich Handle']
 
 ######################
 ### Core Functions ###
@@ -34,11 +37,12 @@ def read_zurich_lockin(daq_objs=None, time_constant=0.3, poll_timeout=500, chann
     poll_return_flat_dict = True
 
     # subscribe to channels and read mfli
-    time.sleep(time_constant*4)
+    #time.sleep(time_constant*4)
     for channel in channels:
         daq.subscribe(f'/{device}/demods/{channel-1}/sample')
 
     # read lockin
+    daq.sync()
     mfli_dict = daq.poll(poll_length, poll_timeout, poll_flags, poll_return_flat_dict)
     daq.unsubscribe('*')
     #print(list(mfli_dict.keys()))
@@ -52,11 +56,11 @@ def read_zurich_lockin(daq_objs=None, time_constant=0.3, poll_timeout=500, chann
     data_dict[f'Demod x'] = x
     data_dict[f'Demod y'] = y
     data_dict[f'Demod r'] = np.abs(x + 1j*y)
-    data_dict[f'Demod phase'] = np.arctan(x/y)
+    data_dict[f'Demod phase'] = np.arctan2(y,x)
     data_dict[f'R_x'] = x_R
     data_dict[f'R_y'] = y_R
     data_dict[f'R_r'] = np.abs(x_R + 1j*y_R)
-    data_dict[f'R_phase'] = np.arctan(x_R/y_R)
+    data_dict[f'R_phase'] = np.arctan2(y_R, x_R)
 
     # extract data from mfli_dict
     for channel in channels:
@@ -68,7 +72,7 @@ def read_zurich_lockin(daq_objs=None, time_constant=0.3, poll_timeout=500, chann
         data_dict[f'Demod {channel} x'] = x
         data_dict[f'Demod {channel} y'] = y
         data_dict[f'Demod {channel} r'] = np.abs(x + 1j*y)
-        data_dict[f'Demod {channel} phase'] = np.arctan(x/y)
+        data_dict[f'Demod {channel} phase'] = np.arctan2(y,x)
         data_dict[f'Demod {channel} autophase'] = autophase
         data_dict[f'Demod {channel} oscillator'] = osc+1
         data_dict[f'Demod {channel} frequency'] = freq
@@ -189,8 +193,30 @@ def get_zurich_aux_offset(daq_objs=None, wait_time=0, channel=1):
 
 def initialize_zurich_lockin():
     apilevel=6
-    obj = ziutils.create_api_session(device_id, apilevel)
-    daq, device, props = obj
+    objs = ziutils.create_api_session(device_id, apilevel)
+    daq, device, props = objs
+
+    '''
+    # future - reuse zurich connection
+    try:
+        if os.path.exists(ZURICH_HANDLE_FNAME):
+            with open(ZURICH_HANDLE_FNAME, 'rb') as f:
+                objs = dill.loads(f)
+                read_zurich_frequency(objs) # test the connection
+        else:
+            objs = ziutils.create_api_session(device_id, apilevel)
+            daq, device, props = objs
+            with open(ZURICH_HANDLE_FNAME, 'wb') as f:
+                dill.dumps(objs, f)
+    except Exception as e:
+        #print(f'initialization error: {e}')
+        os.remove(ZURICH_HANDLE_FNAME)
+        objs = ziutils.create_api_session(device_id, apilevel)
+        daq, device, props = objs
+        with open(ZURICH_HANDLE_FNAME, 'wb') as f:
+            dill.dumps(objs, f)
+    '''
+
     return daq, device, props
 
 def close_zurich_lockin(obj):

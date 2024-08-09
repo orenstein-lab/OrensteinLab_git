@@ -128,8 +128,15 @@ def read_opticool_field(optc=None):
     return get_opticool_field_info(optc)[0]
 
 def initialize_opticool():
-    optc=telnetlib.Telnet(host, port, timeout=15)
-    optc.read_until(('Connected to QDInstrument Socket Server.\r\n').encode('ascii'))
+    while True:
+        try:
+            optc=telnetlib.Telnet(host, port, timeout=15)
+            optc.read_until(('Connected to QDInstrument Socket Server.\r\n').encode('ascii'))
+            break
+        except:
+            print('failed to initialize opticool, tryping again')
+            time.sleep(0.1)
+
     return optc
 
 def close_opticool(optc):

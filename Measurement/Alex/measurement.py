@@ -200,7 +200,7 @@ def rotate_scan(start_angle, end_angle, step_size, filename_head=None, filename=
     if savefile:
         filename_head, filename = generate_filename(filename_head, filename, 'rotate_scan')
         fname = get_unique_filename(filename_head, filename)
-        header_motors = [motor_dict[m]['name'] for m in measure_motors]
+        header_motors = [motor_dict[m]['name']+str(' measured') for m in measure_motors]
         header = [motor_dict['axis_1']['name'], motor_dict['axis_2']['name']]+lockin_header+header_motors
         write_file_header(fname, header, metadata)
 
@@ -335,7 +335,7 @@ def corotate_scan(start_angle, end_angle, step_size, angle_offset, rate_axis_2=1
     if savefile:
         filename_head, filename = generate_filename(filename_head, filename, 'corotate_scan')
         fname = get_unique_filename(filename_head, filename)
-        header_motors = [motor_dict[m]['name'] for m in measure_motors]
+        header_motors = [motor_dict[m]['name']+str(' measured') for m in measure_motors]
         header = header = [motor_dict['axis_1']['name'], motor_dict['axis_2']['name']]+lockin_header+header_motors
         write_file_header(fname, header, metadata)
 
@@ -416,13 +416,14 @@ def corotate_scan(start_angle, end_angle, step_size, angle_offset, rate_axis_2=1
 
     return position, demod_x, demod_y, demod_r
 
-def motor_scan(map_dict, filename_head=None, filename=None, showplot=True, time_constant=0.3, channel_index=1, R_channel_index=2, print_flag=False, savefile=True, metadata={}):
+def motor_scan(map_dict, filename_head=None, filename=None, showplot=True, time_constant=0.3, channel_index=1, R_channel_index=2, print_flag=False, savefile=True, metadata={}, daq_objs=None):
     '''
     utility to record lockin measurement as a function of motors specified by dictionary map_dict.
     '''
 
     # Lock-in Amplifier initialization
-    daq_objs = instrument_dict['zurich_lockin']['init']()
+    if daq_objs is None:
+        daq_objs = instrument_dict['zurich_lockin']['init']()
     read_lockin = instrument_dict['zurich_lockin']['read']
     lockin_header = list(read_lockin(daq_objs=daq_objs, time_constant=time_constant, channel_index=channel_index, R_channel_index=R_channel_index).keys())
 
@@ -449,7 +450,7 @@ def motor_scan(map_dict, filename_head=None, filename=None, showplot=True, time_
             for m in motors:
                 filename = filename+f'_{m}'
         fname = get_unique_filename(filename_head, filename)
-        header_motors = [motor_dict[m]['name'] for m in measure_motors]
+        header_motors = [motor_dict[m]['name']+str(' measured') for m in measure_motors]
         header = [motor_dict[m]['name'] for m in motors]+[motor_dict[m]['name']+str(' measured') for m in motors]+lockin_header+header_motors
         write_file_header(fname, header, metadata)
 
@@ -594,7 +595,7 @@ def motor_scan(map_dict, filename_head=None, filename=None, showplot=True, time_
     close_motors(mobj_dict)
     close_motors(mobj_measure_dict)
 
-def motor_scan_balance(map_dict, balance, balance_table=None, slope=0, tol=0, balance_channel=3, autobalance_flag=True, filename_head=None, filename=None, showplot=True, time_constant=0.3, channel_index=1, R_channel_index=4, print_flag=False, savefile=True, metadata={}):
+def motor_scan_balance(map_dict, balance, balance_table=None, slope=0, tol=0, balance_channel=3, autobalance_flag=True, filename_head=None, filename=None, showplot=True, time_constant=0.3, channel_index=1, R_channel_index=4, print_flag=False, savefile=True, metadata={}, daq_objs=None):
     '''
     utility to record lockin measurement as a function of motors specified by dictionary map_dict.
 
@@ -628,7 +629,8 @@ def motor_scan_balance(map_dict, balance, balance_table=None, slope=0, tol=0, ba
         bal_table_flag=False
 
     # Lock-in Amplifier initialization
-    daq_objs = instrument_dict['zurich_lockin']['init']()
+    if daq_objs is None:
+        daq_objs = instrument_dict['zurich_lockin']['init']()
     read_lockin = instrument_dict['zurich_lockin']['read']
     lockin_header = list(read_lockin(daq_objs=daq_objs, time_constant=time_constant, channel_index=channel_index, R_channel_index=R_channel_index).keys())
 
@@ -670,7 +672,7 @@ def motor_scan_balance(map_dict, balance, balance_table=None, slope=0, tol=0, ba
             for m in motors:
                 filename = filename+f'_{m}'
         fname = get_unique_filename(filename_head, filename)
-        header_motors = [motor_dict[m]['name'] for m in measure_motors]
+        header_motors = [motor_dict[m]['name']+str(' measured') for m in measure_motors]
         header = [motor_dict[m]['name'] for m in motors]+[motor_dict[m]['name']+str(' measured') for m in motors]+lockin_header+header_motors+['Balance Angle (deg)']
         write_file_header(fname, header, metadata)
 
@@ -1091,7 +1093,7 @@ def find_balance_angle_macro(start_angle, end_angle, step_size, step_size_fine=0
     move_axis_1(balance_at)
     move_axis_2(balance_at)
 
-    coarse_scan = rotate_scan(start_angle+balance_at, end_angle+balance_at, step_size, channel_index=channel_index, time_constant=time_constant, daq_objs=daq_objs, axis_1=axis_1, axis_2=axis_2, save_metadata=False, savefile=False, axis_index=2)
+    coarse_scan = rotate_scan(start_angle+balance_at, end_angle+balance_at, step_size, channel_index=channel_index, time_constant=time_constant, daq_objs=daq_objs, axis_1=axis_1, axis_2=axis_2, override_metadata=True, savefile=False, axis_index=2)
 
     fitf = lambda x, a, phi, c: a*np.cos(4*(2*np.pi/360)*(x-phi)) + c
     popt, pcov = opt.curve_fit(fitf, coarse_scan[0], coarse_scan[1], p0=[np.max(coarse_scan[1]), balance_at, 0], bounds=([0,-np.inf,-np.inf], [np.inf,np.inf,np.inf]))
@@ -1148,7 +1150,7 @@ def find_balance_angle(start_angle, end_angle, step_size, balance_at=0, offset=0
     move_axis_1(balance_at)
     move_axis_2(balance_at)
 
-    positions, demod_x, demod_y, demod_r = rotate_scan(balance_at+start_angle, balance_at+end_angle, step_size, axis_index=axis_index, channel_index=channel_index, time_constant=time_constant, R_channel_index=R_channel_index, daq_objs=daq_objs, axis_1=axis_1, axis_2=axis_2, save_metadata=False, savefile=False)
+    positions, demod_x, demod_y, demod_r = rotate_scan(balance_at+start_angle, balance_at+end_angle, step_size, axis_index=axis_index, channel_index=channel_index, time_constant=time_constant, R_channel_index=R_channel_index, daq_objs=daq_objs, axis_1=axis_1, axis_2=axis_2, override_metadata=True, savefile=False)
 
     # linear fit
     fitf = lambda x, m, b: m*x+b

@@ -178,8 +178,8 @@ def rotate_scan(start_angle, end_angle, step_size, filename_head=None, filename=
     passed_measure_motors = True
     if mobj_measure_dict=={}:
         passed_measure_motors = False
-        mobj_measure_dict = initialize_motors(list(set(meta_motors) - set(['axis_1', 'axis_2'])))
-    measure_motors = list(mobj_measure_dict.keys())+{'axis_1':axis_1, 'axis_2':axis_2}
+        mobj_measure_dict = {**initialize_motors(list(set(meta_motors) - set(['axis_1', 'axis_2']))), **{'axis_1':axis_1, 'axis_2':axis_2}}
+    measure_motors = list(mobj_measure_dict.keys())
 
     # setup metadata - ie, for quick reference of starting state before measurement
     if override_metadata==True:
@@ -312,8 +312,8 @@ def corotate_scan(start_angle, end_angle, step_size, angle_offset, rate_axis_2=1
     passed_measure_motors = True
     if mobj_measure_dict=={}:
         passed_measure_motors = False
-        mobj_measure_dict = initialize_motors(list(set(meta_motors) - set(['axis_1', 'axis_2'])))
-    measure_motors = list(mobj_measure_dict.keys())+{'axis_1':axis_1, 'axis_2':axis_2}
+        mobj_measure_dict = {**initialize_motors(list(set(meta_motors) - set(['axis_1', 'axis_2']))), **{'axis_1':axis_1, 'axis_2':axis_2}}
+    measure_motors = list(mobj_measure_dict.keys())
 
     # setup metadata - ie, for quick reference of starting state before measurement
     if override_metadata==True:

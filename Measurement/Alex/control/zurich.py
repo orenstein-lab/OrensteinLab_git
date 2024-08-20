@@ -259,8 +259,6 @@ def set_zurich_acfilter(val, sigin=0, daq_objs=None):
     daq.setInt(f'/{device}/sigins/{sigin}/ac', int(val))
 
 
-
-
 #########################
 ### Wrapper functions ###
 #########################

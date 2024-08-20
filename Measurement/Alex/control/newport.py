@@ -212,19 +212,20 @@ def corotate_axes300(axis_1_index, axis_2_index, angle_1, angle_2, axis_1=None, 
     if axis_2==None:
         axis_2 = initialize_esp300(axis_2_index)
 
-        while True:
-            try:
-                axis_1.position = angle_1
-                axis_2.position = angle_2
-                break
-            except:
-                print('failed to corotate axes, trying agian.')
-                close_esp300(axis_1)
-                close_esp300(axis_2)
-                axis_1 = initialize_esp300(axis_1_index)
-                axis_2 = initialize_esp300(axis_2_index)
-                #print('reinitialized axes')
-            time.sleep(0.1)
+    while True:
+        try:
+            axis_1.position = angle_1
+            axis_2.position = angle_2
+            break
+        except:
+            print('failed to corotate axes, trying agian.')
+            close_esp300(axis_1)
+            close_esp300(axis_2)
+            axis_1 = initialize_esp300(axis_1_index)
+            axis_2 = initialize_esp300(axis_2_index)
+            #print('reinitialized axes')
+        time.sleep(0.1)
+
     while True:
         try:
             if axis_1.motion_done==True and axis_2.motion_done==True:

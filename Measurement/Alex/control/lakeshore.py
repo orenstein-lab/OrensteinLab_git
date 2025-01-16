@@ -9,7 +9,7 @@ import numpy as np
 
 lakeshore_model = config_dict['Lakeshore Model']
 
-def set_temperature(temperature, lsobj=None, tolerance=0.05, avg_time=3, wait_time=0, max_check=750, output=1, on_off=0, rate=0, check_stability=True):
+def set_temperature(temperature, lsobj=None, tolerance=0.1, avg_time=3, wait_time=0, max_check=750, output=1, on_off=0, rate=0, check_stability=True):
     '''
     sets lakeshore setpoint, waits until temperature is within tolerance of setpoint, and waits for soak time before returning.
 
@@ -22,7 +22,7 @@ def set_temperature(temperature, lsobj=None, tolerance=0.05, avg_time=3, wait_ti
     lsobj, lsobj_passed = get_lsobj(lsobj)
 
     temp=float(temperature)
-    set_ramp(lsobj, output, on_off, rate)
+    #set_ramp(lsobj, output, on_off, rate)
     set_setpoint(temp, lsobj, output)
     time.sleep(0.1)
 
@@ -136,6 +136,22 @@ def read_range(lsobj=None):
     if lsobj_passed==False:
         close_lakeshore(lsobj)
     return range
+
+def set_pid(p, i, d, lsobj=None, output=1):
+
+    lsobj, lsobj_passed = get_lsobj(lsobj)
+    lsobj.command(f'PID {output}, {p}, {i}, {d}')
+    if lsobj_passed==False:
+        close_lakeshore(lsobj)
+
+def read_pid(lsobj=None, output=1):
+
+    lsobj, lsobj_passed = get_lsobj(lsobj)
+    pid = lsobj.query('PID?')
+    p, i, d = [float(i) for i in pid.split(',')]
+    if lsobj_passed==False:
+        close_lakeshore(lsobj)
+    return p, i, d
 
 def initialize_lakeshore():
     if lakeshore_model == '335':

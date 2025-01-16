@@ -66,16 +66,31 @@ def read_zurich_lockin(daq_objs=None, time_constant=0.3, poll_timeout=500, chann
     for channel in channels:
         x = np.mean(mfli_dict[f'/{device}/demods/{channel-1}/sample']['x'])
         y = np.mean(mfli_dict[f'/{device}/demods/{channel-1}/sample']['y'])
-        autophase = read_zurich_autophase(daq_objs, channel) # shouldn't change during measurement
+        autophase = daq.getDouble(f'/{device}/demods/{channel-1}/phaseshift')
+        osc = daq.getInt(f'/{device}/demods/{channel-1}/oscselect')
+        freq = daq.getDouble(f'/{device}/oscs/{osc}/freq')
         data_dict[f'Demod {channel} x'] = x
         data_dict[f'Demod {channel} y'] = y
         data_dict[f'Demod {channel} r'] = np.abs(x + 1j*y)
         data_dict[f'Demod {channel} phase'] = np.arctan2(y,x)
         data_dict[f'Demod {channel} autophase'] = autophase
+        data_dict[f'Demod {channel} oscillator'] = osc+1
+        data_dict[f'Demod {channel} frequency'] = freq
 
     # add any other data from lockin to data_dict
 
     return data_dict
+
+def set_zurich_osc(osc, daq_objs=None, wait_time=0, channel=1):
+
+    # initialize
+    if daq_objs is None:
+        daq, device, props = initialize_zurich_lockin()
+    else:
+        daq, device, props = daq_objs
+
+    daq.setInt(f'/{device}/demods/{channel-1}/oscselect', osc-1)
+    time.sleep(wait_time)
 
 def set_zurich_autophase(angle, daq_objs=None, wait_time=0, channel=1):
 
@@ -98,6 +113,17 @@ def set_zurich_output_amplitude(amplitude, daq_objs=None, wait_time=0, channel=1
 
     daq.setDouble(f'/%s/sigouts/0/amplitudes/{channel-1}'%device, amplitude)
     time.sleep(wait_time)
+
+def read_zurich_osc(daq_objs=None, channel=1):
+
+    # initialize
+    if daq_objs is None:
+        daq, device, props = initialize_zurich_lockin()
+    else:
+        daq, device, props = daq_objs
+
+    osc = daq.getInt(f'/{device}/demods/{channel-1}/oscselect')
+    return osc+1
 
 def read_zurich_autophase(daq_objs=None, channel=1):
 
@@ -231,8 +257,6 @@ def set_zurich_acfilter(val, sigin=0, daq_objs=None):
         daq, device, props = daq_objs
 
     daq.setInt(f'/{device}/sigins/{sigin}/ac', int(val))
-
-
 
 
 #########################

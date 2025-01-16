@@ -17,7 +17,7 @@ import pickle
 import OrensteinLab_git.Measurement.Alex.control.newport as newport
 import OrensteinLab_git.Measurement.Alex.control.lakeshore as ls
 import OrensteinLab_git.Measurement.Alex.control.zurich as zurich
-import OrensteinLab_git.Measurement.Alex.control.opticool as oc
+# import OrensteinLab_git.Measurement.Alex.control.opticool as oc
 import OrensteinLab_git.Measurement.Alex.control.razorbill as razorbill
 import OrensteinLab_git.Measurement.Alex.control.attocube as atto
 from OrensteinLab_git.Measurement.Alex.control.concurrency_classes import LockedVar, StoppableThread
@@ -178,7 +178,7 @@ def rotate_scan(start_angle, end_angle, step_size, filename_head=None, filename=
     passed_measure_motors = True
     if mobj_measure_dict=={}:
         passed_measure_motors = False
-        mobj_measure_dict = initialize_motors(list(set(meta_motors) - set(['axis_1', 'axis_2'])))
+        mobj_measure_dict = {**initialize_motors(list(set(meta_motors) - set(['axis_1', 'axis_2']))), **{'axis_1':axis_1, 'axis_2':axis_2}}
     measure_motors = list(mobj_measure_dict.keys())
 
     # setup metadata - ie, for quick reference of starting state before measurement
@@ -312,7 +312,7 @@ def corotate_scan(start_angle, end_angle, step_size, angle_offset, rate_axis_2=1
     passed_measure_motors = True
     if mobj_measure_dict=={}:
         passed_measure_motors = False
-        mobj_measure_dict = initialize_motors(list(set(meta_motors) - set(['axis_1', 'axis_2'])))
+        mobj_measure_dict = {**initialize_motors(list(set(meta_motors) - set(['axis_1', 'axis_2']))), **{'axis_1':axis_1, 'axis_2':axis_2}}
     measure_motors = list(mobj_measure_dict.keys())
 
     # setup metadata - ie, for quick reference of starting state before measurement
@@ -330,6 +330,7 @@ def corotate_scan(start_angle, end_angle, step_size, angle_offset, rate_axis_2=1
     # convert input to angle lists
     angles_1 = get_motor_range(start_angle, end_angle, step_size)
     angles_2 = rate_axis_2*angles_1 + angle_offset
+    #print(angles_1)
 
     # setup file for writing
     if savefile:

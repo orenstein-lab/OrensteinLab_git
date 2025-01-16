@@ -10,13 +10,14 @@ esp_model = config_dict['ESP Model']
 ### Core Functions ###
 ######################
 
-def move_axis(axis_index, pos, axis=None):
+def move_axis(axis_index, pos, axis=None, wait_time=0):
     if esp_model=='301':
         move_esp301(axis_index, pos, axis)
     elif esp_model=='300':
         move_esp300(axis_index, pos, axis)
     else:
         raise ValueError(f'ESP Model {esp_model} not supported.')
+    time.sleep(wait_time)
 
 def read_axis(axis_index, axis=None, print_flag=True):
     if esp_model=='301':
@@ -212,19 +213,20 @@ def corotate_axes300(axis_1_index, axis_2_index, angle_1, angle_2, axis_1=None, 
     if axis_2==None:
         axis_2 = initialize_esp300(axis_2_index)
 
-        while True:
-            try:
-                axis_1.position = angle_1
-                axis_2.position = angle_2
-                break
-            except:
-                print('failed to corotate axes, trying agian.')
-                close_esp300(axis_1)
-                close_esp300(axis_2)
-                axis_1 = initialize_esp300(axis_1_index)
-                axis_2 = initialize_esp300(axis_2_index)
-                #print('reinitialized axes')
-            time.sleep(0.1)
+    while True:
+        try:
+            axis_1.position = angle_1
+            axis_2.position = angle_2
+            break
+        except:
+            print('failed to corotate axes, trying agian.')
+            close_esp300(axis_1)
+            close_esp300(axis_2)
+            axis_1 = initialize_esp300(axis_1_index)
+            axis_2 = initialize_esp300(axis_2_index)
+            #print('reinitialized axes')
+        time.sleep(0.1)
+
     while True:
         try:
             if axis_1.motion_done==True and axis_2.motion_done==True:
@@ -290,14 +292,14 @@ def close_esp300(axis):
 ### Wrapper Functions ###
 #########################
 
-def move_axis_1(pos, axis=None):
-    move_axis(1, pos, axis)
+def move_axis_1(pos, axis=None, wait_time=0):
+    move_axis(1, pos, axis, wait_time)
 
-def move_axis_2(pos, axis=None):
-    move_axis(2, pos, axis)
+def move_axis_2(pos, axis=None, wait_time=0):
+    move_axis(2, pos, axis, wait_time)
 
-def move_axis_3(pos, axis=None):
-    move_axis(3, pos, axis)
+def move_axis_3(pos, axis=None, wait_time=0):
+    move_axis(3, pos, axis, wait_time)
 
 def corotate_axes12(angle, axes=None, bal_angle=0):
     if axes==None:

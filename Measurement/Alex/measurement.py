@@ -17,7 +17,7 @@ import pickle
 import OrensteinLab_git.Measurement.Alex.control.newport as newport
 import OrensteinLab_git.Measurement.Alex.control.lakeshore as ls
 import OrensteinLab_git.Measurement.Alex.control.zurich as zurich
-import OrensteinLab_git.Measurement.Alex.control.opticool as oc
+# import OrensteinLab_git.Measurement.Alex.control.opticool as oc
 import OrensteinLab_git.Measurement.Alex.control.razorbill as razorbill
 import OrensteinLab_git.Measurement.Alex.control.attocube as atto
 from OrensteinLab_git.Measurement.Alex.control.concurrency_classes import LockedVar, StoppableThread

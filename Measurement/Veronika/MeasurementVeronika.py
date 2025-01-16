@@ -24,12 +24,12 @@ def add_unique_postfix(fn):
 
 
 
-device_id = 'DEV3537'
+device_id = 'dev3232'
 apilevel = 6
 (daq, device, props) = ziutils.create_api_session(device_id, apilevel)
 
 import instruments.newport as newport
-controller = newport.NewportESP301.open_serial(port="COM8", baud=921600)
+controller = newport.NewportESP301.open_serial(port="COM4", baud=921600)
 
 
 def initialization_lakeshore335(baud):
@@ -639,6 +639,62 @@ def FreqSweep(freqs, length, fileRoot, plott):
 
                 plt.show()
                # time.sleep(1)
+        file.close()
+
+def FreqSweepOnePoint(freqs, fileRoot, plott):
+
+    filename=add_unique_postfix(fileRoot)
+
+    file = open(filename,'a')
+    file.write('freq(Hz)'+'\t'+'Demod x'+'\t'+'Demod y'+'\t'+'R'+'\n')
+
+    freqArray = np.array([])
+    demod_x = np.array([])
+    demod_y = np.array([])
+    demod_r = np.array([])
+    demod_theta = np.array([])
+     
+
+    for f in freqs:
+        daq.setDouble('/%s/oscs/0/freq' % device, f)
+        print(f)
+        time.sleep(5)
+   
+        sample = daq.getSample('/%s/demods/0/sample' % device)
+        sample["R"] = np.abs(sample["x"] + 1j * sample["y"])
+        sample["theta"] = np.angle(sample["x"] + 1j * sample["y"])/np.pi*180
+
+        x = sample["x"][0]
+        y = sample["y"][0]
+        r = sample["R"][0]
+        theta = sample["theta"][0]
+      
+
+
+        freqArray = np.append(freqArray, ts)
+        demod_x = np.append(demod_x, x)
+        demod_y = np.append(demod_y, y)
+        demod_r = np.append(demod_r, r)
+        demod_theta = np.append(demod_theta, theta)
+
+        file.write(format(f, '.15f')+"\t"+format(x, '.15f')+'\t'+format(y, '.15f')+'\t'+format(r, '.15f')+'\n')
+        
+        if plott:
+            clear_output(wait=True)
+            fig = plt.figure(figsize=(12,12))
+            plt.title('filename')
+            gs = fig.add_gridspec(2, 1)
+            ax1 = fig.add_subplot(gs[0, 0])
+            ax2 = fig.add_subplot(gs[1, 0])
+            ax1.set_xlabel('Time (s)')
+            ax1.set_ylabel('Demod x')
+            ax2.set_xlabel('Time (s)')
+            ax2.set_ylabel('theta (deg)')
+            ax1.plot(freqArray,demod_x,'-o')
+            ax2.plot(freqArray,demod_theta,'-o')
+
+            plt.show()
+            # time.sleep(1)
         file.close()
         
 def RecordTime(inst, filename,length, plott, printt):

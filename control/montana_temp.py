@@ -1,4 +1,4 @@
-from OrensteinLab_git.Measurement.Alex.control.montana import cryocore
+from OrensteinLab_git.control.montana import cryocore
 from OrensteinLab_git.configuration import config_dict
 import time
 import numpy as np

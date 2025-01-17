@@ -1,4 +1,4 @@
-import numpy as np
+
 import zhinst.utils as ziutils
 import zhinst.core as zicore
 from OrensteinLab_git.configuration import config_dict

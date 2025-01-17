@@ -6,6 +6,7 @@ This package is for running experiments in Joe Orenstein's lab. The basic struct
 	  - measurement.py - file containing routines used frequently during experiments. For code to be recyclable, functions here should, as much as possible, be written so as to treat motors and instruments abstractly as opposed to directly referencing files in /control. This takes some effort but is worthwhile in the long run, and underlies the power of this package.
 	  - *motor_dict.py - file defining the important motor_dict, instrument_dict, and meta_motors objects, which link abstract motors ('x', 'y', temp', etc...) to specific hardware whose interface is defined in /control. In general this is different for each cryostat and is easy to modify
 	  - *configuration.py - file containing config_dict, which holds configuration information that is specific to each system
+	  - /users - folder containing folders for each user to write their own scripts and functions, a sandbox of sorts
 	  
 	  * not tracked by git so that each system can have its own copy
 

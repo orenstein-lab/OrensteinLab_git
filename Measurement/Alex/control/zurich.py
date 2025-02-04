@@ -14,7 +14,7 @@ ZURICH_HANDLE_FNAME = config_dict['Zurich Handle']
 ### Core Functions ###
 ######################
 
-def read_zurich_lockin(daq_objs=None, time_constant=0.3, poll_timeout=500, channel_index=1, R_channel_index=4):
+def read_zurich_lockin(daq_objs=None, time_constant=0.3, poll_length=None, poll_timeout=500, wait_factor=3, channel_index=1, R_channel_index=4):
     '''
     in the future, change this to output a dictionary such that function that call this can pull out any variety of infomation. alternatively, make the subscriptions flexible (ie some list of objects we want to subscribe to with a convenient default) and then the output dictionary with names that make sense. I'll then have to change upstream functions to pull out the right values, or really they should just save everything that comes out. This is a fairly straight forwward thing to implement.
 
@@ -31,13 +31,14 @@ def read_zurich_lockin(daq_objs=None, time_constant=0.3, poll_timeout=500, chann
     channels = [1,2,3,4]
     for channel in channels:
         daq.setDouble(f'/{device}/demods/{channel-1}/timeconstant', time_constant)
-    poll_length = time_constant
+    if poll_length==None: 
+        poll_length = time_constant
     poll_timeout = poll_timeout # ms
     poll_flags = 0
     poll_return_flat_dict = True
 
     # subscribe to channels and read mfli
-    #time.sleep(time_constant*4)
+    time.sleep(time_constant*wait_factor)
     for channel in channels:
         daq.subscribe(f'/{device}/demods/{channel-1}/sample')
 

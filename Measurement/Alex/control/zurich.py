@@ -274,3 +274,17 @@ def get_zurich_aux_offset_1(daq_objs=None, wait_time=0):
 
 def get_zurich_aux_offset_2(daq_objs=None, wait_time=0):
     return get_zurich_aux_offset(daq_objs, wait_time, 2)
+
+def change_zurich_voltage(v, daq_objs=None, vstep=0.5, wait_time=2):
+
+    if daq_objs is None:
+        daq_objs = initialize_zurich_lockin()
+    vcurr = round(read_zurich_output_amplitude(daq_objs=daq_objs),1)
+    sgn = np.sign(v - vcurr)
+    if vcurr==v:
+        pass
+    else:
+        voltages = np.arange(vcurr,v+sgn*vstep, sgn*vstep)
+        for vv in voltages:
+            set_zurich_output_amplitude(vv,wait_time=wait_time, daq_objs=daq_objs)
+            time.sleep(wait_time)

@@ -91,7 +91,7 @@ def lockin_time_series(recording_time, filename_head=None, filename=None, mobj_m
     t_delay = 0
     tic = time.perf_counter()
     while (t_delay<recording_time):
-        time.sleep(time_constant)
+        #time.sleep(time_constant)
         toc = time.perf_counter()
         t_delay = toc - tic
 

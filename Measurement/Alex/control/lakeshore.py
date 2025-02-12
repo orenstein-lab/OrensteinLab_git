@@ -91,6 +91,12 @@ def read_setpoint(lsobj=None):
     return setpoint
 
 def set_ramp(lsobj=None, output=1, on_off=0, rate=0):
+    '''
+    args:
+        - output: specifies which output control loop to configure. 1 or 2
+        - on_off: specifies whether ramping is 0=off, 1=on
+        - rate:   specifies setpoint ramp rate in K/min
+    '''
     lsobj, lsobj_passed = get_lsobj(lsobj)
     lsobj.command("RAMP "+str(output)+','+str(int(on_off))+','+str(rate))
     if lsobj_passed==False:

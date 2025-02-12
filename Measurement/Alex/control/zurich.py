@@ -29,16 +29,19 @@ def read_zurich_lockin(daq_objs=None, time_constant=0.3, poll_length=None, poll_
         daq, device, props = daq_objs
 
     channels = [1,2,3,4]
-    for channel in channels:
-        daq.setDouble(f'/{device}/demods/{channel-1}/timeconstant', time_constant)
-    if poll_length==None: 
-        poll_length = time_constant
+    for ii, channel in enumerate(channels):
+        if type(time_constant) is float:
+            daq.setDouble(f'/{device}/demods/{channel-1}/timeconstant', time_constant)
+        else:
+            daq.setDouble(f'/{device}/demods/{channel-1}/timeconstant', time_constant[ii])
+    if poll_length==None:
+        poll_length = np.max(time_constant)
     poll_timeout = poll_timeout # ms
     poll_flags = 0
     poll_return_flat_dict = True
 
     # subscribe to channels and read mfli
-    time.sleep(time_constant*wait_factor)
+    time.sleep(np.max(time_constant)*wait_factor)
     for channel in channels:
         daq.subscribe(f'/{device}/demods/{channel-1}/sample')
 
@@ -260,6 +263,66 @@ def set_zurich_acfilter(val, sigin=0, daq_objs=None):
     daq.setInt(f'/{device}/sigins/{sigin}/ac', int(val))
 
 
+##################
+### Scope read ###
+##################
+
+def read_zurich_spectrum(daq_objs=None):
+    '''
+    reads scope on lockin and return dictionary with scope data. In this primitive form, up to use to make sure the that the scope has been setup correctly.
+    '''
+
+    # initialize
+    if daq_objs is None:
+        daq, device, props = initialize_zurich_lockin()
+        daq_objs = [daq, device, props]
+    else:
+        daq, device, props = daq_objs
+
+    # subscribe to channels and read mfli
+    for channel in channels:
+        daq.subscribe(f'/{device}/scopes/{channel-1}/sample')
+
+    # read lockin
+    daq.sync()
+    mfli_dict = daq.poll(poll_length, poll_timeout, poll_flags, poll_return_flat_dict)
+    daq.unsubscribe('*')
+    #print(list(mfli_dict.keys()))
+
+    data_dict = {}
+    # Give data and R channel index separtely for convenience
+    x = np.mean(mfli_dict[f'/{device}/demods/{channel_index-1}/sample']['x'])
+    y = np.mean(mfli_dict[f'/{device}/demods/{channel_index-1}/sample']['y'])
+    x_R = np.mean(mfli_dict[f'/{device}/demods/{R_channel_index-1}/sample']['x'])
+    y_R = np.mean(mfli_dict[f'/{device}/demods/{R_channel_index-1}/sample']['y'])
+    data_dict[f'Demod x'] = x
+    data_dict[f'Demod y'] = y
+    data_dict[f'Demod r'] = np.abs(x + 1j*y)
+    data_dict[f'Demod phase'] = np.arctan2(y,x)
+    data_dict[f'R_x'] = x_R
+    data_dict[f'R_y'] = y_R
+    data_dict[f'R_r'] = np.abs(x_R + 1j*y_R)
+    data_dict[f'R_phase'] = np.arctan2(y_R, x_R)
+
+    # extract data from mfli_dict
+    for channel in channels:
+        x = np.mean(mfli_dict[f'/{device}/demods/{channel-1}/sample']['x'])
+        y = np.mean(mfli_dict[f'/{device}/demods/{channel-1}/sample']['y'])
+        autophase = daq.getDouble(f'/{device}/demods/{channel-1}/phaseshift')
+        osc = daq.getInt(f'/{device}/demods/{channel-1}/oscselect')
+        freq = daq.getDouble(f'/{device}/oscs/{osc}/freq')
+        data_dict[f'Demod {channel} x'] = x
+        data_dict[f'Demod {channel} y'] = y
+        data_dict[f'Demod {channel} r'] = np.abs(x + 1j*y)
+        data_dict[f'Demod {channel} phase'] = np.arctan2(y,x)
+        data_dict[f'Demod {channel} autophase'] = autophase
+        data_dict[f'Demod {channel} oscillator'] = osc+1
+        data_dict[f'Demod {channel} frequency'] = freq
+
+    # add any other data from lockin to data_dict
+
+    return data_dict
+
 #########################
 ### Wrapper functions ###
 #########################
@@ -275,3 +338,17 @@ def get_zurich_aux_offset_1(daq_objs=None, wait_time=0):
 
 def get_zurich_aux_offset_2(daq_objs=None, wait_time=0):
     return get_zurich_aux_offset(daq_objs, wait_time, 2)
+
+def change_zurich_voltage(v, daq_objs=None, vstep=0.5, wait_time=2):
+
+    if daq_objs is None:
+        daq_objs = initialize_zurich_lockin()
+    vcurr = round(read_zurich_output_amplitude(daq_objs=daq_objs),1)
+    sgn = np.sign(v - vcurr)
+    if vcurr==v:
+        pass
+    else:
+        voltages = np.arange(vcurr,v+sgn*vstep, sgn*vstep)
+        for vv in voltages:
+            set_zurich_output_amplitude(vv,wait_time=wait_time, daq_objs=daq_objs)
+            time.sleep(wait_time)

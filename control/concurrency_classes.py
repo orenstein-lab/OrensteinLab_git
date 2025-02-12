@@ -53,3 +53,24 @@ class StoppableThread(Thread):
 
     def stopped(self):
         return self._stop_event.is_set()
+
+
+class LockedDict:
+    '''
+    Minimal class to implement a locking dictionary. Contains two private attributes, a value and a lock, and a few methods for safetly reading writing value via the lock.
+    '''
+    def __init__(self, dict):
+        self._dict = dict
+        self._lock = Lock()
+
+    def locked_read(self, key):
+        with self._lock:
+            return self._dict[key]
+
+    def locked_update(self, key, val):
+        with self._lock:
+            self._dict[key] = val
+
+    def locked_get_dict(self):
+        with self._lock:
+            return self._dict

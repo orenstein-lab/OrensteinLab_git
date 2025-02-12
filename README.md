@@ -1,4 +1,4 @@
-This package is for running experiments in Joe Orenstein's lab. The basic structure is very simple:
+This package is for running experiments in Joe Orenstein's lab. Above all else, it provides a bare-bones syntax and standard protocol to quickly develop software to coordinate instruments and motors in a modern lab environment, with a high degree of code recyclability. The basic structure is very simple:
 
 
 	OrentsteinLab_git/

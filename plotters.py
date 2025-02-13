@@ -1,9 +1,11 @@
-########################
-### Plotting Methods ###
-########################
+
+'''
+Plotting Method
+'''
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
+import matplotlib
 import os
 import time
 import threading
@@ -12,10 +14,12 @@ import scipy.optimize as opt
 import scipy.interpolate as interp
 import inspect
 import pickle
-from OrensteinLab_git.control.concurrency_classes import LockedVar, StoppableThread, LockedDict
-from OrensteinLab_git.devices import motor_dict, instrument_dict, meta_motors, active_motors, active_instruments
+from OrensteinLab_git.devices.concurrency_classes import LockedVar, StoppableThread, LockedDict
+from OrensteinLab_git.devices import MOTOR_DICT, INSTRUMENT_DICT, META_MOTORS, ACTIVE_MOTORS, ACTIVE_INSTRUMENTS
 
-def setup_1d_plots_append(vars, xlabel):
+DEFAULT_FIGSIZE = (6,3)
+
+def setup_1d_plots_append(vars, xlabel, figsize=DEFAULT_FIGSIZE):
     '''
     setup plots where data containers are continuously appended to. Good for situations where one does not know a-priori total number of points to plot
 
@@ -40,7 +44,9 @@ def setup_1d_plots_append(vars, xlabel):
     xrange =  np.array([])
 
     # setup 1d plot
-    fig, axes = plt.subplots(nvars, 1, figsize=(8,nvars*3.5))
+    fig, axes = plt.subplots(nvars, 1, figsize=(figsize[0],nvars*figsize[1]))
+    if type(axes) is matplotlib.axes._axes.Axes:
+        axes = [axes]
     for ii, ax in enumerate(axes):
         ax.set_xlabel(xlabel)
         ax.set_ylabel(vars[ii])
@@ -88,7 +94,7 @@ def update_1d_plots_append(fig, axes, vars, plot_handles_dict, xrange, vdata1d_d
 
     return xrange, vdata1d_dict
 
-def setup_1d_plots(vars, xlabel, xrange):
+def setup_1d_plots(vars, xlabel, xrange, figsize=DEFAULT_FIGSIZE):
     '''
     setup plots where data container lengths are known
 
@@ -113,7 +119,9 @@ def setup_1d_plots(vars, xlabel, xrange):
         vdata1d_dict[v] = vdata
 
     # setup 1d plot
-    fig, axes = plt.subplots(nvars, 1, figsize=(8,nvars*3.5))
+    fig, axes = plt.subplots(nvars, 1, figsize=(figsize[0],nvars*figsize[1]))
+    if type(axes) is matplotlib.axes._axes.Axes:
+        axes = [axes]
     for ii, ax in enumerate(axes):
         ax.set_xlabel(xlabel)
         ax.set_ylabel(vars[ii])
@@ -158,7 +166,7 @@ def update_1d_plots(fig, axes, vars, plot_handles_dict, vdata1d_dict, xind, newd
 
     return vdata1d_dict
 
-def setup_2d_plots(vars, xlabel, xrange, ylabel, yrange):
+def setup_2d_plots(vars, xlabel, xrange, ylabel, yrange, figsize=DEFAULT_FIGSIZE):
     '''
     setup 2d plots where data container lengths are known
 
@@ -188,7 +196,9 @@ def setup_2d_plots(vars, xlabel, xrange, ylabel, yrange):
     extent=[xrange[0], xrange[-1], yrange[0], yrange[-1]]
 
     # setup 2d plots
-    fig, axes = plt.subplots(nvars, 1, figsize=(8,3.5*nvars))
+    fig, axes = plt.subplots(nvars, 1, figsize=(figsize[0],nvars*figsize[1]))
+    if type(axes) is matplotlib.axes._axes.Axes:
+        axes = [axes]
     plot_handles_dict = {}
     for ii, v in enumerate(vars):
         vdata = vdata2d_dict[v]

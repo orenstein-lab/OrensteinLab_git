@@ -1,5 +1,5 @@
 '''
-motor_template -  each motor at minimum must contain
+motor_template -  each motor at minimum must contain following functions with given form of arguments
 
     - init(**kwargs) - returns motor handle object
     - read(obj=None, **kwargs) - return motor value

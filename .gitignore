@@ -10,7 +10,7 @@ zurich_handle
 opticool_handle
 
 # ignore config and motor file
-motors.py
+motors_and_instruments.py
 configuration.py
 
 # other files that pop up:

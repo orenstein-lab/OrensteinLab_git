@@ -1,40 +1,47 @@
 import instruments.newport as newport
 from pymeasure.instruments.newport import ESP300
-from OrensteinLab_git.configuration import config_dict
+from OrensteinLab_git.configuration import CONFIG_DICT
 import time
 
-esp_port = config_dict['ESP COM Port']
-esp_model = config_dict['ESP Model']
+esp_port = CONFIG_DICT['ESP COM Port']
+esp_model = CONFIG_DICT['ESP Model']
 
 ######################
 ### Core Functions ###
 ######################
 
-def move_axis(axis_index, pos, axis=None, wait_time=0):
+def move_axis(axis_index, pos, axis=None, wait_time=0, check_stability=True):
+
     if esp_model=='301':
-        move_esp301(axis_index, pos, axis)
+        axis =  move_esp301(axis_index, pos, axis, check_stability)
     elif esp_model=='300':
-        move_esp300(axis_index, pos, axis)
+        axis = move_esp300(axis_index, pos, axis, check_stability)
     else:
         raise ValueError(f'ESP Model {esp_model} not supported.')
     time.sleep(wait_time)
 
-def read_axis(axis_index, axis=None, print_flag=True):
-    if esp_model=='301':
-        pos = read_esp301(axis_index, axis, print_flag)
-    elif esp_model=='300':
-        pos = read_esp300(axis_index, axis, print_flag)
-    else:
-        raise ValueError(f'ESP Model {esp_model} not supported.')
-    return pos
+    return axis
 
-def corotate_axes(axis_1_index, axis_2_index, angle_1, angle_2, axis_1=None, axis_2=None):
+def read_axis(axis_index, axis=None, print_flag=True):
+
     if esp_model=='301':
-        corotate_axes301(axis_1_index, axis_2_index, angle_1, angle_2, axis_1, axis_2)
+        pos, axis = read_esp301(axis_index, axis, print_flag)
     elif esp_model=='300':
-        corotate_axes300(axis_1_index, axis_2_index, angle_1, angle_2, axis_1, axis_2)
+        pos, axis = read_esp300(axis_index, axis, print_flag)
     else:
         raise ValueError(f'ESP Model {esp_model} not supported.')
+    
+    return pos, axis
+
+def corotate_axes(axis_1_index, axis_2_index, angle_1, angle_2, axis_1=None, axis_2=None, check_stability=True):
+    if esp_model=='301':
+        axis_1, axis_2 = corotate_axes301(axis_1_index, axis_2_index, angle_1, angle_2, axis_1, axis_2, check_stability)
+    elif esp_model=='300':
+        axis_1, axis_2 = corotate_axes300(axis_1_index, axis_2_index, angle_1, angle_2, axis_1, axis_2, check_stability)
+    else:
+        raise ValueError(f'ESP Model {esp_model} not supported.')
+
+    return axis_1, axis_2
 
 def initialize_axis(axis_index):
     if esp_model=='301':
@@ -53,27 +60,36 @@ def close_axis(axis):
     else:
         raise ValueError(f'ESP Model {esp_model} not supported.')
 
-def move_esp301(axis_index, pos, axis=None):
+def move_esp301(axis_index, pos, axis=None, check_stability=True):
     '''
     rotate waveplate. I can now add any checks that have to happen typically.
     '''
     # initialize axis
+    axis_passed = True
     if axis==None:
         axis = initialize_esp301(axis_index)
+        axis_passed=False
 
     while True:
         try:
             axis.move(pos, absolute=True)
-            check_axis_stability301(axis, axis_index)
+            if check_stability:
+                axis = check_axis_stability301(axis, axis_index)
             break
         except:
             print(f'failed to move axis {axis_index}, trying again')
             close_esp301(axis)
             axis = initialize_esp301(axis_index)
             print(f'reinitialized axis {axis_index}')
-            check_axis_stability301(axis, axis_index)
+            if check_stability:
+                axis = check_axis_stability301(axis, axis_index)
             break
         time.sleep(0.1)
+    
+    if axis_passed==False:
+        close_esp301(axis)
+    else:
+        return axis
 
 def read_esp301(axis_index, axis=None, print_flag=True):
     '''
@@ -97,9 +113,12 @@ def read_esp301(axis_index, axis=None, print_flag=True):
             #pass
         time.sleep(0.1)
 
-    if print_flag==True and obj_passed==False:
-        print(pos)
-    return pos
+    if obj_passed==False:
+        if print_flag==True:
+            print(pos)
+        close_esp300(axis)
+    else:
+        return pos, axis
 
 def check_axis_stability301(axis, axis_index):
     '''
@@ -116,16 +135,20 @@ def check_axis_stability301(axis, axis_index):
             #print(f'reinitialized axis {axis_index}')
             #pass
         time.sleep(0.1)
+    return axis
 
-def move_esp300(axis_index, pos, axis=None):
+def move_esp300(axis_index, pos, axis=None, check_stability=True):
 
+    axis_passed = True
     if axis==None:
         axis = initialize_esp300(axis_index)
+        axis_passed=False
 
     while True:
         try:
             axis.position = pos
-            check_axis_stability300(axis, axis_index)
+            if check_stability:
+                axis = check_axis_stability300(axis, axis_index)
             break
         except:
             print(f'failed to move axis {axis_index}, trying again')
@@ -133,6 +156,11 @@ def move_esp300(axis_index, pos, axis=None):
             axis = initialize_esp300(axis_index)
             #print(f'reinitialized axis {axis_index}')
         time.sleep(0.1)
+    
+    if axis_passed==False:
+        close_esp300(axis)
+    else:
+        return axis
 
 def read_esp300(axis_index, axis=None, print_flag=True):
     obj_passed = True
@@ -152,9 +180,12 @@ def read_esp300(axis_index, axis=None, print_flag=True):
             #pass
         time.sleep(0.1)
 
-    if print_flag==True and obj_passed==False:
-        print(pos)
-    return pos
+    if obj_passed==False:
+        if print_flag==True:
+            print(pos)
+        close_esp300(axis)
+    else:
+        return pos, axis
 
 def check_axis_stability300(axis, axis_index):
     '''
@@ -171,6 +202,7 @@ def check_axis_stability300(axis, axis_index):
             #print(f'reinitialized axis {axis_index}')
         time.sleep(0.1)
             #pass
+    return axis
 
 def corotate_axes301(axis_1_index, axis_2_index, angle_1, angle_2, axis_1=None, axis_2=None):
 
@@ -206,6 +238,8 @@ def corotate_axes301(axis_1_index, axis_2_index, angle_1, angle_2, axis_1=None, 
         time.sleep(0.1)
             #pass
 
+    return axis_1, axis_2
+
 def corotate_axes300(axis_1_index, axis_2_index, angle_1, angle_2, axis_1=None, axis_2=None):
 
     if axis_1==None:
@@ -240,6 +274,8 @@ def corotate_axes300(axis_1_index, axis_2_index, angle_1, angle_2, axis_1=None, 
             print('reinitialized axes')
         time.sleep(0.1)
             #pass
+
+    return axis_1, axis_2
 
 def initialize_esp301(axis_index):
 
@@ -292,21 +328,21 @@ def close_esp300(axis):
 ### Wrapper Functions ###
 #########################
 
-def move_axis_1(pos, axis=None, wait_time=0):
-    move_axis(1, pos, axis, wait_time)
+def move_axis_1(pos, axis=None, wait_time=0, check_stability=True):
+    return move_axis(1, pos, axis, wait_time, check_stability)
 
-def move_axis_2(pos, axis=None, wait_time=0):
-    move_axis(2, pos, axis, wait_time)
+def move_axis_2(pos, axis=None, wait_time=0, check_stability=True):
+    return move_axis(2, pos, axis, wait_time, check_stability)
 
-def move_axis_3(pos, axis=None, wait_time=0):
-    move_axis(3, pos, axis, wait_time)
+def move_axis_3(pos, axis=None, wait_time=0, check_stability=True):
+    return move_axis(3, pos, axis, wait_time, check_stability)
 
-def corotate_axes12(angle, axes=None, bal_angle=0):
+def corotate_axes12(angle, axes=None, bal_angle=0, check_stability=True):
     if axes==None:
         axis_1, axis_2 = initialize_corotate_axes12()
     else:
         axis_1, axis_2 = axes
-    corotate_axes(1, 2, angle, angle+bal_angle, axis_1=axis_1, axis_2=axis_2)
+    return corotate_axes(1, 2, angle, angle+bal_angle, axis_1=axis_1, axis_2=axis_2, check_stability)
 
 def read_axis_1(axis=None, print_flag=True):
     return read_axis(1, axis, print_flag)
@@ -322,7 +358,8 @@ def read_corotate_axes12(axes=None, print_flag=True):
         axis_1, axis_2 = initialize_corotate_axes12()
     else:
         axis_1, axis_2 = axes
-    return read_axis(1, axis_1, print_flag=print_flag)
+    pos, axis_1 = read_axis(1, axis_1, print_flag=print_flag)
+    return pos, [axis_1, axis_2]
 
 def initialize_axis_1():
     return initialize_axis(1)

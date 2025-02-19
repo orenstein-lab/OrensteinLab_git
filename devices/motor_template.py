@@ -2,8 +2,8 @@
 motor_template -  each motor at minimum must contain following functions with given form of arguments
 
     - init(**kwargs) - returns motor handle object
-    - read(obj=None, **kwargs) - return motor value
-    - move(val, obj=None, check_stability=True, **kwargs) - moves motor to val
+    - read(obj=None, **kwargs) - return motor value and obj if it has been passed
+    - move(val, obj=None, check_stability=True, **kwargs) - moves motor to val and return obj if it has been passed
     - close(obj, **kwargs) 
 
     Other requirements:
@@ -12,6 +12,7 @@ motor_template -  each motor at minimum must contain following functions with gi
 
 beyond this, users may write any code for motor control. A given file may also contain different motors associated with a single device, and using wrappers for multiaxis motors which are controlled in equivalent manner is highly encouraged. all of these function can be renamed.
 '''
+from OrensteinLab_git.configuration import CONFIG_DICT
 
 def read(obj=None):
 
@@ -23,11 +24,13 @@ def read(obj=None):
     ##
     ## new code goes here    
     ##
+    position = 0
 
     if obj_passed==False:
         close(obj)
-
-    return 0
+        return 0
+    else:
+        return position, obj
 
 def move(val, obj=None, check_stability=True):
     
@@ -46,8 +49,8 @@ def move(val, obj=None, check_stability=True):
 
     if obj_passed==False:
         close(obj)
-
-    return 0
+    else:
+        return obj
 
 def init():
     return 0

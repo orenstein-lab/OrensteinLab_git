@@ -1,9 +1,9 @@
 from OrensteinLab_git.control.montana import cryocore
-from OrensteinLab_git.configuration import config_dict
+from OrensteinLab_git.configuration import CONFIG_DICT
 import time
 import numpy as np
 
-address = config_dict['Montana Address']
+address = CONFIG_DICT['Montana Address']
 
 def set_montana_temperature(temperature, cryo=None, check_stability=True):
     '''

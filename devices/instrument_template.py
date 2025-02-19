@@ -10,6 +10,7 @@ instrument_template -  each instrument at minimum must contain
 
 beyond this, users may write any code for reading instruments. A given file may also contain different instruments associated with a single device, and using wrappers for repeated actions is highly encouraged.
 '''
+from OrensteinLab_git.configuration import CONFIG_DICT
 
 def read(obj=None):
 

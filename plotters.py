@@ -1,6 +1,6 @@
 
 '''
-Plotting Method
+Plotting Methods
 '''
 import numpy as np
 import matplotlib.pyplot as plt

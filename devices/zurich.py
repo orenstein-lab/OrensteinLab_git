@@ -1,14 +1,14 @@
 
 import zhinst.utils as ziutils
 import zhinst.core as zicore
-from OrensteinLab_git.configuration import config_dict
+from OrensteinLab_git.configuration import CONFIG_DICT
 import time
 import pickle
 import os
 import dill
 
-device_id = config_dict['Zurich Lockin ID']
-ZURICH_HANDLE_FNAME = config_dict['Zurich Handle']
+device_id = CONFIG_DICT['Zurich Lockin ID']
+ZURICH_HANDLE_FNAME = CONFIG_DICT['Zurich Handle']
 
 ######################
 ### Core Functions ###
@@ -83,9 +83,9 @@ def read_zurich_lockin(daq_objs=None, time_constant=0.3, poll_length=None, poll_
 
     # add any other data from lockin to data_dict
 
-    return data_dict
+    return data_dict, daq_objs
 
-def set_zurich_osc(osc, daq_objs=None, wait_time=0, channel=1):
+def set_zurich_osc(osc, daq_objs=None, wait_time=0, channel=1, check_stability=True):
 
     # initialize
     if daq_objs is None:
@@ -96,7 +96,9 @@ def set_zurich_osc(osc, daq_objs=None, wait_time=0, channel=1):
     daq.setInt(f'/{device}/demods/{channel-1}/oscselect', osc-1)
     time.sleep(wait_time)
 
-def set_zurich_autophase(angle, daq_objs=None, wait_time=0, channel=1):
+    return daq_objs
+
+def set_zurich_autophase(angle, daq_objs=None, wait_time=0, channel=1, check_stability=True):
 
     # initialize
     if daq_objs is None:
@@ -107,7 +109,9 @@ def set_zurich_autophase(angle, daq_objs=None, wait_time=0, channel=1):
     daq.setDouble(f'/{device}/demods/{channel-1}/phaseshift', angle)
     time.sleep(wait_time)
 
-def set_zurich_output_amplitude(amplitude, daq_objs=None, wait_time=0, channel=1):
+    return daq_objs
+
+def set_zurich_output_amplitude(amplitude, daq_objs=None, wait_time=0, channel=1, check_stability=True):
 
     # initialize
     if daq_objs is None:
@@ -118,6 +122,8 @@ def set_zurich_output_amplitude(amplitude, daq_objs=None, wait_time=0, channel=1
     daq.setDouble(f'/%s/sigouts/0/amplitudes/{channel-1}'%device, amplitude)
     time.sleep(wait_time)
 
+    return daq_objs
+
 def read_zurich_osc(daq_objs=None, channel=1):
 
     # initialize
@@ -127,7 +133,7 @@ def read_zurich_osc(daq_objs=None, channel=1):
         daq, device, props = daq_objs
 
     osc = daq.getInt(f'/{device}/demods/{channel-1}/oscselect')
-    return osc+1
+    return osc+1, daq_objs
 
 def read_zurich_autophase(daq_objs=None, channel=1):
 
@@ -138,7 +144,7 @@ def read_zurich_autophase(daq_objs=None, channel=1):
         daq, device, props = daq_objs
 
     angle = daq.getDouble(f'/{device}/demods/{channel-1}/phaseshift')
-    return angle
+    return angle, daq_objs
 
 def read_zurich_output_amplitude(daq_objs=None, channel=1):
 
@@ -149,7 +155,7 @@ def read_zurich_output_amplitude(daq_objs=None, channel=1):
         daq, device, props = daq_objs
 
     amplitude = daq.getDouble(f'/%s/sigouts/0/amplitudes/{channel-1}'%device)
-    return amplitude
+    return amplitude, daq_objs
 
 def set_zurich_frequency(freq, daq_objs=None, wait_time=0, osc=2):
 
@@ -162,6 +168,8 @@ def set_zurich_frequency(freq, daq_objs=None, wait_time=0, osc=2):
     daq.setDouble(f'/%s/oscs/{osc-1}/freq'%device, freq)
     time.sleep(wait_time)
 
+    return daq_objs
+
 def read_zurich_frequency(daq_objs=None, osc=2):
 
     # initialize
@@ -171,7 +179,7 @@ def read_zurich_frequency(daq_objs=None, osc=2):
         daq, device, props = daq_objs
 
     freq = daq.getDouble(f'/%s/oscs/{osc-1}/freq'%device)
-    return freq
+    return freq, daq_objs
 
 def set_zurich_aux_offset(offset, daq_objs=None, wait_time=0, channel=1):
 
@@ -184,6 +192,8 @@ def set_zurich_aux_offset(offset, daq_objs=None, wait_time=0, channel=1):
     daq.setDouble(f'%s/auxouts/{int(channel-1)}/offset'%device, offset)
     time.sleep(wait_time)
 
+    return daq_objs
+
 def get_zurich_aux_offset(daq_objs=None, wait_time=0, channel=1):
 
     # initialize
@@ -193,7 +203,26 @@ def get_zurich_aux_offset(daq_objs=None, wait_time=0, channel=1):
         daq, device, props = daq_objs
 
     offset = daq.getDouble(f'/%s/auxouts/{int(channel-1)}/offset'%device)
-    return offset
+    return offset, daq_objs
+
+def set_zurich_voltage(v, daq_objs=None, vstep=0.5, wait_time=2, check_stability=True):
+    '''
+    For slowly stepping aux out voltage on lockin to a new setpoint.
+    '''
+
+    if daq_objs is None:
+        daq_objs = initialize_zurich_lockin()
+    vcurr = round(read_zurich_output_amplitude(daq_objs=daq_objs),1)
+    sgn = np.sign(v - vcurr)
+    if vcurr==v:
+        pass
+    else:
+        voltages = np.arange(vcurr,v+sgn*vstep, sgn*vstep)
+        for vv in voltages:
+            set_zurich_output_amplitude(vv,wait_time=wait_time, daq_objs=daq_objs)
+            time.sleep(wait_time)
+
+    return daq_objs
 
 def initialize_zurich_lockin():
     apilevel=6
@@ -269,7 +298,7 @@ def set_zurich_acfilter(val, sigin=0, daq_objs=None):
 
 def read_zurich_spectrum(daq_objs=None):
     '''
-    reads scope on lockin and return dictionary with scope data. In this primitive form, up to use to make sure the that the scope has been setup correctly.
+    reads scope on lockin and return dictionary with scope data. In this primitive form, up to user to make sure the that the scope has been setup correctly.
     '''
 
     # initialize
@@ -327,8 +356,8 @@ def read_zurich_spectrum(daq_objs=None):
 ### Wrapper functions ###
 #########################
 
-def set_zurich_aux_offset_1(offset, daq_objs=None, wait_time=0):
-    set_zurich_aux_offset(offset, daq_objs, wait_time, 1)
+def set_zurich_aux_offset_1(offset, daq_objs=None, wait_time=0, check_stability=True):
+    return set_zurich_aux_offset(offset, daq_objs, wait_time, 1)
 
 def set_zurich_aux_offset_2(offset, daq_objs=None, wait_time=0):
     set_zurich_aux_offset(offset, daq_objs, wait_time, 2)
@@ -338,17 +367,3 @@ def get_zurich_aux_offset_1(daq_objs=None, wait_time=0):
 
 def get_zurich_aux_offset_2(daq_objs=None, wait_time=0):
     return get_zurich_aux_offset(daq_objs, wait_time, 2)
-
-def change_zurich_voltage(v, daq_objs=None, vstep=0.5, wait_time=2):
-
-    if daq_objs is None:
-        daq_objs = initialize_zurich_lockin()
-    vcurr = round(read_zurich_output_amplitude(daq_objs=daq_objs),1)
-    sgn = np.sign(v - vcurr)
-    if vcurr==v:
-        pass
-    else:
-        voltages = np.arange(vcurr,v+sgn*vstep, sgn*vstep)
-        for vv in voltages:
-            set_zurich_output_amplitude(vv,wait_time=wait_time, daq_objs=daq_objs)
-            time.sleep(wait_time)

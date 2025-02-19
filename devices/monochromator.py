@@ -14,55 +14,63 @@ except ImportError:
   sys.path.append( r"C:\Users\BigLab2020\anaconda3\lib\site-packages\pyvisa" ) 
   import pyvisa
 
-# lakeshore_model = config_dict['Lakeshore Model']
+def read_wavelength(obj=None):
 
-def read_wavelength(lsobj=None):
-
-    lsobj, lsobj_passed = get_lsobj(lsobj)
-    wavelength_ls = lsobj.query('WAVE?').split()
+    obj, obj_passed = get_obj(obj)
+    wavelength_ls = obj.query('WAVE?').split()
     wavelength = float(wavelength_ls[0])
-    if lsobj_passed==False:
-        close_monochromator(lsobj)
-    return wavelength
+    if obj_passed==False:
+        print(wavelength)
+        close_monochromator(obj)
+    else:
+        return wavelength, obj
 
-def read_filter(lsobj=None):
+def read_filter(obj=None):
 
-    lsobj, lsobj_passed = get_lsobj(lsobj)
-    filter_ls = lsobj.query('FILTER?').split()
+    obj, obj_passed = get_obj(obj)
+    filter_ls = obj.query('FILTER?').split()
     filter = int(filter_ls[0])
-    if lsobj_passed==False:
-        close_monochromator(lsobj)
-    return filter
+    if obj_passed==False:
+        print(filter)
+        close_monochromator(obj)
+    else:
+        return filter, obj
 
-def read_grating(lsobj=None):
+def read_grating(obj=None):
 
-    lsobj, lsobj_passed = get_lsobj(lsobj)
-    grating_ls = lsobj.query('GRATing?')
+    obj, obj_passed = get_obj(obj)
+    grating_ls = obj.query('GRATing?')
     grating = int(grating_ls[0][0])
-    if lsobj_passed==False:
-        close_monochromator(lsobj)
-    return grating
+    if obj_passed==False:
+        print(grating)
+        close_monochromator(obj)
+    else:
+        return grating, obj
 
-def set_filter(filter_ind, lsobj=None):
+def set_filter(filter_ind, obj=None):
 
-    lsobj, lsobj_passed = get_lsobj(lsobj)
+    obj, obj_passed = get_obj(obj)
     command = 'FILTER '+str(filter_ind)
-    lsobj.write(command)
-    if lsobj_passed==False:
-        close_monochromator(lsobj)
+    obj.write(command)
+    if obj_passed==False:
+        close_monochromator(obj)
+    else:
+        return obj
 
 
-def set_grating(grating_ind, lsobj=None):
+def set_grating(grating_ind, obj=None):
 
-    lsobj, lsobj_passed = get_lsobj(lsobj)
+    obj, obj_passed = get_obj(obj)
     command = 'GRATing '+str(grating_ind)
-    lsobj.write(command)
-    if lsobj_passed==False:
-        close_monochromator(lsobj)
+    obj.write(command)
+    if obj_passed==False:
+        close_monochromator(obj)
+    else:
+        return obj
 
-def set_wavelength(wavelength, lsobj=None):
+def set_wavelength(wavelength, obj=None):
 
-    lsobj, lsobj_passed = get_lsobj(lsobj)
+    obj, obj_passed = get_obj(obj)
     filter_ind = 0
 
     if wavelength < 800:
@@ -77,23 +85,25 @@ def set_wavelength(wavelength, lsobj=None):
         ValueError('Wavelength out of range!')
     
     if filter_ind > 0:
-        filter_ind_old = read_filter(lsobj)
+        filter_ind_old = read_filter(obj)
         if filter_ind != filter_ind_old :
-            set_filter(filter_ind,lsobj)
+            set_filter(filter_ind,obj)
             time.sleep(1)
-            filter_ind_new = read_filter(lsobj)
+            filter_ind_new = read_filter(obj)
             if filter_ind_new != filter_ind:
                 ValueError('Fail to change filter')
     
     # the following grating selection is for CS130B-3-MC
 #     if wavelength < 650:
-#         set_grating(1,lsobj)
+#         set_grating(1,obj)
 #     else:
-#         set_grating(2,lsobj)
+#         set_grating(2,obj)
     command = 'GOWAVE '+str(round(wavelength,3))
-    lsobj.write(command)
-    if lsobj_passed==False:
-        close_monochromator(lsobj)
+    obj.write(command)
+    if obj_passed==False:
+        close_monochromator(obj)
+    else:
+        return obj
 
 
 
@@ -118,18 +128,18 @@ def initialize_monochromator():
        raise ValueError('Cannot Find Monochromator')
 
 
-def close_monochromator(lsobj):
-    lsobj.close()
+def close_monochromator(obj):
+    obj.close()
 
-def get_lsobj(lsobj):
+def get_obj(obj):
     '''
     helper function for getting object both within another script or on the command line.
     '''
-    lsobj_passed = True
-    if lsobj==None:
-        lsobj = initialize_monochromator()
-        lsobj_passed=False
-    return lsobj, lsobj_passed
+    obj_passed = True
+    if obj==None:
+        obj = initialize_monochromator()
+        obj_passed=False
+    return obj, obj_passed
 
 
 

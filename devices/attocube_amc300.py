@@ -1,20 +1,20 @@
 import numpy as np
 from pyamc300 import AMC
-from OrensteinLab_git.configuration import config_dict
+from OrensteinLab_git.configuration import CONFIG_DICT
 import pickle
 import dill
 import time
 import os
 
 axis_dict = {'x':0, 'y':1, 'z':2}
-ATTOCUBE_HANDLE_FNAME = config_dict['Attocube Handle']
-ATTOCUBE_IP = config_dict['AMC300 IP']
+ATTOCUBE_HANDLE_FNAME = CONFIG_DICT['Attocube Handle']
+ATTOCUBE_IP = CONFIG_DICT['AMC300 IP']
 
 ######################
 ### Core Functions ###
 ######################
 
-def move_attocube(axis, position, amc=None, tolerance=1, go_back=0, ground=False):
+def move_attocube(axis, position, amc=None, tolerance=1, go_back=0, ground=False, check_stability=True):
     '''
     utility to move attocube
     '''
@@ -37,13 +37,14 @@ def move_attocube(axis, position, amc=None, tolerance=1, go_back=0, ground=False
     amc.move.setControlTargetPosition(axis_dict[axis], target * 1e3)
     amc.control.setControlMove(axis_dict[axis], True)
 
-    while not amc.status.getStatusTargetRange(axis):
-        # # Read out position in nm
-        if not amc.status.getStatusTargetRange(axis):
-            position_real = amc.move.getPosition(axis)
-            amc.control.setControlMove(axis, True)
-            time.sleep(0.1)
-        if repeat_time > 10:
+    if check_stability:
+        while not amc.status.getStatusTargetRange(axis):
+            # # Read out position in nm
+            if not amc.status.getStatusTargetRange(axis):
+                position_real = amc.move.getPosition(axis)
+                amc.control.setControlMove(axis, True)
+                time.sleep(0.1)
+            if repeat_time > 10:
             amc.move.setControlContinuousBkwd(axis, True)
             time.sleep(0.2)
             #    # Stop
@@ -65,28 +66,13 @@ def move_attocube(axis, position, amc=None, tolerance=1, go_back=0, ground=False
             #    # Stop
             amc.move.setControlContinuousBkwd(axis, False)
             repeat_time = 0        
-    '''
-    amc.moveAbsolute(axis_dict[axis], int(target/1e6))
-    time.sleep(0.1)
-    error = np.abs(target-anc.getPosition(axis_dict[axis])*1e6)
-    while (error >= tol):
-        anc.moveAbsolute(axis_dict[axis], int(target/1e6))
-        time.sleep(0.1)
-        error = np.abs(target-anc.getPosition(axis_dict[axis])*1e6)
-
-    # Move to specified position
-    anc.moveAbsolute(axis_dict[axis], int(pos/1e6))
-    time.sleep(0.1)
-    error = np.abs(pos-anc.getPosition(axis_dict[axis])*1e6)
-    while (error >= tol):
-        anc.moveAbsolute(axis_dict[axis], int(pos/1e6))
-        time.sleep(0.1)
-        error = np.abs(pos-anc.getPosition(axis_dict[axis])*1e6)
-    '''
+ 
     # print and close only if another process hasn't passed anc object
     if amc_passed == False:
         print(amc.move.getPosition(axis_dict[axis])*1e-3)
         close_attocube(amc)
+    else:
+        return amc
 
 def read_attocube(axis, amc=None, print_flag=True):
     '''
@@ -111,8 +97,8 @@ def read_attocube(axis, amc=None, print_flag=True):
     if amc_passed == False:
         print(pos)
         close_attocube(amc)
-
-    return pos
+    else:
+        return pos, amc
 
 def set_attocube_output(axis, state, amc=None):
     '''

@@ -1,18 +1,18 @@
 import numpy as np
 from pyanc350.v4 import Positioner
-from OrensteinLab_git.configuration import config_dict
+from OrensteinLab_git.configuration import CONFIG_DICT
 import pickle
 import time
 import os
 
 axis_dict = {'x':0, 'y':1, 'z':2}
-ATTOCUBE_HANDLE_FNAME = config_dict['Attocube Handle']
+ATTOCUBE_HANDLE_FNAME = CONFIG_DICT['Attocube Handle']
 
 ######################
 ### Core Functions ###
 ######################
 
-def move_attocube(axis, position, anc=None, tolerance=1, go_back=0, ground=False):
+def move_attocube(axis, position, anc=None, tolerance=1, go_back=0, ground=False, check_stability=True):
     '''
     utility to move attocube
     '''
@@ -42,15 +42,20 @@ def move_attocube(axis, position, anc=None, tolerance=1, go_back=0, ground=False
     anc.moveAbsolute(axis_dict[axis], int(pos/1e6))
     time.sleep(0.1)
     error = np.abs(pos-anc.getPosition(axis_dict[axis])*1e6)
-    while (error >= tol):
-        anc.moveAbsolute(axis_dict[axis], int(pos/1e6))
-        time.sleep(0.1)
-        error = np.abs(pos-anc.getPosition(axis_dict[axis])*1e6)
+
+    # check stability
+    if check_stability:
+        while (error >= tol):
+            anc.moveAbsolute(axis_dict[axis], int(pos/1e6))
+            time.sleep(0.1)
+            error = np.abs(pos-anc.getPosition(axis_dict[axis])*1e6)
 
     # print and close only if another process hasn't passed anc object
     if anc_passed == False:
         print(anc.getPosition(axis_dict[axis])*1e6)
         close_attocube(anc)
+    else:
+        return anc
 
 def read_attocube(axis, anc=None, print_flag=True):
     '''
@@ -75,8 +80,8 @@ def read_attocube(axis, anc=None, print_flag=True):
     if anc_passed == False:
         print(pos)
         close_attocube(anc)
-
-    return pos
+    else:
+        return pos, anc
 
 def set_attocube_output(axis, state, anc=None):
     '''
@@ -127,30 +132,33 @@ def close_attocube(anc):
 #########################
 
 def move_pos(x, y, z=0):
-    move_x(x)
-    move_y(y)
+
+    anc = initialize_attocube()
+    move_x(x, anc)
+    move_y(y, anc)
     if z==0:
         pass
     else:
-        move_z(z)
-
-def move_x(position,  anc=None, tolerance=1, go_back=0):
+        move_z(z, anc)
+    close_attocube(anc)
+    
+def move_x(position,  anc=None, tolerance=1, go_back=0, check_stability=True):
     '''
     wrapper to move attocube x positioner.
     '''
-    move_attocube('x', position, anc, tolerance, go_back)
+    return move_attocube('x', position, anc, tolerance, go_back, check_stability)
 
-def move_y(position,  anc=None, tolerance=1, go_back=0):
+def move_y(position,  anc=None, tolerance=1, go_back=0, check_stability=True):
     '''
     wrapper to move attocube y positioner.
     '''
-    move_attocube('y', position, anc, tolerance, go_back)
+    return move_attocube('y', position, anc, tolerance, go_back, check_stability)
 
-def move_z(position,  anc=None, tolerance=1, go_back=0):
+def move_z(position,  anc=None, tolerance=1, go_back=0, check_stability=True):
     '''
     wrapper to move attocube z positioner.
     '''
-    move_attocube('z', position, anc, tolerance, go_back)
+    return move_attocube('z', position, anc, tolerance, go_back, check_stability)
 
 def read_x(anc=None, print_flag=True):
     return read_attocube('x', anc, print_flag)

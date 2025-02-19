@@ -1,4 +1,4 @@
-This package is for running experiments in Joe Orenstein's lab. Above all else, it provides a bare-bones syntax and standard protocol to quickly develop software to coordinate instruments and motors in a modern lab environment, with a high degree of code recyclability. The basic structure is very simple:
+A hackable python interface for running physics lab experiments. In addition to pre-built tools for orchestrating complex measurements, it provides a bare-bones syntax and protocol to quickly develop software to coordinate instruments and motors in a modern lab environment, with a high degree of code recyclability. The basic structure is very simple:
 
 
 	OrentsteinLab_git/

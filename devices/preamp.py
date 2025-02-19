@@ -3,44 +3,42 @@
 # @author: Yue Sun, UCB
 
 
-# from OrensteinLab_git.configuration import config_dict
+# from OrensteinLab_git.configuration import CONFIG_DICT
 import time
 import numpy as np
 import sys
 import serial
-from OrensteinLab_git.configuration import config_dict
+from OrensteinLab_git.configuration import CONFIG_DICT
 
-preamp_port = config_dict['Preamp COM Port']
-
-
+preamp_port = CONFIG_DICT['Preamp COM Port']
 
 # function to write a command to the instrument
-def write_to_instrument(command,lsobj=None):
-    lsobj, lsobj_passed = get_lsobj(lsobj)
+def write_to_instrument(command,obj=None):
+    obj, obj_passed = get_obj(obj)
     full_command = command + '\r\n'
-    lsobj.write(full_command.encode()) # Send the command as bytes
+    obj.write(full_command.encode()) # Send the command as bytes
     time.sleep(0.1) # small delay to ensure the command is sent
-    if lsobj_passed==False:
-        close_preamp(lsobj)
+    if obj_passed==False:
+        close_preamp(obj)
 
 # function to read a response from the instrument
-# def read_from_instrument(lsobj=None):
-#     lsobj, lsobj_passed = get_lsobj(lsobj)
+# def read_from_instrument(obj=None):
+#     obj, obj_passed = get_obj(obj)
 
-#     data = lsobj.readline() # read the response
-#     if lsobj_passed==False:
-#         close_preamp(lsobj)
+#     data = obj.readline() # read the response
+#     if obj_passed==False:
+#         close_preamp(obj)
 #     return data.decode().strip() #decode the bytes to string
 
-# def query_instrument(command,lsobj=None):
-#     lsobj, lsobj_passed = get_lsobj(lsobj)
+# def query_instrument(command,obj=None):
+#     obj, obj_passed = get_obj(obj)
 #     full_command = command + '\r\n'
-#     lsobj.write(full_command.encode()) # Send the command as bytes
+#     obj.write(full_command.encode()) # Send the command as bytes
 #     time.sleep(0.1) # small delay to ensure the command is sent
-#     data = lsobj.readline() # read the response
+#     data = obj.readline() # read the response
 
-#     if lsobj_passed==False:
-#         close_preamp(lsobj)
+#     if obj_passed==False:
+#         close_preamp(obj)
 #     return data.decode().strip() #decode the bytes to string
 
 
@@ -76,18 +74,18 @@ def initialize_preamp():
         raise ValueError('Cannot Find Preamp')
        
 
-def close_preamp(lsobj):
-    lsobj.close()
+def close_preamp(obj):
+    obj.close()
 
-def get_lsobj(lsobj):
+def get_obj(obj):
     '''
     helper function for getting object both within another script or on the command line.
     '''
-    lsobj_passed = True
-    if lsobj==None:
-        lsobj = initialize_preamp()
-        lsobj_passed=False
-    return lsobj, lsobj_passed
+    obj_passed = True
+    if obj==None:
+        obj = initialize_preamp()
+        obj_passed=False
+    return obj, obj_passed
 
 
 

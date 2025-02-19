@@ -232,3 +232,43 @@ def interp_balance_angle(pos_dict, balance_table):
     tol_interp = interp.interpn(points, tol_data, pos)
 
     return bal_angle_interp[0], slope_interp[0], tol_interp[0]
+
+
+###
+### Helper methods
+###
+
+def initialize_motors_threaded(motors):
+    '''
+    UNDER CONSTRUCTION
+    '''
+    mobj_dict_locked = LockedDict({})
+    initialization_threads = []
+    for m in motors:
+        init_func = MOTOR_DICT[m]['init']
+        init_thread = threading.Thread(target=add_initialized_motor_to_thread_dict, args=(m, init_func, mobj_dict_locked))
+        initialization_threads.append(init_thread)
+    for ii, init_thread in enumerate(initialization_threads):
+        print(f'starting initialization thread for motor {motors[ii]}')
+        init_thread.start()
+    for ii, init_thread in enumerate(initialization_threads):
+        init_thread.join()
+        print(f'joined initialization thread for motor {motors[ii]}')
+    # sort according to motors
+    mobj_dict_unsorted = mobj_dict_locked.locked_get_dict()
+    mobj_dict = dict(sorted(mobj_dict_unsorted.items(), key=lambda x:motors.index(x[0])))
+    return mobj_dict
+
+def add_initialized_motor_to_thread_dict(motor, init_func, threaded_dict):
+    '''
+    UNDER CONSTRUCTION
+    '''
+    while True:
+        try:
+            print(f'starting initialization of motor {motor}')
+            obj = init_func()
+            threaded_dict.locked_update(motor, obj)
+            print(f'finished initializing motor {motor}')
+            break
+        except:
+            time.sleep(0.1)

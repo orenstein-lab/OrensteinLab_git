@@ -1,11 +1,15 @@
 '''
-A few convenient classes for multithreading.
+classes and methods for multithreading.
 '''
 
 from threading import Thread, Lock, Event
 import threading
 import multiprocessing as mp
 import queue
+
+###
+### Concurrency Classes
+###
 
 def queue_write(q, message):
     '''
@@ -54,7 +58,6 @@ class StoppableThread(Thread):
     def stopped(self):
         return self._stop_event.is_set()
 
-
 class LockedDict:
     '''
     Minimal class to implement a locking dictionary. Contains two private attributes, a value and a lock, and a few methods for safetly reading writing value via the lock.
@@ -74,3 +77,20 @@ class LockedDict:
     def locked_get_dict(self):
         with self._lock:
             return self._dict
+
+###
+### Multithreading Methods
+###
+
+def press_any_key_to_stop(run_var):
+    answer = input('Press any key to stop:')
+    run_var.locked_update(False)
+
+def type_stop_to_stop(run_var):
+    while True:
+        answer = input('Enter \"stop\" to stop:')
+        if answer=='stop':
+            run_var.locked_update(False)
+            break
+        else:
+            pass

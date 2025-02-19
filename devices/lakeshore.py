@@ -3,11 +3,11 @@
 # @author: Yue Sun, UCB
 
 import lakeshore as ls
-from OrensteinLab_git.configuration import config_dict
+from OrensteinLab_git.configuration import CONFIG_DICT
 import time
 import numpy as np
 
-lakeshore_model = config_dict['Lakeshore Model']
+lakeshore_model = CONFIG_DICT['Lakeshore Model']
 
 def set_temperature(temperature, lsobj=None, tolerance=0.1, avg_time=3, wait_time=0, max_check=750, output=1, on_off=0, rate=0, check_stability=True):
     '''
@@ -42,6 +42,8 @@ def set_temperature(temperature, lsobj=None, tolerance=0.1, avg_time=3, wait_tim
 
     if lsobj_passed==False:
         close_lakeshore(lsobj)
+    else:
+        return lsobj
 
 def read_temperature(lsobj=None):
     '''
@@ -57,9 +59,11 @@ def read_temperature(lsobj=None):
         temp = float(lsobj.query('KRDG?'))
     elif lakeshore_model=='336':
         temp = float(lsobj.query('KRDG?A'))
+
     if lsobj_passed==False:
         close_lakeshore(lsobj)
-    return temp
+    else:
+        return temp, lsobj
 
 def check_lakeshore_stability(lsobj=None, tolerance=0.01, max_check=750, avg_time=30, wait_time=30):
 

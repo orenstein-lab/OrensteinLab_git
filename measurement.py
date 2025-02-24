@@ -23,7 +23,7 @@ from orenstein_analysis.measurement import loader, process
 
 #################################################
 ###                                           ###
-###   General Methods Applicable In Any Lab   ### 
+###   General Methods Applicable In Any Lab   ###
 ###                                           ###
 #################################################
 
@@ -105,8 +105,8 @@ def motor_scan(map_dict, mkwargs_read_dict={}, ikwargs_dict={}, mobj_dict={}, io
     user_input_thread = threading.Thread(target=concurrency.type_stop_to_stop, args=(run,))
     user_input_thread.start()
 
-    # generate motor scan positions recursively. 
-    # positions: list of positions where each element contains positions of each motor for nth step in scan 
+    # generate motor scan positions recursively.
+    # positions: list of positions where each element contains positions of each motor for nth step in scan
     positions = helper.gen_positions_recurse(mranges, len(mranges)-1)
     num_pos = len(positions)
 
@@ -248,8 +248,8 @@ def motorfunc_scan(map_dict, mkwargs_read_dict={}, ikwargs_dict={}, mobj_dict={}
     user_input_thread = threading.Thread(target=concurrency.type_stop_to_stop, args=(run,))
     user_input_thread.start()
 
-    # generate motor scan positions recursively. 
-    # positions: list of positions where each element contains positions of each motor for nth step in scan 
+    # generate motor scan positions recursively.
+    # positions: list of positions where each element contains positions of each motor for nth step in scan
     positions = helper.gen_positions_recurse(mranges, len(mranges)-1)
     num_pos = len(positions)
 
@@ -416,7 +416,7 @@ def timed_measurement(recording_time, mkwargs_read_dict={}, ikwargs_dict={}, mob
 
 def motor_sequence(sequence_list, mkwargs_read_dict={}, ikwargs_dict={}, mobj_dict={}, iobj_dict={}, vars=[], metadata={}, xvar='time', filename_head=None, filename=None, savefile=True, plot=True, close_devices=True):
     '''
-    makes a continuos measurement over a sequence of motor steps. 
+    makes a continuos measurement over a sequence of motor steps.
 
     NOTE: for all motors in sequence, move function must have a check_stability kwargs, which when False induces function to return immediately after setting target position
 
@@ -523,7 +523,7 @@ def motor_sequence(sequence_list, mkwargs_read_dict={}, ikwargs_dict={}, mobj_di
                 if xvar!='time':
                     newx = newdata[xlabel]
                 xrange, vdata1d_dict = plotters.update_1d_plots_append(fig, axes, vars, plot_handles_dict, xrange, vdata1d_dict, newx, newdata)
-        
+
         # if run is False, break outer loop
         if not run.locked_read():
             break
@@ -623,7 +623,7 @@ def list_motors():
 
 ##############################
 ###                        ###
-###   Optics Lab Methods   ### 
+###   Optics Lab Methods   ###
 ###                        ###
 ##############################
 
@@ -758,7 +758,7 @@ def corotate_scan(start_angle, end_angle, step_size, angle_offset, rate_axis_2=1
         - start_angle
         - end_angle
         - step_size
-        - angle_offset      offset angle between 
+        - angle_offset      offset angle between
         - rate_axis_2       rate at which axis_2 moves relative to axis_1. can be negative.
         - mkwargs_read_dict:    dictionary of mkwargs for motor read functions
         - ikwargs_dict:        dictionary of key value pairs where keys are name of instruments in INSTRUMENT_DICT and values are dictionary of kwargs for the instrument read function. Defaults to instruments in ACTIVE_INSTRUMENTS with no kwargs.
@@ -797,7 +797,7 @@ def corotate_scan(start_angle, end_angle, step_size, angle_offset, rate_axis_2=1
         # setup and write metadta + header to file
         fname = helper.setup_filename(filename, filename_head, 'motor_scan'+sum([f'_{m}' for m in motors]))
         helper.write_file_header(fname, header, metadata)
-    
+
 
     # setup plots for displaying
     if plot:
@@ -892,9 +892,9 @@ def rotate_map(map_dict, start_angle, end_angle, step_size, mkwargs_read_dict={}
 
             ex: {'temp':(100,200,10,{'wait_time':30})} or {'temp':(np.arange(100,200,10),{'wait_time':30})}
 
-        - start_angle:      
-        - end_angle:        
-        - step_size:        
+        - start_angle:
+        - end_angle:
+        - step_size:
         - mkwargs_read_dict:    dictionary of mkwargs for motor read functions. if left empty, defaults to no kwargs
         - ikwargs_dict:        dictionary of key value pairs where keys are name of instruments in INSTRUMENT_DICT and values are dictionary of kwargs for the instrument read function. Defaults to instruments in ACTIVE_INSTRUMENTS with no kwargs.
 
@@ -929,8 +929,8 @@ def rotate_map(map_dict, start_angle, end_angle, step_size, mkwargs_read_dict={}
     user_input_thread = threading.Thread(target=concurrency.type_stop_to_stop, args=(run,))
     user_input_thread.start()
 
-    # generate motor scan positions recursively. 
-    # positions: list of positions where each element contains positions of each motor for nth step in scan 
+    # generate motor scan positions recursively.
+    # positions: list of positions where each element contains positions of each motor for nth step in scan
     positions = helper.gen_positions_recurse(mranges, len(mranges)-1)
     num_pos = len(positions)
 
@@ -985,10 +985,10 @@ def corotate_map(map_dict, start_angle, end_angle, step_size, angle_offset, rate
 
             ex: {'temp':(100,200,10,{'wait_time':30})} or {'temp':(np.arange(100,200,10),{'wait_time':30})}
 
-        - start_angle:      
-        - end_angle:        
+        - start_angle:
+        - end_angle:
         - step_size:
-        - angle_offset:        
+        - angle_offset:
         - mkwargs_read_dict:    dictionary of mkwargs for motor read functions. if left empty, defaults to no kwargs
         - ikwargs_dict:        dictionary of key value pairs where keys are name of instruments in INSTRUMENT_DICT and values are dictionary of kwargs for the instrument read function. Defaults to instruments in ACTIVE_INSTRUMENTS with no kwargs.
 
@@ -1023,8 +1023,8 @@ def corotate_map(map_dict, start_angle, end_angle, step_size, angle_offset, rate
     user_input_thread = threading.Thread(target=concurrency.type_stop_to_stop, args=(run,))
     user_input_thread.start()
 
-    # generate motor scan positions recursively. 
-    # positions: list of positions where each element contains positions of each motor for nth step in scan 
+    # generate motor scan positions recursively.
+    # positions: list of positions where each element contains positions of each motor for nth step in scan
     positions = helper.gen_positions_recurse(mranges, len(mranges)-1)
     num_pos = len(positions)
 
@@ -1078,7 +1078,7 @@ def motor_scan_balance(map_dict, balance_dict, mkwargs_read_dict={}, ikwargs_dic
         - map_dict:         dictionary of key:value pairs where key is name of a motor in MOTOR_DICT and value is a tuple (start, stop step, kwargs) or (positions, kwargs), and where kwargs is another dictionary where keys are kwarg names for the motor move function and value the corresponding value to set during move steps. motors are scanned from left to right.
 
             ex: {'temp':(100,200,10,{'wait_time':30})} or {'temp':(np.arange(100,200,10),{'wait_time':30})}
-        
+
         - balance_dict:     dictionary specifying autobalance parameters, with 'balance_var', 'slope', 'tol', 'balance_motor'
 
             ex: {}
@@ -1152,8 +1152,8 @@ def motor_scan_balance(map_dict, balance_dict, mkwargs_read_dict={}, ikwargs_dic
     if vars==[]:
         vars = DEFAULT_VARS
 
-    # generate motor scan positions recursively. 
-    # positions: list of positions where each element contains positions of each motor for nth step in scan 
+    # generate motor scan positions recursively.
+    # positions: list of positions where each element contains positions of each motor for nth step in scan
     positions = helper.gen_positions_recurse(mranges, len(mranges)-1)
     num_pos = len(positions)
     #print(positions)
@@ -1164,7 +1164,7 @@ def motor_scan_balance(map_dict, balance_dict, mkwargs_read_dict={}, ikwargs_dic
     # ...
     # [Data]
     # header
-    # 
+    #
     # automatically writes a file to filename_head/autogenerate if savefile=True and filename=None
     measured_header = motors_header_measured+instruments_header
     header = motors_header+instruments_header+motors_header_measured
@@ -1357,12 +1357,12 @@ def find_balance_angle(start_angle, end_angle, step_size, balance_at=0, offset=0
             ex: {'zurich_lockin':{'time_constant':0.3, 'channel_index':3}}
 
         - mobj_dict:            dictionary containing key:value pairs where keys are motor name and value are motor handle objects
-        - iobj_dict:            same as mobj_dict but for instruments         
+        - iobj_dict:            same as mobj_dict but for instruments
 
     return:
         - balance_angle:    approximate balance angle from fit
-        - slope:            slope of signal vs angle, to be used in autobalancing method       
-        
+        - slope:            slope of signal vs angle, to be used in autobalancing method
+
     '''
 
     if bal_axis==2:
@@ -1401,7 +1401,7 @@ def find_balance_angle(start_angle, end_angle, step_size, balance_at=0, offset=0
     # convert input to angle lists
     angles = helper.get_motor_range(balance_at_start_angle, balance_at+end_angle, step_size)
 
-    # rotate axis and collect data 
+    # rotate axis and collect data
     signal = np.zeros(len(angles))
 
     # setup figure for plotting
@@ -1438,7 +1438,7 @@ def find_balance_angle(start_angle, end_angle, step_size, balance_at=0, offset=0
 
     if go_to_balance_angle:
         bal_axis_obj = move_bal_axis(balance_angle+balance_at, bal_axis_obj)
-    
+
     mobj_dict[static_axis] = static_axis_obj
     mobj_dict[bal_axis] = bal_axis_obj
     helper.close_motors(mobj_dict)
@@ -1463,11 +1463,11 @@ def autobalance(slope, tolerance, offset=0, bal_axis=2, var='Demod 1 x', ikwargs
 
         - mobj_dict:            dictionary containing key:value pairs where keys are motor name and value are motor handle objects
         - iobj_dict:            same as mobj_dict but for instruments
-        - print_flag:           if true, print out balance angle  
+        - print_flag:           if true, print out balance angle
 
     return:
-        - balance_angle:        angle which minizes 
-        
+        - balance_angle:        angle which minizes
+
     '''
 
     if bal_axis==2:
@@ -1504,7 +1504,7 @@ def autobalance(slope, tolerance, offset=0, bal_axis=2, var='Demod 1 x', ikwargs
     signal = 10000
     curr_pos, bal_axis_obj = read_bal_axis(bal_axis_obj)
     while (np.abs(signal-offset)>tolerance):
-        
+
 
         signal, iobj_dict = helper.read_instruments(ACTIVE_INSTRUMENTS, iobj_dict, ikwargs_dict)[var]
         new_pos = (curr_pos-(1/slope)*(signal-offset))%360
@@ -1513,14 +1513,14 @@ def autobalance(slope, tolerance, offset=0, bal_axis=2, var='Demod 1 x', ikwargs
 
     if print_flag:
         print(f'Balanced PID at {balance_at}. Balance angle: {curr_pos-balance_at}.')
-    
+
     mobj_dict[static_axis] = static_axis_obj
     mobj_dict[bal_axis] = bal_axis_obj
     mobj_dict[static_axis] = static_axis_obj
 
     if close_devices:
         helper.close_motors(mobj_dict)
-    
+
     return curr_pos-balance_at
 
 #######################

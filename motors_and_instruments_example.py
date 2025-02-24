@@ -24,9 +24,6 @@ MOTOR_DICT = {}
 # entries of the form instrument:{'read':read_function, 'init':initialize_functions, 'close':close_function, 'name':instrument_name}
 INSTRUMENT_DICT = {}
 
-# keys in MOTOR_DICT for motors to be recorded into metadata header - useful if there are motors which you don't want to constantly stream but do want a record of
-META_MOTORS = []
-
 # keys in MOTOR_DICT for motors to measure during measurements
 ACTIVE_MOTORS = []
 
@@ -35,4 +32,3 @@ ACTIVE_INSTRUMENTS = []
 
 # names of variables to display during plotting by default
 DEFAULT_VARS = []
-

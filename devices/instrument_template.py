@@ -22,11 +22,13 @@ def read(obj=None):
     ##
     ## new code goes here    
     ##
+    data_dict = {'variable':0}
 
     if obj_passed==False:
         close(obj)
-
-    return 0
+        return data_dict, None
+    else:
+        return data_dict, obj
 
 def init():
     return 0

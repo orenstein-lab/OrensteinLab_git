@@ -1,4 +1,4 @@
-from OrensteinLab_git.control.montana import cryocore
+from OrensteinLab_git.devices.montana import cryocore
 from OrensteinLab_git.configuration import CONFIG_DICT
 import time
 import numpy as np
@@ -33,6 +33,9 @@ def set_montana_temperature(temperature, cryo=None, check_stability=True):
 
     if cryo_passed == False:
         close_montana(cryo)
+        return None
+    else:
+        return cryo
 
 def read_montana_temperature(cryo=None):
     '''
@@ -52,8 +55,9 @@ def read_montana_temperature(cryo=None):
 
     if cryo_passed == False:
         close_montana(cryo)
-
-    return temp
+        return temp, None
+    else:
+        return temp, cryo
 
 def initialize_montana():
     return cryocore.CryoCore(address)

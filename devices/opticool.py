@@ -13,7 +13,7 @@ port = CONFIG_DICT['Opticool Port']
 #####################
 
 def set_opticool_temperature(temperature, optc=None, rate=10, mode=0, wait_time=0, check_stability=True):
-    
+
     obj_passed=True
     if optc==None:
         optc = initialize_opticool()
@@ -36,6 +36,7 @@ def set_opticool_temperature(temperature, optc=None, rate=10, mode=0, wait_time=
 
     if obj_passed==False:
         close_opticool(optc)
+        return None
     else:
         return optc
 
@@ -64,11 +65,13 @@ def get_opticool_temp_info(optc=None):
 
     if obj_passed==False:
         close_opticool(optc)
-
-    return temp, output_status
+        return [temp, output_status], None
+    else:
+        return [temp, output_status], optc
 
 def read_opticool_temperature(optc=None):
-    return get_opticool_temp_info(optc)[0], optc
+    info, optc = get_opticool_temp_info(optc)
+    return info[0], optc
 
 def set_opticool_field(field, optc=None, rate=110, approach=0, mode=0, wait_time=0, check_stability=True):
 
@@ -95,6 +98,7 @@ def set_opticool_field(field, optc=None, rate=110, approach=0, mode=0, wait_time
 
     if obj_passed==False:
         close_opticool(optc)
+        return None
     else:
         return optc
 
@@ -124,11 +128,13 @@ def get_opticool_field_info(optc=None):
 
     if obj_passed==False:
         close_opticool(optc)
-
-    return field, output_status
+        return [field, output_status], None
+    else:
+        return [field, output_status], optc
 
 def read_opticool_field(optc=None):
-    return get_opticool_field_info(optc)[0], optc
+    info, optc = get_opticool_field_info(optc)
+    return info[0], optc
 
 def initialize_opticool():
     while True:

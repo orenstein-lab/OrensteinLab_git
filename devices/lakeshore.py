@@ -42,6 +42,7 @@ def set_temperature(temperature, lsobj=None, tolerance=0.1, avg_time=3, wait_tim
 
     if lsobj_passed==False:
         close_lakeshore(lsobj)
+        return None
     else:
         return lsobj
 
@@ -62,6 +63,7 @@ def read_temperature(lsobj=None):
 
     if lsobj_passed==False:
         close_lakeshore(lsobj)
+        return temp, None
     else:
         return temp, lsobj
 
@@ -82,6 +84,9 @@ def set_setpoint(set_temperature, lsobj=None, output=1):
     lsobj.command("SETP "+str(output)+','+str(float(set_temperature)))
     if lsobj_passed==False:
         close_lakeshore(lsobj)
+        return None
+    else:
+        return lsobj
 
 def read_setpoint(lsobj=None):
 
@@ -92,7 +97,8 @@ def read_setpoint(lsobj=None):
         setpoint = float(lsobj.query('SETP?A'))
     if lsobj_passed==False:
         close_lakeshore(lsobj)
-    return setpoint
+        return setpoint, lsobj
+    return setpoint, lsobj
 
 def set_ramp(lsobj=None, output=1, on_off=0, rate=0):
     '''
@@ -105,6 +111,9 @@ def set_ramp(lsobj=None, output=1, on_off=0, rate=0):
     lsobj.command("RAMP "+str(output)+','+str(int(on_off))+','+str(rate))
     if lsobj_passed==False:
         close_lakeshore(lsobj)
+        return None
+    else:
+        return lsobj
 
 def read_ramp(lsobj=None):
 
@@ -117,7 +126,8 @@ def read_ramp(lsobj=None):
     rate = float(output[1])
     if lsobj_passed==False:
         close_lakeshore(lsobj)
-    return [on_off, rate]
+        return [on_off, rate], None
+    return [on_off, rate], lsobj
 
 def set_range(range, lsobj=None, output=1):
     '''
@@ -139,13 +149,17 @@ def set_range(range, lsobj=None, output=1):
     lsobj.command(f'RANGE {output},{range}')
     if lsobj_passed==False:
         close_lakeshore(lsobj)
+        return None
+    else:
+        return lsobj
 
 def read_range(lsobj=None):
     lsobj, lsobj_passed = get_lsobj(lsobj)
     range = lsobj.query('Range?')
     if lsobj_passed==False:
         close_lakeshore(lsobj)
-    return range
+        return range, None
+    return range, lsobj
 
 def set_pid(p, i, d, lsobj=None, output=1):
 
@@ -153,6 +167,9 @@ def set_pid(p, i, d, lsobj=None, output=1):
     lsobj.command(f'PID {output}, {p}, {i}, {d}')
     if lsobj_passed==False:
         close_lakeshore(lsobj)
+        return None
+    else:
+        return lsobj
 
 def read_pid(lsobj=None, output=1):
 
@@ -161,7 +178,8 @@ def read_pid(lsobj=None, output=1):
     p, i, d = [float(i) for i in pid.split(',')]
     if lsobj_passed==False:
         close_lakeshore(lsobj)
-    return p, i, d
+        return [p, i, d], None
+    return [p, i, d], lsobj
 
 def initialize_lakeshore():
     if lakeshore_model == '335':

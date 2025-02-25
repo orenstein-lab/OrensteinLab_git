@@ -14,8 +14,8 @@ import scipy.optimize as opt
 import scipy.interpolate as interp
 import inspect
 import pickle
-from OrensteinLab_git.devices.concurrency_classes import LockedVar, StoppableThread, LockedDict
-from OrensteinLab_git.devices import MOTOR_DICT, INSTRUMENT_DICT, META_MOTORS, ACTIVE_MOTORS, ACTIVE_INSTRUMENTS
+from OrensteinLab_git.concurrency import LockedVar, StoppableThread, LockedDict
+from OrensteinLab_git.motors_and_instruments import MOTOR_DICT, INSTRUMENT_DICT, ACTIVE_MOTORS, ACTIVE_INSTRUMENTS
 
 DEFAULT_FIGSIZE = (6,3)
 
@@ -26,12 +26,12 @@ def setup_1d_plots_append(vars, xlabel, figsize=DEFAULT_FIGSIZE):
     args:
         - vars:     list of y variable names to plot. creates len(vars) plots
         - xlabel:   name of x axis
-    
+
     returns:
         - fig
         - axes
         - plot_handles_dict:    dictionary containing line handles for each variable in var
-        - xrange:               np array for storing x axis data    
+        - xrange:               np array for storing x axis data
         - vdata1d_dict:         dictionary containing data containers for each variable in var
     '''
 
@@ -70,7 +70,7 @@ def update_1d_plots_append(fig, axes, vars, plot_handles_dict, xrange, vdata1d_d
         - axes
         - vars:                 list of y axis variables
         - plot_handles_dict:    dictionary containing line handles for each variable in var
-        - xrange:               np array for storing x axis data  
+        - xrange:               np array for storing x axis data
         - vdata1d_dict:         dictionary containing data containers for each variable in var
         - newx:                 value of new x axis position
         - newdata:              dictionary of values to update at index xind for each variable in var
@@ -102,7 +102,7 @@ def setup_1d_plots(vars, xlabel, xrange, figsize=DEFAULT_FIGSIZE):
         - vars:     list of y variable names to plot. creates len(vars) plots
         - xlabel:   name of x axis
         - xrange:   x axis data
-    
+
     returns:
         - fig
         - axes
@@ -176,7 +176,7 @@ def setup_2d_plots(vars, xlabel, xrange, ylabel, yrange, figsize=DEFAULT_FIGSIZE
         - xrange:   x axis data
         - ylabel:   name of y axis
         - yrange:   y axis data
-    
+
     returns:
         - fig
         - axes

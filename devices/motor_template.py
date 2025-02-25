@@ -4,7 +4,7 @@ motor_template -  each motor at minimum must contain following functions with gi
     - init(**kwargs) - returns motor handle object
     - read(obj=None, **kwargs) - return motor value and obj if it has been passed
     - move(val, obj=None, check_stability=True, **kwargs) - moves motor to val and return obj if it has been passed
-    - close(obj, **kwargs) 
+    - close(obj, **kwargs)
 
     Other requirements:
     - read and move functions must auto-initialize and close if no motor handle is passed.
@@ -22,18 +22,18 @@ def read(obj=None):
         obj_passed=False
 
     ##
-    ## new code goes here    
+    ## new code goes here
     ##
     position = 0
 
     if obj_passed==False:
         close(obj)
-        return 0
+        return position, None
     else:
         return position, obj
 
 def move(val, obj=None, check_stability=True):
-    
+
     obj_passed=True
     if obj==None:
         obj=init()
@@ -49,6 +49,7 @@ def move(val, obj=None, check_stability=True):
 
     if obj_passed==False:
         close(obj)
+        return None
     else:
         return obj
 

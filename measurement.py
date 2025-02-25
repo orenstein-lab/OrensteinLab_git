@@ -15,7 +15,7 @@ import inspect
 import pickle
 import OrensteinLab_git.devices.newport as newport
 from OrensteinLab_git.concurrency import LockedVar, StoppableThread, LockedDict
-from OrensteinLab_git.motors_and_instruments import MOTOR_DICT, INSTRUMENT_DICT, META_MOTORS, ACTIVE_MOTORS, ACTIVE_INSTRUMENTS, DEFAULT_VARS
+from OrensteinLab_git.motors_and_instruments import MOTOR_DICT, INSTRUMENT_DICT, ACTIVE_MOTORS, ACTIVE_INSTRUMENTS, DEFAULT_VARS
 import OrensteinLab_git.helper as helper
 import OrensteinLab_git.plotters as plotters
 import OrensteinLab_git.concurrency as concurrency

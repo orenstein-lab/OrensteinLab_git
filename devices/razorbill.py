@@ -24,6 +24,7 @@ def set_strain_ps(voltage, sc=None, wait_time=0, check_stability=True, tol=0.1):
 
     if not sc_passed:
         close_strain_cell_client(sc)
+        return None
     else:
         return sc
 
@@ -42,6 +43,7 @@ def set_voltage_1(voltage, sc=None, wait_time=0, check_stability=True, tol=0.1):
 
     if not sc_passed:
         close_strain_cell_client(sc)
+        return None
     else:
         return sc
 
@@ -60,6 +62,7 @@ def set_voltage_2(voltage, sc=None, wait_time=0, check_stability=True, tol=0.1):
 
     if not sc_passed:
         close_strain_cell_client(sc)
+        return None
     else:
         return sc
 
@@ -74,6 +77,7 @@ def set_strain_capacitance(cap, sc=None):
 
     if not sc_passed:
         close_strain_cell_client(sc)
+        return None
     else:
         return sc
 
@@ -87,7 +91,7 @@ def read_strain_ps(sc=None):
     voltage = sc.get_ps()
 
     if not sc_passed:
-        print(voltage)
+        return voltage, None
     else:
         return voltage, sc
 
@@ -101,7 +105,7 @@ def read_voltage_1(sc=None):
     voltage = sc.get_voltage(1)
 
     if not sc_passed:
-        print(voltage)
+        return voltage, None
     else:
         return voltage, sc
 
@@ -115,7 +119,7 @@ def read_voltage_2(sc=None):
     voltage = sc.get_voltage(2)
 
     if not sc_passed:
-        print(voltage)
+        return voltage, None
     else:
         return voltage, sc
 
@@ -130,6 +134,7 @@ def read_strain_capacitance(sc=None):
 
     if not sc_passed:
         print(cap)
+        return cap, None
     else:
         return cap, sc
 

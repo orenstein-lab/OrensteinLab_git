@@ -14,7 +14,7 @@ import inspect
 import pickle
 from OrensteinLab_git.concurrency import LockedVar, StoppableThread, LockedDict
 import OrensteinLab_git.concurrency as concurrency
-from OrensteinLab_git.motors_and_instruments import MOTOR_DICT, INSTRUMENT_DICT, META_MOTORS, ACTIVE_MOTORS, ACTIVE_INSTRUMENTS
+from OrensteinLab_git.motors_and_instruments import MOTOR_DICT, INSTRUMENT_DICT, ACTIVE_MOTORS, ACTIVE_INSTRUMENTS
 
 ###
 ### Instrument Methods
@@ -38,11 +38,11 @@ def initialize_instruments(instruments, iobj_dict={}):
     iobj_dict_new={}
     for i in instruments:
         if i in init_instruments:
-            obj = iobj_dict[i]
-            if obj==None:
+            iobj = iobj_dict[i]
+            if iobj==None:
                 init_func = INSTRUMENT_DICT[i]['init']
-                obj = init_func()
-            iobj_dict_new[i] = obj
+                iobj = init_func()
+            iobj_dict_new[i] = iobj
         else:
             init_func = INSTRUMENT_DICT[i]['init']
             iobj_dict_new[i] = init_func()
@@ -77,7 +77,7 @@ def read_instruments(instruments, iobj_dict, ikwargs_dict):
 
     returns:
         - data_dict:        dictionary of data, where keys are variable names and values are variables measured values
-        - iobj_dicts:       dictionary of instrument handle objects, which mayb have been modified
+        - iobj_dict:        dictionary of instrument handle objects, which mayb have been modified
     '''
     data_dict={}
     for i in instruments:
@@ -87,7 +87,7 @@ def read_instruments(instruments, iobj_dict, ikwargs_dict):
         iobj_dict[i] = iobj
         for d in list(instrument_data.keys()):
             data_dict[d] = instrument_data[d]
-    return data_dict, iobj_dicts
+    return data_dict, iobj_dict
 
 def close_instruments(iobj_dict):
     '''
@@ -212,9 +212,9 @@ def read_motors(motors, mobj_dict, mkwargs_read_dict):
     for m in motors:
         mobj = mobj_dict[m]
         read_func = MOTOR_DICT[m]['read']
-        pos, mobj = read_func(mobj, **mkwrgas_read_dict[m])
+        pos, mobj = read_func(mobj, **mkwargs_read_dict[m])
         pos_dict[m] = pos
-        mobj_dict[m] = obj
+        mobj_dict[m] = mobj
     return pos_dict, mobj_dict
 
 def close_motors(mobj_dict):
@@ -306,7 +306,7 @@ def construct_mkwargs_dict(mkwargs_dict):
     motor_names = list(mkwargs_dict.keys())
     mkwargs_dict_new={}
     for m in ACTIVE_MOTORS:
-        if i in motor_names:
+        if m in motor_names:
             mkwargs_dict_new[m]=mkwargs_dict[m]
         else:
             mkwargs_dict_new[m]={}

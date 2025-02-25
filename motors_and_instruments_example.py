@@ -12,6 +12,10 @@ This file contains system specific motor and instrument configurations.
     - DEFAULT_VARS: names of variable to plot during scans by default
 '''
 
+############################
+### Import Devices Files ###
+############################
+
 #####################
 ### System Motors ###
 #####################

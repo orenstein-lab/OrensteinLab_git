@@ -9,18 +9,18 @@ import time
 import datetime as dt
 
 _line_styles = ['r-',
-                'b-', 
-                'g-', 
-                'c-', 
-                'm-', 
-                'y-', 
+                'b-',
+                'g-',
+                'c-',
+                'm-',
+                'y-',
                 'k-']
 
 class TcPlot():
     def __init__(self, heater_names, thermometer_names, duration=120):
         """
-        
-        Keyword Parameters: 
+
+        Keyword Parameters:
            heater_names
            thermometer_names
            duration            (in seconds)
@@ -47,19 +47,19 @@ class TcPlot():
         plt.ion()
 
         # Init primary axis
-        self.ax1.set_xlabel('time (s)')                
+        self.ax1.set_xlabel('time (s)')
         self.ax1.set_ylabel('Heater (W)', color='r')
         self.ax1.yaxis.set_major_formatter(FormatStrFormatter('%.4f'))
         self.ax1.tick_params('y', colors='r')
         self.ax1.grid(color='r', linestyle=':', linewidth=1)
-        
+
         # Init secondary axis
         self.ax2 = self.ax1.twinx()
         self.ax2.set_ylabel('Temp (K)', color='b')
         self.ax2.yaxis.set_major_formatter(FormatStrFormatter('%.4f'))
         self.ax2.tick_params('y', colors='b')
         self.ax2.grid(color='b', linestyle=':', linewidth=1)
-        
+
         # Create a line for each heater and sensor
         self.lines = [None] * len(self.ys)
         for i in range(len(self.lines)):
@@ -71,7 +71,7 @@ class TcPlot():
 
         self.clear()
         plt.show()
-        
+
         self.lastPaintTime = dt.datetime.now()
 
     def _axis(self, i):
@@ -86,7 +86,7 @@ class TcPlot():
         if i >= len(self.heater_names): ax = self.ax2
         return ax
 
-        
+
     def setWindowTitle(self, title):
         self.fig.canvas.set_window_title(title)
 
@@ -99,11 +99,11 @@ class TcPlot():
             self.OnClosed()
 
     def clear(self):
-        
+
         # Remove all existing data
         self.x  = []
         self.ys = [[]] * len(self.ys)
-        
+
         # Capture the start time to calculate elapsed time later within update()
         self.start = dt.datetime.now()
 
@@ -113,7 +113,7 @@ class TcPlot():
         samples = heaters + thermometers
 
         assert len(samples) == len(self.ys), f"Must provide a total of {len(samples)} samples."
-        
+
         if self.Closed:
             return
 
@@ -154,7 +154,6 @@ class TcPlot():
             self.ax2.relim()
             self.ax2.autoscale_view()
 
-        # Redraw        
+        # Redraw
         self.fig.canvas.draw()
         plt.pause(0.001)
-

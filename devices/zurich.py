@@ -2,6 +2,7 @@
 import zhinst.utils as ziutils
 import zhinst.core as zicore
 from OrensteinLab_git.configuration import CONFIG_DICT
+import numpy as np
 import time
 import pickle
 import os

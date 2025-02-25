@@ -45,11 +45,11 @@ def move_attocube(axis, position, amc=None, tolerance=1, go_back=0, ground=False
                 amc.control.setControlMove(axis, True)
                 time.sleep(0.1)
             if repeat_time > 10:
-            amc.move.setControlContinuousBkwd(axis, True)
-            time.sleep(0.2)
-            #    # Stop
-            amc.move.setControlContinuousBkwd(axis, False)
-            repeat_time = 0
+                amc.move.setControlContinuousBkwd(axis, True)
+                time.sleep(0.2)
+                #    # Stop
+                amc.move.setControlContinuousBkwd(axis, False)
+                repeat_time = 0
 
     # Move to specified position
     amc.move.setControlTargetPosition(axis, pos * 1e3)
@@ -65,12 +65,13 @@ def move_attocube(axis, position, amc=None, tolerance=1, go_back=0, ground=False
             time.sleep(0.2)
             #    # Stop
             amc.move.setControlContinuousBkwd(axis, False)
-            repeat_time = 0        
- 
+            repeat_time = 0
+
     # print and close only if another process hasn't passed anc object
     if amc_passed == False:
         print(amc.move.getPosition(axis_dict[axis])*1e-3)
         close_attocube(amc)
+        return None
     else:
         return amc
 
@@ -95,8 +96,8 @@ def read_attocube(axis, amc=None, print_flag=True):
 
     # print and close only if another process hasn't passed anc object
     if amc_passed == False:
-        print(pos)
         close_attocube(amc)
+        return pos, None
     else:
         return pos, amc
 
@@ -109,12 +110,15 @@ def set_attocube_output(axis, state, amc=None):
     if amc==None:
         amc = initialize_attocube()
         amc_passed = False
-    
+
     amc.control.setControlOutput(axis_dict[axis], state)
 
     if amc_passed == False:
         print(amc.move.getPosition(axis_dict[axis])*1e-3)
         close_attocube(amc)
+        return None
+    else:
+        return amc
 
 def initialize_attocube():
     '''

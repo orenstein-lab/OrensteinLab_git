@@ -11,7 +11,7 @@ try:
   import pyvisa
 except ImportError:
   # Change this to match your pyvisa installation path.
-  sys.path.append( r"C:\Users\BigLab2020\anaconda3\lib\site-packages\pyvisa" ) 
+  sys.path.append( r"C:\Users\BigLab2020\anaconda3\lib\site-packages\pyvisa" )
   import pyvisa
 
 def read_wavelength(obj=None):
@@ -22,6 +22,7 @@ def read_wavelength(obj=None):
     if obj_passed==False:
         print(wavelength)
         close_monochromator(obj)
+        return wavelength, None
     else:
         return wavelength, obj
 
@@ -33,6 +34,7 @@ def read_filter(obj=None):
     if obj_passed==False:
         print(filter)
         close_monochromator(obj)
+        return filter, None
     else:
         return filter, obj
 
@@ -44,6 +46,7 @@ def read_grating(obj=None):
     if obj_passed==False:
         print(grating)
         close_monochromator(obj)
+        return grating, None
     else:
         return grating, obj
 
@@ -54,9 +57,9 @@ def set_filter(filter_ind, obj=None):
     obj.write(command)
     if obj_passed==False:
         close_monochromator(obj)
+        return None
     else:
         return obj
-
 
 def set_grating(grating_ind, obj=None):
 
@@ -65,6 +68,7 @@ def set_grating(grating_ind, obj=None):
     obj.write(command)
     if obj_passed==False:
         close_monochromator(obj)
+        return None
     else:
         return obj
 
@@ -83,7 +87,7 @@ def set_wavelength(wavelength, obj=None):
 #         filter_ind = 4
     else:
         ValueError('Wavelength out of range!')
-    
+
     if filter_ind > 0:
         filter_ind_old = read_filter(obj)
         if filter_ind != filter_ind_old :
@@ -92,7 +96,7 @@ def set_wavelength(wavelength, obj=None):
             filter_ind_new = read_filter(obj)
             if filter_ind_new != filter_ind:
                 ValueError('Fail to change filter')
-    
+
     # the following grating selection is for CS130B-3-MC
 #     if wavelength < 650:
 #         set_grating(1,obj)
@@ -102,10 +106,9 @@ def set_wavelength(wavelength, obj=None):
     obj.write(command)
     if obj_passed==False:
         close_monochromator(obj)
+        return None
     else:
         return obj
-
-
 
 def initialize_monochromator():
     found_unit = False
@@ -120,13 +123,12 @@ def initialize_monochromator():
                         addr_str = instr
                         found_unit = True
                         break   # Found one! Stop examining the instrument list
-    
+
     if found_unit:
     #    print(addr_str)
        return rm.open_resource(addr_str)
     else:
        raise ValueError('Cannot Find Monochromator')
-
 
 def close_monochromator(obj):
     obj.close()
@@ -140,6 +142,3 @@ def get_obj(obj):
         obj = initialize_monochromator()
         obj_passed=False
     return obj, obj_passed
-
-
-

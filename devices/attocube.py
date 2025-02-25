@@ -54,10 +54,11 @@ def move_attocube(axis, position, anc=None, tolerance=1, go_back=0, check_stabil
     if anc_passed == False:
         print(anc.getPosition(axis_dict[axis])/1000)
         close_attocube(anc)
+        return None
     else:
         return anc
 
-def read_attocube(axis, anc=None, print_flag=True):
+def read_attocube(axis, anc=None):
     '''
     Read all attocube positions, printing and returning as desired
     '''
@@ -73,13 +74,10 @@ def read_attocube(axis, anc=None, print_flag=True):
     time.sleep(0.1)
     pos=anc.getPosition(axis_dict[axis])/1000
 
-    if print_flag==True and anc_passed==False:
-        print(f'{axis}: {pos}')
-
     # print and close only if another process hasn't passed anc object
     if anc_passed == False:
-        print(pos)
         close_attocube(anc)
+        return pos, None
     else:
         return pos, anc
 
@@ -125,7 +123,7 @@ def move_pos(x, y, z=0):
     else:
         move_z(z, anc)
     close_attocube(anc)
-    
+
 def move_x(position,  anc=None, tolerance=1, go_back=0, check_stability=True):
     '''
     wrapper to move attocube x positioner.
@@ -144,11 +142,11 @@ def move_z(position,  anc=None, tolerance=1, go_back=0, check_stability=True):
     '''
     return move_attocube('z', position, anc, tolerance, go_back, check_stability)
 
-def read_x(anc=None, print_flag=True):
-    return read_attocube('x', anc, print_flag)
+def read_x(anc=None):
+    return read_attocube('x', anc)
 
-def read_y(anc=None, print_flag=True):
-    return read_attocube('y', anc, print_flag)
+def read_y(anc=None):
+    return read_attocube('y', anc)
 
-def read_z(anc=None, print_flag=True):
-    return read_attocube('z', anc, print_flag)
+def read_z(anc=None):
+    return read_attocube('z', anc)

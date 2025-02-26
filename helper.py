@@ -187,7 +187,9 @@ def move_motors(move_dict, mobj_dict, mkwargs_move_dict, mkwargs_read_dict, prin
             sign = np.sign(mtarget - p_curr)
             move_back = MOTOR_DICT[m]['move_back']
             mobj = move_func(mtarget + sign*move_back, mobj, **mkwargs_move)
+        print('got here 1')
         mobj = move_func(mtarget, mobj, **mkwargs_move)
+        print('got here 2')
         if print_flag:
             mmeasured, mobj = read_func(mobj, **mkwargs_read)
             print(f'Moved motor {m} to {mmeasured}.')
@@ -322,7 +324,7 @@ def capture_sequence_information(sequence_list):
     return:
         - sequence_motors:     list of motor that is moved in each step in sequence
         - mtargets:            list of target positions for each step in sequence
-        - mkwrags:             list of kwarg dictionaries for each step in sequence. ex) [{'wait_time':30}, {'wait_time':30},...]
+        - mkwargs:             list of kwarg dictionaries for each step in sequence. ex) [{'wait_time':30}, {'wait_time':30},...]
         - motors:              list of unique motors moved during sequence
         - tols:                list of tolerances for each step in sequence
 
@@ -332,7 +334,7 @@ def capture_sequence_information(sequence_list):
         m = move[0]
         valid_motors = list(MOTOR_DICT.keys())
         if m not in valid_motors:
-            raise ValueError(f'Invalid motor name. Please select motors from the list {valid_motors}.')
+            raise ValueError(f'Invalid motor name {m}. Please select motors from the list {valid_motors}.')
         sequence_motors.append(m)
         mtargets.append(move[1])
         mkwargs.append(move[2])

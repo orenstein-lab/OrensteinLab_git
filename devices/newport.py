@@ -154,6 +154,8 @@ def move_esp300(axis_index, pos, axis=None, check_stability=True):
             print(f'failed to move axis {axis_index}, trying again')
             close_esp300(axis)
             axis = initialize_esp300(axis_index)
+            if check_stability:
+                axis = check_axis_stability300(axis, axis_index)
             #print(f'reinitialized axis {axis_index}')
         time.sleep(0.1)
 

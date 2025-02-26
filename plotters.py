@@ -32,7 +32,7 @@ def setup_1d_plots_append(vars, xlabel, figsize=DEFAULT_FIGSIZE):
         - axes
         - plot_handles_dict:    dictionary containing line handles for each variable in var
         - xrange:               np array for storing x axis data
-        - vdata1d_dict:         dictionary containing data containers for each variable in var
+        - vdata1d_dict:         dictionary containing data containers (np arrays) for each variable in var
     '''
 
     # setup data grids
@@ -71,7 +71,7 @@ def update_1d_plots_append(fig, axes, vars, plot_handles_dict, xrange, vdata1d_d
         - vars:                 list of y axis variables
         - plot_handles_dict:    dictionary containing line handles for each variable in var
         - xrange:               np array for storing x axis data
-        - vdata1d_dict:         dictionary containing data containers for each variable in var
+        - vdata1d_dict:         dictionary containing data containers (numpy arrays) for each variable in var
         - newx:                 value of new x axis position
         - newdata:              dictionary of values to update at index xind for each variable in var
 
@@ -80,10 +80,10 @@ def update_1d_plots_append(fig, axes, vars, plot_handles_dict, xrange, vdata1d_d
         - vdata1d_dict:         modified vdata1d_dict
     '''
 
-    xrange = xrange.append(newx)
+    xrange = np.append(xrange, newx)
     for v in vars:
         line = plot_handles_dict[v]
-        vdata1d_dict[v] = vdata1d_dict[v].append(newdata[v])
+        vdata1d_dict[v] = np.append(vdata1d_dict[v], newdata[v])
         vdata = vdata1d_dict[v]
         line.set_data(xrange, vdata)
     for ax in axes:
@@ -107,7 +107,7 @@ def setup_1d_plots(vars, xlabel, xrange, figsize=DEFAULT_FIGSIZE):
         - fig
         - axes
         - plot_handles_dict:    dictionary containing line handles for each variable in var
-        - vdata1d_dict:         dictionary containing data containers for each variable in var
+        - vdata1d_dict:         dictionary containing data containers (np arrays) for each variable in var
     '''
 
     # setup data grids
@@ -145,7 +145,7 @@ def update_1d_plots(fig, axes, vars, plot_handles_dict, vdata1d_dict, xind, newd
         - axes
         - vars:                 list of y axis variables
         - plot_handles_dict:    dictionary containing line handles for each variable in var
-        - vdata1d_dict:         dictionary containing data containers for each variable in var
+        - vdata1d_dict:         dictionary containing data containers (np arrays) for each variable in var
         - xind:                 index to update for each data container
         - newdata:              dictionary of values to update at index xind for each variable in var
 
@@ -181,7 +181,7 @@ def setup_2d_plots(vars, xlabel, xrange, ylabel, yrange, figsize=DEFAULT_FIGSIZE
         - fig
         - axes
         - plot_handles_dict:    dictionary containing map handles for each variable in var
-        - vdata2d_dict:         dictionary containing data containers for each variable in var
+        - vdata2d_dict:         dictionary containing data containers (np arrays) for each variable in var
     '''
 
     # setup data grids
@@ -223,7 +223,7 @@ def update_2d_plots(fig, axes, vars, plot_handles_dict, vdata2d_dict, xind, yind
         - axes
         - vars:                 list of variables
         - plot_handles_dict:    dictionary containing map handles for each variable in var
-        - vdata1d_dict:         dictionary containing data containers for each variable in var
+        - vdata1d_dict:         dictionary containing data containers (np arrays) for each variable in var
         - xind:                 x index to update for each data container
         - yind:                 y index to update for each data container
         - newdata:              dictionary of values to update at index [yind,xind] for each variable in var

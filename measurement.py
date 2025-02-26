@@ -61,26 +61,27 @@ def motor_scan(map_dict, mkwargs_read_dict={}, ikwargs_dict={}, mobj_dict={}, io
     motors, mranges, mkwargs_move_dict = helper.capture_motor_information(map_dict)
 
     # initialize motors and instruments, and create kwarg dictionaries for each
-    mkwargs_read_dict, ikwargs_dict, mobj_dict, iobj_dict = initialize_instruments_and_motors(ACTIVE_MOTORS, ACTIVE_INSTRUMENTS, mkwargs_read_dict, ikwargs_dict, mobj_dict, iobj_dict)
+    mkwargs_read_dict, ikwargs_dict, mobj_dict, iobj_dict = helper.initialize_instruments_and_motors(ACTIVE_MOTORS, ACTIVE_INSTRUMENTS, mkwargs_read_dict, ikwargs_dict, mobj_dict, iobj_dict)
+
+    # create motor and instrument header
+    instruments_header, iobj_dict = helper.get_instruments_header(ACTIVE_INSTRUMENTS, iobj_dict, ikwargs_dict)
+    motors_header = [MOTOR_DICT[m]['name'] for m in motors] # for tracking idealized motor positionn
+    motors_header_measured = [MOTOR_DICT[m]['name']+str(' measured') for m in ACTIVE_MOTORS] # for tracking measured motor positions
+    header = motors_header+instruments_header+motors_header_measured
 
     # take default value for vars, and check that vars is valid
     if vars==[]:
         vars = DEFAULT_VARS
-    if set(vars)!=set(ACTIVE_MOTORS):
-        raise ValueError(f'vars {vars} not in measurd values {ACTIVE_MOTORS}')
+    if not set(vars).issubset(set(header)):
+        raise ValueError(f'vars {vars} not in measurd values {header}')
 
     # setup file for writing - adds metadata at top and writes the data header
     if savefile:
-        # create motor and instrument header
-        instruments_header, iobj_dict = helper.get_instruments_header(ACTIVE_INSTRUMENTS, iobj_dict, ikwargs_dict)
-        motors_header = [MOTOR_DICT[m]['name'] for m in motors] # for tracking idealized motor positionn
-        motors_header_measured = [MOTOR_DICT[m]['name']+str(' measured') for m in ACTIVE_MOTORS] # for tracking measured motor positions
-        header = motors_header+instruments_header+motors_header_measured
         # setup metadata
         measured_motors_dict, mobj_dict = helper.read_motors(ACTIVE_MOTORS, mobj_dict, mkwargs_read_dict)
         metadata = {**metadata, **measured_motors_dict}
         # setup and write metadta + header to file
-        fname = helper.setup_filename(filename, filename_head, 'motor_scan'+sum([f'_{m}' for m in motors]))
+        fname = helper.setup_filename(filename, filename_head, 'motor_scan_'+'_'.join([f'{m}' for m in motors]))
         helper.write_file_header(fname, header, metadata)
 
     # setup plots for displaying
@@ -129,7 +130,7 @@ def motor_scan(map_dict, mkwargs_read_dict={}, ikwargs_dict={}, mobj_dict={}, io
                 if start_pos[jj]==mtarget:
                     move_back_flag=True
                 move_dict[m] = (mtarget, move_back_flag)
-        mobj_dict = helper.move_motors(move_dict, mobj_dict, mkwargs_move_dict, mwkwargs_read_dict, print_flag=print_flag)
+        mobj_dict = helper.move_motors(move_dict, mobj_dict, mkwargs_move_dict, mkwargs_read_dict, print_flag=print_flag)
         current_pos = pos
 
         # acquire data and read actual motor positions - should test how long this takes for typical motor setup
@@ -140,11 +141,11 @@ def motor_scan(map_dict, mkwargs_read_dict={}, ikwargs_dict={}, mobj_dict={}, io
         #print(tf-t0)
 
         # combine dictionaries to keep all new data in a single dictionary
-        newdata = {**instrument_data_dict, **measured_positions_dict, **measured_motors_positions_dict}
+        newdata = {**instrument_data_dict, **measured_motors_dict}
 
         # convert acquired data from dictionaries to list for file writing
-        instrument_data = [instrument_data_dict[i] for i in ACTIVE_INSTRUMENTS]
-        measured_motors_data = [measured_positions_dict[m] for m in ACTIVE_MOTORS]
+        instrument_data = [instrument_data_dict[h] for h in instruments_header]
+        measured_motors_data = [measured_motors_dict[m] for m in ACTIVE_MOTORS]
 
         # append new data to file
         if savefile:
@@ -204,26 +205,27 @@ def motorfunc_scan(map_dict, mkwargs_read_dict={}, ikwargs_dict={}, mobj_dict={}
     motors, mranges, mkwargs_move_dict = helper.capture_motor_information(map_dict)
 
     # initialize motors and instruments, and create kwarg dictionaries for each
-    mkwargs_read_dict, ikwargs_dict, mobj_dict, iobj_dict = initialize_instruments_and_motors(ACTIVE_MOTORS, ACTIVE_INSTRUMENTS, mkwargs_read_dict, ikwargs_dict, mobj_dict, iobj_dict)
+    mkwargs_read_dict, ikwargs_dict, mobj_dict, iobj_dict = helper.initialize_instruments_and_motors(ACTIVE_MOTORS, ACTIVE_INSTRUMENTS, mkwargs_read_dict, ikwargs_dict, mobj_dict, iobj_dict)
+
+    # create motor and instrument header
+    instruments_header, iobj_dict = helper.get_instruments_header(ACTIVE_INSTRUMENTS, iobj_dict, ikwargs_dict)
+    motors_header = [MOTOR_DICT[m]['name'] for m in motors] # for tracking idealized motor positionn
+    motors_header_measured = [MOTOR_DICT[m]['name']+str(' measured') for m in ACTIVE_MOTORS] # for tracking measured motor positions
+    header = motors_header+instruments_header+motors_header_measured
 
     # take default value for vars, and check that vars is valid
     if vars==[]:
         vars = DEFAULT_VARS
-    if set(vars)!=set(ACTIVE_MOTORS):
-        raise ValueError(f'vars {vars} not in measurd values {ACTIVE_MOTORS}')
+    if not set(vars).issubset(set(header)):
+        raise ValueError(f'vars {vars} not in measurd values {header}')
 
     # setup file for writing - adds metadata at top and writes the data header
     if savefile:
-        # create motor and instrument header
-        instruments_header, iobj_dict = helper.get_instruments_header(ACTIVE_INSTRUMENTS, iobj_dict, ikwargs_dict)
-        motors_header = [MOTOR_DICT[m]['name'] for m in motors] # for tracking idealized motor positionn
-        motors_header_measured = [MOTOR_DICT[m]['name']+str(' measured') for m in ACTIVE_MOTORS] # for tracking measured motor positions
-        header = motors_header+instruments_header+motors_header_measured
         # setup metadata
         measured_motors_dict, mobj_dict = helper.read_motors(ACTIVE_MOTORS, mobj_dict, mkwargs_read_dict)
         metadata = {**metadata, **measured_motors_dict}
         # setup and write metadta + header to file
-        fname = helper.setup_filename(filename, filename_head, 'motorfunc_scan'+sum([f'_{m}' for m in motors]))
+        fname = helper.setup_filename(filename, filename_head, 'motorfunc_scan_'+'_'.join([f'{m}' for m in motors]))
         helper.write_file_header(fname, header, metadata)
 
     # setup plots for displaying
@@ -272,7 +274,7 @@ def motorfunc_scan(map_dict, mkwargs_read_dict={}, ikwargs_dict={}, mobj_dict={}
                 if start_pos[jj]==mtarget:
                     move_back_flag=True
                 move_dict[m] = (mtarget, move_back_flag)
-        mobj_dict = helper.move_motors(move_dict, mobj_dict, mkwargs_move_dict, mwkwargs_read_dict, print_flag=print_flag)
+        mobj_dict = helper.move_motors(move_dict, mobj_dict, mkwargs_move_dict, mkwargs_read_dict, print_flag=print_flag)
         current_pos = pos
 
         # carry out function step before data acquisition
@@ -286,11 +288,11 @@ def motorfunc_scan(map_dict, mkwargs_read_dict={}, ikwargs_dict={}, mobj_dict={}
         #print(tf-t0)
 
         # combine dictionaries to keep all new data in a single dictionary
-        newdata = {**instrument_data_dict, **measured_positions_dict, **measured_motors_positions_dict}
+        newdata = {**instrument_data_dict, **measured_motors_dict}
 
         # convert acquired data from dictionaries to list for file writing
-        instrument_data = [instrument_data_dict[i] for i in ACTIVE_INSTRUMENTS]
-        measured_motors_data = [measured_positions_dict[m] for m in ACTIVE_MOTORS]
+        instrument_data = [instrument_data_dict[h] for h in instruments_header]
+        measured_motors_data = [measured_motors_dict[m] for m in ACTIVE_MOTORS]
 
         # append new data to file
         if savefile:
@@ -337,25 +339,26 @@ def timed_measurement(recording_time, mkwargs_read_dict={}, ikwargs_dict={}, mob
     '''
 
     # initialize motors and instruments, and create kwarg dictionaries for each
-    mkwargs_read_dict, ikwargs_dict, mobj_dict, iobj_dict = initialize_instruments_and_motors(ACTIVE_MOTORS, ACTIVE_INSTRUMENTS, mkwargs_read_dict, ikwargs_dict, mobj_dict, iobj_dict)
+    mkwargs_read_dict, ikwargs_dict, mobj_dict, iobj_dict = helper.initialize_instruments_and_motors(ACTIVE_MOTORS, ACTIVE_INSTRUMENTS, mkwargs_read_dict, ikwargs_dict, mobj_dict, iobj_dict)
+
+    # create motor and instrument header
+    instruments_header, iobj_dict = helper.get_instruments_header(ACTIVE_INSTRUMENTS, iobj_dict, ikwargs_dict)
+    motors_header_measured = [MOTOR_DICT[m]['name']+str(' measured') for m in ACTIVE_MOTORS] # for tracking measured motor positions
+    header = ['Time (s)']+instruments_header+motors_header_measured
 
     # take default value for vars, and check that vars is valid
     if vars==[]:
         vars = DEFAULT_VARS
-    if set(vars)!=set(ACTIVE_MOTORS):
-        raise ValueError(f'vars {vars} not in measurd values {ACTIVE_MOTORS}')
+    if not set(vars).issubset(set(header)):
+        raise ValueError(f'vars {vars} not in measurd values {header}')
 
     # setup file for writing - adds metadata at top and writes the data header
     if savefile:
-        # create motor and instrument header
-        instruments_header, iobj_dict = helper.get_instruments_header(ACTIVE_INSTRUMENTS, iobj_dict, ikwargs_dict)
-        motors_header_measured = [MOTOR_DICT[m]['name']+str(' measured') for m in ACTIVE_MOTORS] # for tracking measured motor positions
-        header = ['Time (s)']+instruments_header+motors_header_measured
         # setup metadata
         measured_motors_dict, mobj_dict = helper.read_motors(ACTIVE_MOTORS, mobj_dict, mkwargs_read_dict)
         metadata = {**metadata, **measured_motors_dict}
         # setup and write metadta + header to file
-        fname = helper.setup_filename(filename, filename_head, 'timed_measurement'+sum([f'_{m}' for m in motors]))
+        fname = helper.setup_filename(filename, filename_head, 'timed_measurement')
         helper.write_file_header(fname, header, metadata)
 
     # setup plots for displaying
@@ -393,7 +396,7 @@ def timed_measurement(recording_time, mkwargs_read_dict={}, ikwargs_dict={}, mob
         newdata = {**instrument_data_dict, **measured_motors_dict}
 
         # convert acquired data from dictionaries to list for file writing
-        instrument_data = [instrument_data_dict[i] for i in ACTIVE_INSTRUMENTS]
+        instrument_data = [instrument_data_dict[h] for h in instruments_header]
         measured_motors_data = [measured_motors_dict[m] for m in ACTIVE_MOTORS]
 
         # append new data to file
@@ -422,6 +425,9 @@ def motor_sequence(sequence_list, mkwargs_read_dict={}, ikwargs_dict={}, mobj_di
 
     args:
         - sequence_list:       list of motor steps to make sequentially, where each entry is a tuple ('motor_name', target, kwargs_move_dict, tolerance)
+
+            ex: [('opticool_field', 1000, {}, 1), ('opticool_field', -1000, {}, 1), ('opticool_field', 0, {}, 1)]
+
         - mkwargs_read_dict:   dictionary for additional motor read kwargs
         - ikwargs_dict:        dictionary of key value pairs where keys are name of instruments in INSTRUMENT_DICT and values are dictionary of kwargs for the instrument read function. Defaults to instruments in ACTIVE_INSTRUMENTS with no kwargs.
 
@@ -443,25 +449,26 @@ def motor_sequence(sequence_list, mkwargs_read_dict={}, ikwargs_dict={}, mobj_di
     sequence_motors, mtargets, mkwargs_move, motors, tols = helper.capture_sequence_information(sequence_list)
 
     # initialize motors and instruments, and create kwarg dictionaries for each
-    mkwargs_read_dict, ikwargs_dict, mobj_dict, iobj_dict = initialize_instruments_and_motors(ACTIVE_MOTORS, ACTIVE_INSTRUMENTS, mkwargs_read_dict, ikwargs_dict, mobj_dict, iobj_dict)
+    mkwargs_read_dict, ikwargs_dict, mobj_dict, iobj_dict = helper.initialize_instruments_and_motors(ACTIVE_MOTORS, ACTIVE_INSTRUMENTS, mkwargs_read_dict, ikwargs_dict, mobj_dict, iobj_dict)
+
+    # create motor and instrument header
+    instruments_header, iobj_dict = helper.get_instruments_header(ACTIVE_INSTRUMENTS, iobj_dict, ikwargs_dict)
+    motors_header_measured = [MOTOR_DICT[m]['name']+str(' measured') for m in ACTIVE_MOTORS] # for tracking measured motor positions
+    header = ['Time (s)']+instruments_header+motors_header_measured
 
     # take default value for vars, and check that vars is valid
     if vars==[]:
         vars = DEFAULT_VARS
-    if set(vars)!=set(ACTIVE_MOTORS):
-        raise ValueError(f'vars {vars} not in measurd values {ACTIVE_MOTORS}')
+    if not set(vars).issubset(set(header)):
+        raise ValueError(f'vars {vars} not in measurd values {header}')
 
     # setup file for writing - adds metadata at top and writes the data header
     if savefile:
-        # create motor and instrument header
-        instruments_header, iobj_dict = helper.get_instruments_header(ACTIVE_INSTRUMENTS, iobj_dict, ikwargs_dict)
-        motors_header_measured = [MOTOR_DICT[m]['name']+str(' measured') for m in ACTIVE_MOTORS] # for tracking measured motor positions
-        header = ['Time (s)']+instruments_header+motors_header_measured
         # setup metadata
         measured_motors_dict, mobj_dict = helper.read_motors(ACTIVE_MOTORS, mobj_dict, mkwargs_read_dict)
         metadata = {**metadata, **measured_motors_dict}
         # setup and write metadta + header to file
-        fname = helper.setup_filename(filename, filename_head, 'motor_scan'+sum([f'_{m}' for m in motors]))
+        fname = helper.setup_filename(filename, filename_head, 'motor_sequence_'+'_'.join([f'{m}' for m in sequence_motors]))
         helper.write_file_header(fname, header, metadata)
 
     # setup plots for displaying
@@ -482,8 +489,8 @@ def motor_sequence(sequence_list, mkwargs_read_dict={}, ikwargs_dict={}, mobj_di
     for ii, m in enumerate(sequence_motors):
         mtarget = [mtargets[ii]]
         move_dict = {m:(mtarget, False)}
-        mkwargs_move_dict = {**mkwargs_move[ii], 'check_stability':0}
-        mobj_dict = helper.move_motors(move_dict, mobj_dict, mkwargs_move_dict, mkwargs_read_dict, print_flag=print_flag)
+        mkwargs_move_dict = {m:{**mkwargs_move[ii], 'check_stability':False}}
+        mobj_dict = helper.move_motors(move_dict, mobj_dict, mkwargs_move_dict, mkwargs_read_dict, print_flag=False)
         tol = tols[ii]
         #time.sleep(time_constant)
         while np.abs(mcurrent - mtarget) > tol:
@@ -510,7 +517,7 @@ def motor_sequence(sequence_list, mkwargs_read_dict={}, ikwargs_dict={}, mobj_di
             newdata = {**instrument_data_dict, **measured_motors_dict}
 
             # convert acquired data from dictionaries to list for file writing
-            instrument_data = [instrument_data_dict[i] for i in ACTIVE_INSTRUMENTS]
+            instrument_data = [instrument_data_dict[h] for h in instruments_header]
             measured_motors_data = [measured_motors_dict[m] for m in ACTIVE_MOTORS]
 
             # append new data to file
@@ -585,10 +592,10 @@ def monitor_motors(motors, mkwargs_read_dict={}, filename_head=None, filename=No
     t0 = time.time()
     while run.locked_read():
 
-        measured_positions_dict, mobj_dict = helper.read_motors(motors, mobj_dict, mkwargs_read_dict)
+        measured_motors_dict, mobj_dict = helper.read_motors(motors, mobj_dict, mkwargs_read_dict)
         t = time.time() - t0
 
-        measured_positions_data = list(measured_positions_dict.values())
+        measured_positions_data = list(measured_motors_dict.values())
 
         time_vect.append(t)
 
@@ -597,7 +604,7 @@ def monitor_motors(motors, mkwargs_read_dict={}, filename_head=None, filename=No
             helper.append_data_to_file(fname, [t]+measured_positions_data)
 
         if plot==True:
-            xrange, vdata1d_dict = plotters.update_1d_plots_append(fig, axes, motors, plot_handles_dict, xrange, vdata1d_dict, t_delay, measured_positions_dict)
+            xrange, vdata1d_dict = plotters.update_1d_plots_append(fig, axes, motors, plot_handles_dict, xrange, vdata1d_dict, t_delay, measured_motors_dict)
         time.sleep(0.1)
 
     user_input_thread.join()
@@ -631,7 +638,7 @@ def list_motors():
 ### Rotations and Corotations ###
 #################################
 
-def rotate_scan(start_angle, end_angle, step_size, axis_index=1, mkwargs_read_dict={}, ikwargs_dict={}, mobj_dict={}, iobj_dict={}, vars=[], metadata={}, filename_head=None, filename=None, savefile=True, print_flag=False, plot=True, close_devices=True):
+def rotate_scan(start_angle, end_angle, step_size, axis_index=1, mkwargs_read_dict={}, ikwargs_dict={}, mobj_dict={}, iobj_dict={}, vars=[], metadata={}, filename_head=None, filename=None, savefile=True, plot=True, close_devices=True):
     '''
     rotation scan for axes 1, 2 or 3
 
@@ -657,25 +664,26 @@ def rotate_scan(start_angle, end_angle, step_size, axis_index=1, mkwargs_read_di
     '''
 
     # initialize motors and instruments, and create kwarg dictionaries for each
-    mkwargs_read_dict, ikwargs_dict, mobj_dict, iobj_dict = initialize_instruments_and_motors(ACTIVE_MOTORS, ACTIVE_INSTRUMENTS, mkwargs_read_dict, ikwargs_dict, mobj_dict, iobj_dict)
+    mkwargs_read_dict, ikwargs_dict, mobj_dict, iobj_dict = helper.initialize_instruments_and_motors(ACTIVE_MOTORS, ACTIVE_INSTRUMENTS, mkwargs_read_dict, ikwargs_dict, mobj_dict, iobj_dict)
+
+    # create motor and instrument header
+    instruments_header, iobj_dict = helper.get_instruments_header(ACTIVE_INSTRUMENTS, iobj_dict, ikwargs_dict)
+    motors_header_measured = [MOTOR_DICT[m]['name']+str(' measured') for m in ACTIVE_MOTORS] # for tracking measured motor positions
+    header = [f'Angle {axis_index} (deg)']+instruments_header+motors_header_measured
 
     # take default value for vars, and check that vars is valid
     if vars==[]:
         vars = DEFAULT_VARS
-    if set(vars)!=set(ACTIVE_MOTORS):
-        raise ValueError(f'vars {vars} not in measurd values {ACTIVE_MOTORS}')
+    if not set(vars).issubset(set(header)):
+        raise ValueError(f'vars {vars} not in measurd values {header}')
 
     # setup file for writing - adds metadata at top and writes the data header
     if savefile:
-        # create motor and instrument header
-        instruments_header, iobj_dict = helper.get_instruments_header(ACTIVE_INSTRUMENTS, iobj_dict, ikwargs_dict)
-        motors_header_measured = [MOTOR_DICT[m]['name']+str(' measured') for m in ACTIVE_MOTORS] # for tracking measured motor positions
-        header = [f'Angle {axis_index} (deg)']+instruments_header+motors_header_measured
         # setup metadata
         measured_motors_dict, mobj_dict = helper.read_motors(ACTIVE_MOTORS, mobj_dict, mkwargs_read_dict)
         metadata = {**metadata, **measured_motors_dict}
         # setup and write metadta + header to file
-        fname = helper.setup_filename(filename, filename_head, 'motor_scan'+sum([f'_{m}' for m in motors]))
+        fname = helper.setup_filename(filename, filename_head, 'rotate_scan')
         helper.write_file_header(fname, header, metadata)
 
     # setup plots for displaying
@@ -727,7 +735,7 @@ def rotate_scan(start_angle, end_angle, step_size, axis_index=1, mkwargs_read_di
         newdata = {**instrument_data_dict, **measured_motors_dict}
 
         # convert acquired data from dictionaries to list for file writing
-        instrument_data = [instrument_data_dict[i] for i in ACTIVE_INSTRUMENTS]
+        instrument_data = [instrument_data_dict[h] for h in instruments_header]
         measured_motors_data = [measured_motors_dict[m] for m in ACTIVE_MOTORS]
 
         # append new data to file
@@ -748,7 +756,7 @@ def rotate_scan(start_angle, end_angle, step_size, axis_index=1, mkwargs_read_di
     else:
         return iobj_dict, mobj_dict
 
-def corotate_scan(start_angle, end_angle, step_size, angle_offset, rate_axis_2=1, mkwargs_read_dict={}, ikwargs_dict={}, mobj_dict={}, iobj_dict={}, vars=[], metadata={}, filename_head=None, filename=None, savefile=True, print_flag=False, plot=True, close_devices=True):
+def corotate_scan(start_angle, end_angle, step_size, angle_offset, rate_axis_2=1, mkwargs_read_dict={}, ikwargs_dict={}, mobj_dict={}, iobj_dict={}, vars=[], metadata={}, filename_head=None, filename=None, savefile=True, plot=True, close_devices=True):
     '''
     Corotation scan moving axes 1 and 2, typically representing wave plates.
 
@@ -777,25 +785,26 @@ def corotate_scan(start_angle, end_angle, step_size, angle_offset, rate_axis_2=1
     '''
 
     # initialize motors and instruments, and create kwarg dictionaries for each
-    mkwargs_read_dict, ikwargs_dict, mobj_dict, iobj_dict = initialize_instruments_and_motors(ACTIVE_MOTORS, ACTIVE_INSTRUMENTS, mkwargs_read_dict, ikwargs_dict, mobj_dict, iobj_dict)
+    mkwargs_read_dict, ikwargs_dict, mobj_dict, iobj_dict = helper.initialize_instruments_and_motors(ACTIVE_MOTORS, ACTIVE_INSTRUMENTS, mkwargs_read_dict, ikwargs_dict, mobj_dict, iobj_dict)
+
+    # create motor and instrument header
+    instruments_header, iobj_dict = helper.get_instruments_header(ACTIVE_INSTRUMENTS, iobj_dict, ikwargs_dict)
+    motors_header_measured = [MOTOR_DICT[m]['name']+str(' measured') for m in ACTIVE_MOTORS] # for tracking measured motor positions
+    header = [f'Angle 1 (deg)', 'Angle 2 (deg)']+instruments_header+motors_header_measured
 
     # take default value for vars, and check that vars is valid
     if vars==[]:
         vars = DEFAULT_VARS
-    if set(vars)!=set(ACTIVE_MOTORS):
-        raise ValueError(f'vars {vars} not in measurd values {ACTIVE_MOTORS}')
+    if set(vars)!=set(header):
+        raise ValueError(f'vars {vars} not in measurd values {header}')
 
     # setup file for writing - adds metadata at top and writes the data header
     if savefile:
-        # create motor and instrument header
-        instruments_header, iobj_dict = helper.get_instruments_header(ACTIVE_INSTRUMENTS, iobj_dict, ikwargs_dict)
-        motors_header_measured = [MOTOR_DICT[m]['name']+str(' measured') for m in ACTIVE_MOTORS] # for tracking measured motor positions
-        header = [f'Angle 1 (deg)', 'Angle 2 (deg)']+instruments_header+motors_header_measured
         # setup metadata
         measured_motors_dict, mobj_dict = helper.read_motors(ACTIVE_MOTORS, mobj_dict, mkwargs_read_dict)
         metadata = {**metadata, **measured_motors_dict}
         # setup and write metadta + header to file
-        fname = helper.setup_filename(filename, filename_head, 'motor_scan'+sum([f'_{m}' for m in motors]))
+        fname = helper.setup_filename(filename, filename_head, 'corotate_scan')
         helper.write_file_header(fname, header, metadata)
 
 
@@ -858,7 +867,7 @@ def corotate_scan(start_angle, end_angle, step_size, angle_offset, rate_axis_2=1
         newdata = {**instrument_data_dict, **measured_motors_dict}
 
         # convert acquired data from dictionaries to list for file writing
-        instrument_data = [instrument_data_dict[i] for i in ACTIVE_INSTRUMENTS]
+        instrument_data = [instrument_data_dict[h] for h in instruments_header]
         measured_motors_data = [measured_motors_dict[m] for m in ACTIVE_MOTORS]
 
         # append new data to file
@@ -916,13 +925,14 @@ def rotate_map(map_dict, start_angle, end_angle, step_size, mkwargs_read_dict={}
     motors, mranges, mkwargs_move_dict = helper.capture_motor_information(map_dict)
 
     # initialize motors and instruments, and create kwarg dictionaries for each
-    mkwargs_read_dict, ikwargs_dict, mobj_dict, iobj_dict = initialize_instruments_and_motors(ACTIVE_MOTORS, ACTIVE_INSTRUMENTS, mkwargs_read_dict, ikwargs_dict, mobj_dict, iobj_dict)
+    mkwargs_read_dict, ikwargs_dict, mobj_dict, iobj_dict = helper.initialize_instruments_and_motors(ACTIVE_MOTORS, ACTIVE_INSTRUMENTS, mkwargs_read_dict, ikwargs_dict, mobj_dict, iobj_dict)
 
     # take default value for vars, and check that vars is valid
     if vars==[]:
         vars = DEFAULT_VARS
-    if set(vars)!=set(ACTIVE_MOTORS):
-        raise ValueError(f'vars {vars} not in measurd values {ACTIVE_MOTORS}')
+    measured_vars = [MOTOR_DICT[m]['name'] for m in ACTIVE_MOTORS]+[INSTRUMENT_DICT[i]['name']for i in ACTIVE_INSTRUMENTS]
+    if set(vars)!=set(measured_vars):
+        raise ValueError(f'vars {vars} not in measurd values {measured_vars}')
 
     # start user input thread
     run = LockedVar(True)
@@ -953,7 +963,7 @@ def rotate_map(map_dict, start_angle, end_angle, step_size, mkwargs_read_dict={}
                 if start_pos[jj]==mtarget:
                     move_back_flag=True
                 move_dict[m] = (mtarget, move_back_flag)
-        mobj_dict = helper.move_motors(move_dict, mobj_dict, mkwargs_move_dict, mwkwargs_read_dict, print_flag=print_flag)
+        mobj_dict = helper.move_motors(move_dict, mobj_dict, mkwargs_move_dict, mkwargs_read_dict, print_flag=print_flag)
         current_pos = pos
 
         # setup each filename
@@ -963,7 +973,7 @@ def rotate_map(map_dict, start_angle, end_angle, step_size, mkwargs_read_dict={}
             expanded_filename = expanded_filename+f'_{m}{p}'
 
         # scan
-        iobj_dict, mobj_dict = rotate_scan(start_angle, end_angle, step_size, axis_index=1, mkwargs_read_dict=mkwargs_read_dict, ikwargs_dict=ikwargs_dict, mobj_dict=mobj_dict, iobj_dict=iobj_dict, vars=vars, metadata=metadata, filename_head=filename_head, filename=filename, savefile=True, print_flag=print_flag, plot=plot, close_devices=False)
+        iobj_dict, mobj_dict = rotate_scan(start_angle, end_angle, step_size, axis_index=1, mkwargs_read_dict=mkwargs_read_dict, ikwargs_dict=ikwargs_dict, mobj_dict=mobj_dict, iobj_dict=iobj_dict, vars=vars, metadata=metadata, filename_head=filename_head, filename=filename, savefile=True, plot=plot, close_devices=False)
 
     # close instruments and motors
     if close_devices:
@@ -1010,13 +1020,14 @@ def corotate_map(map_dict, start_angle, end_angle, step_size, angle_offset, rate
     motors, mranges, mkwargs_move_dict = helper.capture_motor_information(map_dict)
 
     # initialize motors and instruments, and create kwarg dictionaries for each
-    mkwargs_read_dict, ikwargs_dict, mobj_dict, iobj_dict = initialize_instruments_and_motors(ACTIVE_MOTORS, ACTIVE_INSTRUMENTS, mkwargs_read_dict, ikwargs_dict, mobj_dict, iobj_dict)
+    mkwargs_read_dict, ikwargs_dict, mobj_dict, iobj_dict = helper.initialize_instruments_and_motors(ACTIVE_MOTORS, ACTIVE_INSTRUMENTS, mkwargs_read_dict, ikwargs_dict, mobj_dict, iobj_dict)
 
     # take default value for vars, and check that vars is valid
     if vars==[]:
         vars = DEFAULT_VARS
-    if set(vars)!=set(ACTIVE_MOTORS):
-        raise ValueError(f'vars {vars} not in measurd values {ACTIVE_MOTORS}')
+    measured_vars = [MOTOR_DICT[m]['name'] for m in ACTIVE_MOTORS]+[INSTRUMENT_DICT[i]['name']for i in ACTIVE_INSTRUMENTS]
+    if set(vars)!=set(measured_vars):
+        raise ValueError(f'vars {vars} not in measurd values {measured_vars}')
 
     # start user input thread
     run = LockedVar(True)
@@ -1047,7 +1058,7 @@ def corotate_map(map_dict, start_angle, end_angle, step_size, angle_offset, rate
                 if start_pos[jj]==mtarget:
                     move_back_flag=True
                 move_dict[m] = (mtarget, move_back_flag)
-        mobj_dict = helper.move_motors(move_dict, mobj_dict, mkwargs_move_dict, mwkwargs_read_dict, print_flag=print_flag)
+        mobj_dict = helper.move_motors(move_dict, mobj_dict, mkwargs_move_dict, mkwargs_read_dict, print_flag=print_flag)
         current_pos = pos
 
         # setup each filename
@@ -1057,7 +1068,7 @@ def corotate_map(map_dict, start_angle, end_angle, step_size, angle_offset, rate
             expanded_filename = expanded_filename+f'_{m}{p}'
 
         # scan
-        iobj_dict, mobj_dict = corotate_scan(start_angle, end_angle, step_size, angle_offset, rate_axis_2=rate_axis_2, mkwargs_read_dict=mkwargs_read_dict, ikwargs_dict=ikwargs_dict, mobj_dict=mobj_dict, iobj_dict=iobj_dict, vars=vars, metadata=metadata, filename_head=filename_head, filename=filename, savefile=True, print_flag=print_flag, plot=plot, close_devices=False)
+        iobj_dict, mobj_dict = corotate_scan(start_angle, end_angle, step_size, angle_offset, rate_axis_2=rate_axis_2, mkwargs_read_dict=mkwargs_read_dict, ikwargs_dict=ikwargs_dict, mobj_dict=mobj_dict, iobj_dict=iobj_dict, vars=vars, metadata=metadata, filename_head=filename_head, filename=filename, savefile=True, plot=plot, close_devices=False)
 
     # close instruments and motors
     if close_devices:
@@ -1304,11 +1315,11 @@ def motor_scan_balance(map_dict, balance_dict, mkwargs_read_dict={}, ikwargs_dic
         #print(tf-t0)
 
         # combine dictionaries to keep all new data in a single dictionary
-        newdata = {**instrument_data_dict, **measured_positions_dict, **measured_motors_positions_dict}
+        newdata = {**instrument_data_dict, **measured_motors_dict}
 
         # convert acquired data from dictionaries to list for file writing
         instrument_data = [instrument_data_dict[i] for i in ACTIVE_INSTRUMENTS]
-        measured_motors_data = [measured_positions_dict[m] for m in ACTIVE_MOTORS]
+        measured_motors_data = [measured_motors_dict[m] for m in ACTIVE_MOTORS]
 
         # append new data to file
         if savefile:

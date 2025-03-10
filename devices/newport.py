@@ -206,7 +206,7 @@ def check_axis_stability300(axis, axis_index):
             #pass
     return axis
 
-def corotate_axes301(axis_1_index, axis_2_index, angle_1, angle_2, axis_1=None, axis_2=None):
+def corotate_axes301(axis_1_index, axis_2_index, angle_1, angle_2, axis_1=None, axis_2=None, check_stability=True):
 
     if axis_1==None:
         axis_1 = initialize_esp301(axis_1_index)
@@ -226,23 +226,24 @@ def corotate_axes301(axis_1_index, axis_2_index, angle_1, angle_2, axis_1=None, 
             axis_2 = initialize_esp301(axis_2_index)
             #print('reinitialized axes')
         time.sleep(0.1)
-    while True:
-        try:
-            if axis_1.is_motion_done==True and axis_2.is_motion_done==True:
-                break
-        except:
-            print('failed to check axis corotate axes stability, trying agian.')
-            close_esp301(axis_1)
-            close_esp301(axis_2)
-            axis_1 = initialize_esp301(axis_1_index)
-            axis_2 = initialize_esp301(axis_2_index)
-            print('reinitialized axes')
-        time.sleep(0.1)
-            #pass
+    if check_stability:
+        while True:
+            try:
+                if axis_1.is_motion_done==True and axis_2.is_motion_done==True:
+                    break
+            except:
+                print('failed to check axis corotate axes stability, trying agian.')
+                close_esp301(axis_1)
+                close_esp301(axis_2)
+                axis_1 = initialize_esp301(axis_1_index)
+                axis_2 = initialize_esp301(axis_2_index)
+                print('reinitialized axes')
+            time.sleep(0.1)
+                #pass
 
     return axis_1, axis_2
 
-def corotate_axes300(axis_1_index, axis_2_index, angle_1, angle_2, axis_1=None, axis_2=None):
+def corotate_axes300(axis_1_index, axis_2_index, angle_1, angle_2, axis_1=None, axis_2=None, check_stability=True):
 
     if axis_1==None:
         axis_1 = initialize_esp300(axis_1_index)
@@ -263,19 +264,20 @@ def corotate_axes300(axis_1_index, axis_2_index, angle_1, angle_2, axis_1=None, 
             #print('reinitialized axes')
         time.sleep(0.1)
 
-    while True:
-        try:
-            if axis_1.motion_done==True and axis_2.motion_done==True:
-                break
-        except:
-            print('failed to check axis corotate axes stability, trying agian.')
-            close_esp300(axis_1)
-            close_esp300(axis_2)
-            axis_1 = initialize_esp300(axis_1_index)
-            axis_2 = initialize_esp300(axis_2_index)
-            print('reinitialized axes')
-        time.sleep(0.1)
-            #pass
+    if check_stability:
+        while True:
+            try:
+                if axis_1.motion_done==True and axis_2.motion_done==True:
+                    break
+            except:
+                print('failed to check axis corotate axes stability, trying agian.')
+                close_esp300(axis_1)
+                close_esp300(axis_2)
+                axis_1 = initialize_esp300(axis_1_index)
+                axis_2 = initialize_esp300(axis_2_index)
+                print('reinitialized axes')
+            time.sleep(0.1)
+                #pass
 
     return axis_1, axis_2
 

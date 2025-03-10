@@ -187,9 +187,7 @@ def move_motors(move_dict, mobj_dict, mkwargs_move_dict, mkwargs_read_dict, prin
             sign = np.sign(mtarget - p_curr)
             move_back = MOTOR_DICT[m]['move_back']
             mobj = move_func(mtarget + sign*move_back, mobj, **mkwargs_move)
-        print('got here 1')
         mobj = move_func(mtarget, mobj, **mkwargs_move)
-        print('got here 2')
         if print_flag:
             mmeasured, mobj = read_func(mobj, **mkwargs_read)
             print(f'Moved motor {m} to {mmeasured}.')

@@ -103,7 +103,7 @@ def motor_scan(map_dict, mkwargs_read_dict={}, ikwargs_dict={}, mobj_dict={}, io
 
     # start user input thread
     run = LockedVar(True)
-    user_input_thread = threading.Thread(target=concurrency.type_stop_to_stop, args=(run,))
+    user_input_thread = threading.Thread(target=concurrency.press_esc_to_stop, args=(run,))
     user_input_thread.start()
 
     # generate motor scan positions recursively.
@@ -160,6 +160,10 @@ def motor_scan(map_dict, mkwargs_read_dict={}, ikwargs_dict={}, mobj_dict={}, io
                 xind = int(ii%xn)
                 yind = int(ii/xn)
                 vdata2d_dict = plotters.update_2d_plots(fig, axes, vars, plot_handles_dict, vdata2d_dict, xind, yind, newdata)
+
+    # wait for thread to finish
+    run.locked_update(False)
+    user_input_thread.join()
 
     # close instruments and motors
     if close_devices:
@@ -247,7 +251,7 @@ def motorfunc_scan(map_dict, mkwargs_read_dict={}, ikwargs_dict={}, mobj_dict={}
 
     # start user input thread
     run = LockedVar(True)
-    user_input_thread = threading.Thread(target=concurrency.type_stop_to_stop, args=(run,))
+    user_input_thread = threading.Thread(target=concurrency.press_esc_to_stop, args=(run,))
     user_input_thread.start()
 
     # generate motor scan positions recursively.
@@ -307,6 +311,10 @@ def motorfunc_scan(map_dict, mkwargs_read_dict={}, ikwargs_dict={}, mobj_dict={}
                 xind = int(ii%xn)
                 yind = int(ii/xn)
                 vdata2d_dict = plotters.update_2d_plots(fig, axes, vars, plot_handles_dict, vdata2d_dict, xind, yind, newdata)
+
+    # wait for thread to finish
+    run.locked_update(False)
+    user_input_thread.join()
 
     # close instruments and motors
     if close_devices:
@@ -370,7 +378,7 @@ def timed_measurement(recording_time, mkwargs_read_dict={}, ikwargs_dict={}, mob
 
     # start user input thread
     run = LockedVar(True)
-    user_input_thread = threading.Thread(target=concurrency.type_stop_to_stop, args=(run,))
+    user_input_thread = threading.Thread(target=concurrency.press_esc_to_stop, args=(run,))
     user_input_thread.start()
 
     # loop
@@ -409,6 +417,10 @@ def timed_measurement(recording_time, mkwargs_read_dict={}, ikwargs_dict={}, mob
             if xvar!='time':
                 newx = newdata[xlabel]
             xrange, vdata1d_dict = plotters.update_1d_plots_append(fig, axes, vars, plot_handles_dict, xrange, vdata1d_dict, newx, newdata)
+
+    # wait for thread to finish
+    run.locked_update(False)
+    user_input_thread.join()
 
     # close instruments and motors
     if close_devices:
@@ -480,18 +492,24 @@ def motor_sequence(sequence_list, mkwargs_read_dict={}, ikwargs_dict={}, mobj_di
 
     # start user input thread
     run = LockedVar(True)
-    user_input_thread = threading.Thread(target=concurrency.type_stop_to_stop, args=(run,))
+    user_input_thread = threading.Thread(target=concurrency.press_esc_to_stop, args=(run,))
     user_input_thread.start()
 
     # loop
     t = 0
     tic = time.perf_counter()
     for ii, m in enumerate(sequence_motors):
-        mtarget = [mtargets[ii]]
+        mtarget = mtargets[ii]
         move_dict = {m:(mtarget, False)}
         mkwargs_move_dict = {m:{**mkwargs_move[ii], 'check_stability':False}}
+        #print(move_dict)
+        #print(mobj_dict)
+        #print(mkwargs_move_dict)
+        #print(mkwargs_read_dict)
         mobj_dict = helper.move_motors(move_dict, mobj_dict, mkwargs_move_dict, mkwargs_read_dict, print_flag=False)
         tol = tols[ii]
+        measured_motors_dict, mobj_dict = helper.read_motors([m], mobj_dict, mkwargs_read_dict)
+        mcurrent = measured_motors_dict[m]
         #time.sleep(time_constant)
         while np.abs(mcurrent - mtarget) > tol:
 
@@ -522,18 +540,22 @@ def motor_sequence(sequence_list, mkwargs_read_dict={}, ikwargs_dict={}, mobj_di
 
             # append new data to file
             if savefile:
-                helper.append_data_to_file(fname, list([t_delay])+instrument_data+measured_motors_data)
+                helper.append_data_to_file(fname, list([t])+instrument_data+measured_motors_data)
 
             # update plots
             if plot==True:
-                newx = t_delay
+                newx = t
                 if xvar!='time':
-                    newx = newdata[xlabel]
+                    newx = newdata[xvar]
                 xrange, vdata1d_dict = plotters.update_1d_plots_append(fig, axes, vars, plot_handles_dict, xrange, vdata1d_dict, newx, newdata)
 
         # if run is False, break outer loop
         if not run.locked_read():
             break
+
+    # wait for thread to finish
+    run.locked_update(False)
+    user_input_thread.join()
 
     # close instruments and motors
     if close_devices:
@@ -586,7 +608,7 @@ def monitor_motors(motors, mkwargs_read_dict={}, filename_head=None, filename=No
 
     # start user input thread
     run = LockedVar(True)
-    user_input_thread = threading.Thread(target=concurrency.press_any_key_to_stop, args=(run,))
+    user_input_thread = threading.Thread(target=concurrency.press_esc_to_stop, args=(run,))
     user_input_thread.start()
 
     t0 = time.time()
@@ -597,16 +619,15 @@ def monitor_motors(motors, mkwargs_read_dict={}, filename_head=None, filename=No
 
         measured_positions_data = list(measured_motors_dict.values())
 
-        time_vect.append(t)
-
         # add to file
         if savefile:
             helper.append_data_to_file(fname, [t]+measured_positions_data)
 
         if plot==True:
-            xrange, vdata1d_dict = plotters.update_1d_plots_append(fig, axes, motors, plot_handles_dict, xrange, vdata1d_dict, t_delay, measured_motors_dict)
+            xrange, vdata1d_dict = plotters.update_1d_plots_append(fig, axes, motors, plot_handles_dict, xrange, vdata1d_dict, t, measured_motors_dict)
         time.sleep(0.1)
 
+    run.locked_update(False)
     user_input_thread.join()
 
     # close motors
@@ -710,7 +731,7 @@ def rotate_scan(start_angle, end_angle, step_size, axis_index=1, mkwargs_read_di
 
     # start user input thread
     run = LockedVar(True)
-    user_input_thread = threading.Thread(target=concurrency.type_stop_to_stop, args=(run,))
+    user_input_thread = threading.Thread(target=concurrency.press_esc_to_stop, args=(run,))
     user_input_thread.start()
 
     # scan
@@ -748,6 +769,10 @@ def rotate_scan(start_angle, end_angle, step_size, axis_index=1, mkwargs_read_di
 
     axis_obj = move_axis(angle, axis=axis_obj)
     mobj_dict[axis_name] = axis_obj
+
+    # wait for thread to finish
+    run.locked_update(False)
+    user_input_thread.join()
 
     # close instruments and motors
     if close_devices:
@@ -795,7 +820,7 @@ def corotate_scan(start_angle, end_angle, step_size, angle_offset, rate_axis_2=1
     # take default value for vars, and check that vars is valid
     if vars==[]:
         vars = DEFAULT_VARS
-    if set(vars)!=set(header):
+    if not set(vars).issubset(set(header)):
         raise ValueError(f'vars {vars} not in measurd values {header}')
 
     # setup file for writing - adds metadata at top and writes the data header
@@ -827,19 +852,14 @@ def corotate_scan(start_angle, end_angle, step_size, angle_offset, rate_axis_2=1
     angles_1 = helper.get_motor_range(start_angle, end_angle, step_size)
     angles_2 = rate_axis_2*angles_1 + angle_offset
 
-    # setup plots for displaying
-    if plot:
-        xlabel = f'Angle {axis_index} (deg)'
-        fig, axes, plot_handles_dict, xrange, vdata1d_dict = plotters.setup_1d_plots_append(vars, xlabel)
-
     # move axis to start
-    axis_1, axis_2 = newport.corotate_axes(1, 2, start_angle-move_back_1, start_angle+offset_angle-move_back_2, axis_1=axis_1, axis_2=axis_2)
+    axis_1, axis_2 = newport.corotate_axes(1, 2, start_angle-move_back_1, start_angle+angle_offset-move_back_2, axis_1=axis_1, axis_2=axis_2)
     mobj_dict['axis_1'] = axis_1
     mobj_dict['axis_2'] = axis_2
 
     # start user input thread
     run = LockedVar(True)
-    user_input_thread = threading.Thread(target=concurrency.type_stop_to_stop, args=(run,))
+    user_input_thread = threading.Thread(target=concurrency.press_esc_to_stop, args=(run,))
     user_input_thread.start()
 
     # scan
@@ -852,7 +872,7 @@ def corotate_scan(start_angle, end_angle, step_size, angle_offset, rate_axis_2=1
         # move angles
         angle_1 = angle
         angle_2 = angles_2[ii]
-        axis_1, axis_2 = newport.corotate_axes(1, 2, start_angle-move_back_1, start_angle+offset_angle-move_back_2, axis_1=axis_1, axis_2=axis_2)
+        axis_1, axis_2 = newport.corotate_axes(1, 2, start_angle-move_back_1, start_angle+angle_offset-move_back_2, axis_1=axis_1, axis_2=axis_2)
         mobj_dict['axis_1'] = axis_1
         mobj_dict['axis_2'] = axis_2
 
@@ -879,9 +899,16 @@ def corotate_scan(start_angle, end_angle, step_size, angle_offset, rate_axis_2=1
             xrange, vdata1d_dict = plotters.update_1d_plots_append(fig, axes, vars, plot_handles_dict, xrange, vdata1d_dict, angle, newdata)
 
     # move motor back to original positions
-    axis_1, axis_2 = newport.corotate_axes(1, 2, start_angle-move_back_1, start_angle+offset_angle-move_back_2, axis_1=axis_1, axis_2=axis_2)
+    axis_1, axis_2 = newport.corotate_axes(1, 2, start_angle-move_back_1, start_angle+angle_offset-move_back_2, axis_1=axis_1, axis_2=axis_2)
     mobj_dict['axis_1'] = axis_1
     mobj_dict['axis_2'] = axis_2
+    axis_1, axis_2 = newport.corotate_axes(1, 2, start_angle, start_angle+angle_offset, axis_1=axis_1, axis_2=axis_2)
+    mobj_dict['axis_1'] = axis_1
+    mobj_dict['axis_2'] = axis_2
+
+    # wait for thread to finish
+    run.locked_update(False)
+    user_input_thread.join()
 
     # close instruments and motors
     if close_devices:
@@ -926,17 +953,21 @@ def rotate_map(map_dict, start_angle, end_angle, step_size, mkwargs_read_dict={}
 
     # initialize motors and instruments, and create kwarg dictionaries for each
     mkwargs_read_dict, ikwargs_dict, mobj_dict, iobj_dict = helper.initialize_instruments_and_motors(ACTIVE_MOTORS, ACTIVE_INSTRUMENTS, mkwargs_read_dict, ikwargs_dict, mobj_dict, iobj_dict)
+    instruments_header, iobj_dict = helper.get_instruments_header(ACTIVE_INSTRUMENTS, iobj_dict, ikwargs_dict)
 
     # take default value for vars, and check that vars is valid
     if vars==[]:
         vars = DEFAULT_VARS
-    measured_vars = [MOTOR_DICT[m]['name'] for m in ACTIVE_MOTORS]+[INSTRUMENT_DICT[i]['name']for i in ACTIVE_INSTRUMENTS]
-    if set(vars)!=set(measured_vars):
+    measured_vars = [MOTOR_DICT[m]['name'] for m in ACTIVE_MOTORS]+instruments_header
+    if not set(vars).issubset(set(measured_vars)):
         raise ValueError(f'vars {vars} not in measurd values {measured_vars}')
+
+    # setup filenames
+    filename = helper.setup_filename(filename, filename_head, 'rotate_map')
 
     # start user input thread
     run = LockedVar(True)
-    user_input_thread = threading.Thread(target=concurrency.type_stop_to_stop, args=(run,))
+    user_input_thread = threading.Thread(target=concurrency.press_esc_to_stop, args=(run,))
     user_input_thread.start()
 
     # generate motor scan positions recursively.
@@ -975,6 +1006,10 @@ def rotate_map(map_dict, start_angle, end_angle, step_size, mkwargs_read_dict={}
         # scan
         iobj_dict, mobj_dict = rotate_scan(start_angle, end_angle, step_size, axis_index=1, mkwargs_read_dict=mkwargs_read_dict, ikwargs_dict=ikwargs_dict, mobj_dict=mobj_dict, iobj_dict=iobj_dict, vars=vars, metadata=metadata, filename_head=filename_head, filename=filename, savefile=True, plot=plot, close_devices=False)
 
+    # wait for thread to finish
+    run.locked_update(False)
+    user_input_thread.join()
+
     # close instruments and motors
     if close_devices:
         helper.close_instruments(iobj_dict)
@@ -982,7 +1017,7 @@ def rotate_map(map_dict, start_angle, end_angle, step_size, mkwargs_read_dict={}
     else:
         return iobj_dict, mobj_dict
 
-def corotate_map(map_dict, start_angle, end_angle, step_size, angle_offset, rate_axis_2=1, mkwargs_read_dict={}, ikwargs_dict={}, mobj_dict={}, iobj_dict={}, vars=[], metadata={}, filename_head=None, filename=None, savefile=True, print_flag=False, plot=True, close_devices=True):
+def corotate_map(map_dict, start_angle, end_angle, step_size, angle_offset, rate_axis_2=1, mkwargs_read_dict={}, ikwargs_dict={}, mobj_dict={}, iobj_dict={}, vars=[], metadata={}, filename_head=None, filename=None, savefile=True, print_flag=False, plot=False, close_devices=True):
     '''
     method to record corotation measurements on instruments as a function of motors specified by dictionary map_dict. meant to acquire data one point at a time in a multidimensional motor space.
 
@@ -1021,17 +1056,21 @@ def corotate_map(map_dict, start_angle, end_angle, step_size, angle_offset, rate
 
     # initialize motors and instruments, and create kwarg dictionaries for each
     mkwargs_read_dict, ikwargs_dict, mobj_dict, iobj_dict = helper.initialize_instruments_and_motors(ACTIVE_MOTORS, ACTIVE_INSTRUMENTS, mkwargs_read_dict, ikwargs_dict, mobj_dict, iobj_dict)
+    instruments_header, iobj_dict = helper.get_instruments_header(ACTIVE_INSTRUMENTS, iobj_dict, ikwargs_dict)
 
     # take default value for vars, and check that vars is valid
     if vars==[]:
         vars = DEFAULT_VARS
-    measured_vars = [MOTOR_DICT[m]['name'] for m in ACTIVE_MOTORS]+[INSTRUMENT_DICT[i]['name']for i in ACTIVE_INSTRUMENTS]
-    if set(vars)!=set(measured_vars):
+    measured_vars = [MOTOR_DICT[m]['name'] for m in ACTIVE_MOTORS]+instruments_header
+    if not set(vars).issubset(set(measured_vars)):
         raise ValueError(f'vars {vars} not in measurd values {measured_vars}')
+
+    # setup filenames
+    filename = helper.setup_filename(filename, filename_head, 'corotate_map')
 
     # start user input thread
     run = LockedVar(True)
-    user_input_thread = threading.Thread(target=concurrency.type_stop_to_stop, args=(run,))
+    user_input_thread = threading.Thread(target=concurrency.press_esc_to_stop, args=(run,))
     user_input_thread.start()
 
     # generate motor scan positions recursively.
@@ -1069,6 +1108,10 @@ def corotate_map(map_dict, start_angle, end_angle, step_size, angle_offset, rate
 
         # scan
         iobj_dict, mobj_dict = corotate_scan(start_angle, end_angle, step_size, angle_offset, rate_axis_2=rate_axis_2, mkwargs_read_dict=mkwargs_read_dict, ikwargs_dict=ikwargs_dict, mobj_dict=mobj_dict, iobj_dict=iobj_dict, vars=vars, metadata=metadata, filename_head=filename_head, filename=filename, savefile=True, plot=plot, close_devices=False)
+
+    # wait for thread to finish
+    run.locked_update(False)
+    user_input_thread.join()
 
     # close instruments and motors
     if close_devices:
@@ -1396,7 +1439,7 @@ def find_balance_angle(start_angle, end_angle, step_size, balance_at=0, offset=0
     mobj_dict = helper.initialize_motors(['axis_1', 'axis_2'], mobj_dict)
 
     # define axes objects and funcs
-    staic_axis_obj = mobj_dict[staic_axis]
+    static_axis_obj = mobj_dict[static_axis]
     bal_axis_obj = mobj_dict[bal_axis]
     move_static_axis = MOTOR_DICT[static_axis]['move']
     move_bal_axis = MOTOR_DICT[bal_axis]['move']
@@ -1410,15 +1453,14 @@ def find_balance_angle(start_angle, end_angle, step_size, balance_at=0, offset=0
     bal_axis_obj = move_bal_axis(balance_at, bal_axis_obj)
 
     # convert input to angle lists
-    angles = helper.get_motor_range(balance_at_start_angle, balance_at+end_angle, step_size)
+    angles = helper.get_motor_range(balance_at+start_angle, balance_at+end_angle, step_size)
 
     # rotate axis and collect data
     signal = np.zeros(len(angles))
 
     # setup figure for plotting
-    if plot:
-        xlabel = f'Angle (deg)'
-        fig, axes, plot_handles_dict, xrange, vdata1d_dict = plotters.setup_1d_plots_append([var], xlabel)
+    xlabel = f'Angle (deg)'
+    fig, axes, plot_handles_dict, xrange, vdata1d_dict = plotters.setup_1d_plots_append([var], xlabel)
 
     for ii, angle in enumerate(angles):
 
@@ -1430,8 +1472,7 @@ def find_balance_angle(start_angle, end_angle, step_size, balance_at=0, offset=0
         signal[ii] = instrument_data_dict[var]
 
         # update plots
-        if plot==True:
-            xrange, vdata1d_dict = plotters.update_1d_plots_append(fig, axes, [var], plot_handles_dict, xrange, vdata1d_dict, angle, instrument_data_dict)
+        xrange, vdata1d_dict = plotters.update_1d_plots_append(fig, axes, [var], plot_handles_dict, xrange, vdata1d_dict, angle, instrument_data_dict)
 
     # linear fit
     fitf = lambda x, m, b: m*x+b
@@ -1457,7 +1498,7 @@ def find_balance_angle(start_angle, end_angle, step_size, balance_at=0, offset=0
     print(f'Balance angle: {balance_angle}')
     return balance_angle, slope
 
-def autobalance(slope, tolerance, offset=0, bal_axis=2, var='Demod 1 x', ikwargs_dict={}, mobj_dict={}, iobj_dict={}, print_flag=True, close_device=True):
+def autobalance(slope, tolerance, offset=0, bal_axis=2, var='Demod 1 x', ikwargs_dict={}, mobj_dict={}, iobj_dict={}, print_flag=True, close_devices=True):
 
     '''
     balance by minimizing signal (var-offset) below tolerance tol. By default, moves axis 2 and keep axis 1 static to find balance angle.
@@ -1501,15 +1542,17 @@ def autobalance(slope, tolerance, offset=0, bal_axis=2, var='Demod 1 x', ikwargs
     mobj_dict = helper.initialize_motors(['axis_1', 'axis_2'], mobj_dict)
 
     # define axes objects and funcs
-    staic_axis_obj = mobj_dict[staic_axis]
+    static_axis_obj = mobj_dict[static_axis]
     bal_axis_obj = mobj_dict[bal_axis]
+    read_static_axis = MOTOR_DICT[static_axis]['read']
+    read_bal_axis = MOTOR_DICT[bal_axis]['read']
     move_static_axis = MOTOR_DICT[static_axis]['move']
     move_bal_axis = MOTOR_DICT[bal_axis]['move']
     move_back_static_axis = MOTOR_DICT[static_axis]['move_back']
     move_back_bal_axis = MOTOR_DICT[bal_axis]['move_back']
 
     # obtain the angle of static axis
-    balance_at, bal_static_obj = read_static_axis(bal_static_obj)
+    balance_at, bal_static_obj = read_static_axis(static_axis_obj)
 
     # minimize var-offset
     signal = 10000
@@ -1517,7 +1560,8 @@ def autobalance(slope, tolerance, offset=0, bal_axis=2, var='Demod 1 x', ikwargs
     while (np.abs(signal-offset)>tolerance):
 
 
-        signal, iobj_dict = helper.read_instruments(ACTIVE_INSTRUMENTS, iobj_dict, ikwargs_dict)[var]
+        data_dict, iobj_dict = helper.read_instruments(ACTIVE_INSTRUMENTS, iobj_dict, ikwargs_dict)
+        signal = data_dict[var]
         new_pos = (curr_pos-(1/slope)*(signal-offset))%360
         bal_axis_obj = move_bal_axis(new_pos, bal_axis_obj)
         curr_pos = new_pos
@@ -1554,7 +1598,7 @@ def align_delay_stage(wait_time=5, range=(-125,125)):
 
     # start user input thread
     run = LockedVar(True)
-    user_input_thread = threading.Thread(target=concurrency.press_any_key_to_stop, args=(run,))
+    user_input_thread = threading.Thread(target=concurrency.press_esc_to_stop, args=(run,))
     user_input_thread.start()
 
     while run.locked_read():
@@ -1564,6 +1608,7 @@ def align_delay_stage(wait_time=5, range=(-125,125)):
         time.sleep(wait)
 
     # wait for thread to finish
+    run.locked_update(False)
     user_input_thread.join()
 
     # close delay stage

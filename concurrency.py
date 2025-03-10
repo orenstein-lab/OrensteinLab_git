@@ -6,6 +6,8 @@ from threading import Thread, Lock, Event
 import threading
 import multiprocessing as mp
 import queue
+import keyboard
+import time
 
 ###
 ### Concurrency Classes
@@ -83,14 +85,15 @@ class LockedDict:
 ###
 
 def press_any_key_to_stop(run_var):
-    answer = input('Press any key to stop:')
-    run_var.locked_update(False)
-
-def type_stop_to_stop(run_var):
-    while True:
-        answer = input('Enter \"stop\" to stop:')
-        if answer=='stop':
+    print('Press any key to stop:')
+    while run_var.locked_read():
+        if keyboard.is_pressed():  # Check if the any key is pressed
             run_var.locked_update(False)
-            break
-        else:
-            pass
+        time.sleep(0.1)
+
+def press_esc_to_stop(run_var):
+    print('Press \"Esc\" to stop:')
+    while run_var.locked_read():
+        if keyboard.is_pressed('esc'):  # Check if the 'Esc' key is pressed
+            run_var.locked_update(False)
+        time.sleep(0.1)

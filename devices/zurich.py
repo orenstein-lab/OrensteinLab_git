@@ -8,14 +8,15 @@ import pickle
 import os
 import dill
 
-device_id = CONFIG_DICT['Zurich Lockin ID']
+DEVICE_ID = CONFIG_DICT['Zurich Lockin ID']
+DEVICE_ID = CONFIG_DICT['Zurich Lockin ID 2']
 ZURICH_HANDLE_FNAME = CONFIG_DICT['Zurich Handle']
 
 ######################
 ### Core Functions ###
 ######################
 
-def read_zurich_lockin(daq_objs=None, time_constant=0.3, poll_length=None, poll_timeout=500, wait_factor=3, channel_index=1, R_channel_index=4):
+def read_zurich_lockin(daq_objs=None, time_constant=0.3, poll_length=None, poll_timeout=500, wait_factor=3, channels=[1,2,3,4], device_id=DEVICE_ID, name=""):
     '''
     in the future, change this to output a dictionary such that function that call this can pull out any variety of infomation. alternatively, make the subscriptions flexible (ie some list of objects we want to subscribe to with a convenient default) and then the output dictionary with names that make sense. I'll then have to change upstream functions to pull out the right values, or really they should just save everything that comes out. This is a fairly straight forwward thing to implement.
 
@@ -24,12 +25,11 @@ def read_zurich_lockin(daq_objs=None, time_constant=0.3, poll_length=None, poll_
 
     # initialize
     if daq_objs is None:
-        daq, device, props = initialize_zurich_lockin()
+        daq, device, props = initialize_zurich_lockin(device_id)
         daq_objs = [daq, device, props]
     else:
         daq, device, props = daq_objs
 
-    channels = [1,2,3,4]
     for ii, channel in enumerate(channels):
         if type(time_constant) is float:
             daq.setDouble(f'/{device}/demods/{channel-1}/timeconstant', time_constant)
@@ -52,35 +52,21 @@ def read_zurich_lockin(daq_objs=None, time_constant=0.3, poll_length=None, poll_
     daq.unsubscribe('*')
     #print(list(mfli_dict.keys()))
 
-    data_dict = {}
-    # Give data and R channel index separtely for convenience
-    x = np.mean(mfli_dict[f'/{device}/demods/{channel_index-1}/sample']['x'])
-    y = np.mean(mfli_dict[f'/{device}/demods/{channel_index-1}/sample']['y'])
-    x_R = np.mean(mfli_dict[f'/{device}/demods/{R_channel_index-1}/sample']['x'])
-    y_R = np.mean(mfli_dict[f'/{device}/demods/{R_channel_index-1}/sample']['y'])
-    data_dict[f'Demod x'] = x
-    data_dict[f'Demod y'] = y
-    data_dict[f'Demod r'] = np.abs(x + 1j*y)
-    data_dict[f'Demod phase'] = np.arctan2(y,x)
-    data_dict[f'R_x'] = x_R
-    data_dict[f'R_y'] = y_R
-    data_dict[f'R_r'] = np.abs(x_R + 1j*y_R)
-    data_dict[f'R_phase'] = np.arctan2(y_R, x_R)
-
     # extract data from mfli_dict
+    data_dict = {}
     for channel in channels:
         x = np.mean(mfli_dict[f'/{device}/demods/{channel-1}/sample']['x'])
         y = np.mean(mfli_dict[f'/{device}/demods/{channel-1}/sample']['y'])
         autophase = daq.getDouble(f'/{device}/demods/{channel-1}/phaseshift')
         osc = daq.getInt(f'/{device}/demods/{channel-1}/oscselect')
         freq = daq.getDouble(f'/{device}/oscs/{osc}/freq')
-        data_dict[f'Demod {channel} x'] = x
-        data_dict[f'Demod {channel} y'] = y
-        data_dict[f'Demod {channel} r'] = np.abs(x + 1j*y)
-        data_dict[f'Demod {channel} phase'] = np.arctan2(y,x)
-        data_dict[f'Demod {channel} autophase'] = autophase
-        data_dict[f'Demod {channel} oscillator'] = osc+1
-        data_dict[f'Demod {channel} frequency'] = freq
+        data_dict[f'{name}Demod {channel} x'] = x
+        data_dict[f'{name}Demod {channel} y'] = y
+        data_dict[f'{name}Demod {channel} r'] = np.abs(x + 1j*y)
+        data_dict[f'{name}Demod {channel} phase'] = np.arctan2(y,x)
+        data_dict[f'{name}Demod {channel} autophase'] = autophase
+        data_dict[f'{name}Demod {channel} oscillator'] = osc+1
+        data_dict[f'{name}Demod {channel} frequency'] = freq
 
     # add any other data from lockin to data_dict
 
@@ -227,35 +213,20 @@ def set_zurich_voltage(v, daq_objs=None, vstep=0.5, wait_time=2, check_stability
 
 def initialize_zurich_lockin():
     apilevel=6
-    objs = ziutils.create_api_session(device_id, apilevel)
+    objs = ziutils.create_api_session(DEVICE_ID, apilevel)
     daq, device, props = objs
 
-    '''
-    # future - reuse zurich connection
-    try:
-        if os.path.exists(ZURICH_HANDLE_FNAME):
-            with open(ZURICH_HANDLE_FNAME, 'rb') as f:
-                objs = dill.loads(f)
-                read_zurich_frequency(objs) # test the connection
-        else:
-            objs = ziutils.create_api_session(device_id, apilevel)
-            daq, device, props = objs
-            with open(ZURICH_HANDLE_FNAME, 'wb') as f:
-                dill.dumps(objs, f)
-    except Exception as e:
-        #print(f'initialization error: {e}')
-        os.remove(ZURICH_HANDLE_FNAME)
-        objs = ziutils.create_api_session(device_id, apilevel)
-        daq, device, props = objs
-        with open(ZURICH_HANDLE_FNAME, 'wb') as f:
-            dill.dumps(objs, f)
-    '''
+    return daq, device, props
+
+def initialize_zurich_lockin_gen(device_id):
+    apilevel=6
+    objs = ziutils.create_api_session(device_id, apilevel)
+    daq, device, props = objs
 
     return daq, device, props
 
 def close_zurich_lockin(obj):
     return 0
-
 
 ###############################
 ### Chaning Lockin Settings ###
@@ -300,6 +271,8 @@ def set_zurich_acfilter(val, sigin=0, daq_objs=None):
 def read_zurich_spectrum(daq_objs=None):
     '''
     reads scope on lockin and return dictionary with scope data. In this primitive form, up to user to make sure the that the scope has been setup correctly.
+
+    UNDER CONSTRUCTION
     '''
 
     # initialize
@@ -357,6 +330,12 @@ def read_zurich_spectrum(daq_objs=None):
 ### Wrapper functions ###
 #########################
 
+def read_zurich_lockin1(daq_objs=None, time_constant=0.3, poll_length=None, poll_timeout=500, wait_factor=3, channels=[1,2,3,4], name='LI1'):
+    return read_zurich_lockin(daq_objs=daq_objs, time_constant=time_constant, poll_length=poll_length, poll_timeout=poll_timeout, wait_factor=wait_factor, channels=channels, device_id=DEVICE_ID, name=name)
+
+def read_zurich_lockin2(daq_objs=None, time_constant=0.3, poll_length=None, poll_timeout=500, wait_factor=3, channels=[1,2,3,4], name='LI2'):
+    return read_zurich_lockin(daq_objs=daq_objs, time_constant=time_constant, poll_length=poll_length, poll_timeout=poll_timeout, wait_factor=wait_factor, channels=channels, device_id=DEVICE_ID2, name=name)
+
 def set_zurich_aux_offset_1(offset, daq_objs=None, wait_time=0, check_stability=True):
     return set_zurich_aux_offset(offset, daq_objs, wait_time, 1)
 
@@ -368,3 +347,9 @@ def get_zurich_aux_offset_1(daq_objs=None, wait_time=0):
 
 def get_zurich_aux_offset_2(daq_objs=None, wait_time=0):
     return get_zurich_aux_offset(daq_objs, wait_time, 2)
+
+def initialize_zurich_lockin1():
+    return initialize_zurich_lockin(DEVICE_ID)
+
+def initialize_zurich_lockin2():
+    return initialize_zurich_lockin(DEVICE_ID2)

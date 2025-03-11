@@ -9,7 +9,7 @@ import os
 import dill
 
 DEVICE_ID = CONFIG_DICT['Zurich Lockin ID']
-DEVICE_ID = CONFIG_DICT['Zurich Lockin ID 2']
+DEVICE_ID2 = CONFIG_DICT['Zurich Lockin ID 2']
 ZURICH_HANDLE_FNAME = CONFIG_DICT['Zurich Handle']
 
 ######################
@@ -25,7 +25,7 @@ def read_zurich_lockin(daq_objs=None, time_constant=0.3, poll_length=None, poll_
 
     # initialize
     if daq_objs is None:
-        daq, device, props = initialize_zurich_lockin(device_id)
+        daq, device, props = initialize_zurich_lockin_gen(device_id)
         daq_objs = [daq, device, props]
     else:
         daq, device, props = daq_objs
@@ -333,7 +333,7 @@ def read_zurich_spectrum(daq_objs=None):
 def read_zurich_lockin1(daq_objs=None, time_constant=0.3, poll_length=None, poll_timeout=500, wait_factor=3, channels=[1,2,3,4], name='LI1'):
     return read_zurich_lockin(daq_objs=daq_objs, time_constant=time_constant, poll_length=poll_length, poll_timeout=poll_timeout, wait_factor=wait_factor, channels=channels, device_id=DEVICE_ID, name=name)
 
-def read_zurich_lockin2(daq_objs=None, time_constant=0.3, poll_length=None, poll_timeout=500, wait_factor=3, channels=[1,2,3,4], name='LI2'):
+def read_zurich_lockin2(daq_objs=None, time_constant=0.3, poll_length=None, poll_timeout=500, wait_factor=3, channels=[1], name='LI2'):
     return read_zurich_lockin(daq_objs=daq_objs, time_constant=time_constant, poll_length=poll_length, poll_timeout=poll_timeout, wait_factor=wait_factor, channels=channels, device_id=DEVICE_ID2, name=name)
 
 def set_zurich_aux_offset_1(offset, daq_objs=None, wait_time=0, check_stability=True):

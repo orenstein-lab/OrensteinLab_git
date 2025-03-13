@@ -18,7 +18,7 @@ def set_strain_ps(voltage, sc=None, wait_time=0, check_stability=True, tol=0.1):
 
     sc.set_ps(voltage)
     if check_stability:
-        while np.abs(read_strain_ps(sc)-voltage) >= tol:
+        while np.abs(read_strain_ps(sc)[0]-voltage) >= tol:
             time.sleep(0.1)
     time.sleep(wait_time)
 
@@ -37,7 +37,7 @@ def set_voltage_1(voltage, sc=None, wait_time=0, check_stability=True, tol=0.1):
 
     sc.set_voltage(1, voltage)
     if check_stability:
-        while np.abs(read_voltage_1(sc)-voltage) >= tol:
+        while np.abs(read_voltage_1(sc)[0]-voltage) >= tol:
             time.sleep(0.1)
     time.sleep(wait_time)
 
@@ -56,7 +56,7 @@ def set_voltage_2(voltage, sc=None, wait_time=0, check_stability=True, tol=0.1):
 
     sc.set_voltage(2, voltage)
     if check_stability:
-        while np.abs(read_voltage_2(sc)-voltage) >= tol:
+        while np.abs(read_voltage_2(sc)[0]-voltage) >= tol:
             time.sleep(0.1)
     time.sleep(wait_time)
 

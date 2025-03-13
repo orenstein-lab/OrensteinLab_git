@@ -192,21 +192,22 @@ def get_zurich_aux_offset(daq_objs=None, wait_time=0, channel=1):
     offset = daq.getDouble(f'/%s/auxouts/{int(channel-1)}/offset'%device)
     return offset, daq_objs
 
-def set_zurich_voltage(v, daq_objs=None, vstep=0.5, wait_time=2, check_stability=True):
+def set_zurich_voltage(v, daq_objs=None, vstep=0.5, channel=1, wait_time=2, check_stability=True):
     '''
     For slowly stepping aux out voltage on lockin to a new setpoint.
     '''
 
     if daq_objs is None:
         daq_objs = initialize_zurich_lockin()
-    vcurr = round(read_zurich_output_amplitude(daq_objs=daq_objs),1)
+    vcurr, daq_objs = read_zurich_output_amplitude(daq_objs=daq_objs, channel=channel)
+    vcurr = round(vcurr,1)
     sgn = np.sign(v - vcurr)
     if vcurr==v:
         pass
     else:
         voltages = np.arange(vcurr,v+sgn*vstep, sgn*vstep)
         for vv in voltages:
-            set_zurich_output_amplitude(vv,wait_time=wait_time, daq_objs=daq_objs)
+            set_zurich_output_amplitude(vv,wait_time=wait_time, daq_objs=daq_objs, channel=channel)
             time.sleep(wait_time)
 
     return daq_objs
@@ -349,7 +350,7 @@ def get_zurich_aux_offset_2(daq_objs=None, wait_time=0):
     return get_zurich_aux_offset(daq_objs, wait_time, 2)
 
 def initialize_zurich_lockin1():
-    return initialize_zurich_lockin(DEVICE_ID)
+    return initialize_zurich_lockin_gen(DEVICE_ID)
 
 def initialize_zurich_lockin2():
-    return initialize_zurich_lockin(DEVICE_ID2)
+    return initialize_zurich_lockin_gen(DEVICE_ID2)

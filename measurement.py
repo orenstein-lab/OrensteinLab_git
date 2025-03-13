@@ -111,6 +111,12 @@ def motor_scan(map_dict, mkwargs_read_dict={}, ikwargs_dict={}, mobj_dict={}, io
     positions = helper.gen_positions_recurse(mranges, len(mranges)-1)
     num_pos = len(positions)
 
+    # move motors to start
+    move_dict = {}
+    for jj, m in enumerate(motors):
+        move_dict[m] = (positions[0][jj], True)
+    mobj_dict = helper.move_motors(move_dict, mobj_dict, mkwargs_move_dict, mkwargs_read_dict, print_flag=print_flag)
+
     # loop over positions, only moving a motor if its target position has changed.
     start_pos = positions[0]
     current_pos = start_pos
@@ -176,7 +182,7 @@ def motorfunc_scan(map_dict, mkwargs_read_dict={}, ikwargs_dict={}, mobj_dict={}
     '''
     method to record measurements on instruments as a function of motors specified by dictionary map_dict. meant to acquire data one point at a time in a multidimensional motor space.
 
-    very similar to motor_scan, except acts 'function' after moving motors at each step. function can be any use defined python function which has arguments (position, mobj_dict, iobj_dict), where position is list of current motor positions and returns mobj_dict, iobj_dict.
+    very similar to motor_scan, except acts 'function' after moving motors at each step. function can be any use defined python function which has arguments (position, mobj_dict, iobj_dict, mkwrags_read_dict, ikwargs_dict, mkwargs_move_dict), where position is list of current motor positions and returns the same arguments.
 
     args:
         - map_dict:         dictionary of key:value pairs where key is name of a motor in MOTOR_DICT and value is a tuple (start, stop step, mkwargs_move) or (positions, mkwargs_move), and where mkwargs_move is a dictionary where keys are kwarg names for the motor move function, and value the corresponding value to set during move calls. motors are scanned from left to right.
@@ -259,6 +265,12 @@ def motorfunc_scan(map_dict, mkwargs_read_dict={}, ikwargs_dict={}, mobj_dict={}
     positions = helper.gen_positions_recurse(mranges, len(mranges)-1)
     num_pos = len(positions)
 
+    # move motors to start
+    move_dict = {}
+    for jj, m in enumerate(motors):
+        move_dict[m] = (positions[0][jj], True)
+    mobj_dict = helper.move_motors(move_dict, mobj_dict, mkwargs_move_dict, mkwargs_read_dict, print_flag=print_flag)
+
     # loop over positions, only moving a motor if its target position has changed.
     start_pos = positions[0]
     current_pos = start_pos
@@ -282,7 +294,7 @@ def motorfunc_scan(map_dict, mkwargs_read_dict={}, ikwargs_dict={}, mobj_dict={}
         current_pos = pos
 
         # carry out function step before data acquisition
-        mobj_dict, iobj_dict = function(pos, mobj_dict, iobj_dict)
+        mobj_dict, iobj_dict, mkwargs_read_dict, ikwargs_dict, mkwargs_move_dict = function(pos, mobj_dict, iobj_dict, mkwargs_read_dict, ikwargs_dict, mkwargs_move_dict)
 
         # acquire data and read actual motor positions - should test how long this takes for typical motor setup
         #t0 = time.time()
@@ -975,6 +987,12 @@ def rotate_map(map_dict, start_angle, end_angle, step_size, mkwargs_read_dict={}
     positions = helper.gen_positions_recurse(mranges, len(mranges)-1)
     num_pos = len(positions)
 
+    # move motors to start
+    move_dict = {}
+    for jj, m in enumerate(motors):
+        move_dict[m] = (positions[0][jj], True)
+    mobj_dict = helper.move_motors(move_dict, mobj_dict, mkwargs_move_dict, mkwargs_read_dict, print_flag=print_flag)
+
     # loop over positions, only moving a motor if its target position has changed.
     start_pos = positions[0]
     current_pos = start_pos
@@ -1078,6 +1096,12 @@ def corotate_map(map_dict, start_angle, end_angle, step_size, angle_offset, rate
     positions = helper.gen_positions_recurse(mranges, len(mranges)-1)
     num_pos = len(positions)
 
+    # move motors to start
+    move_dict = {}
+    for jj, m in enumerate(motors):
+        move_dict[m] = (positions[0][jj], True)
+    mobj_dict = helper.move_motors(move_dict, mobj_dict, mkwargs_move_dict, mkwargs_read_dict, print_flag=print_flag)
+
     # loop over positions, only moving a motor if its target position has changed.
     start_pos = positions[0]
     current_pos = start_pos
@@ -1119,7 +1143,7 @@ def corotate_map(map_dict, start_angle, end_angle, step_size, angle_offset, rate
         helper.close_motors(mobj_dict)
     else:
         return iobj_dict, mobj_dict
-        
+
 #########################
 ### Balancing Methods ###
 #########################

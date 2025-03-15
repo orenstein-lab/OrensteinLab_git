@@ -281,6 +281,9 @@ def motorfunc_scan(map_dict, mkwargs_read_dict={}, ikwargs_dict={}, mobj_dict={}
         if not run.locked_read():
             break
 
+        # carry out function step before moving and data acquisition
+        mobj_dict, iobj_dict, mkwargs_read_dict, ikwargs_dict, mkwargs_move_dict = function(pos, mobj_dict, iobj_dict, mkwargs_read_dict, ikwargs_dict, mkwargs_move_dict)
+
         # move motors for which position has changed, moving first to "go back" position if moving back to start of initial motor position
         move_dict = {}
         for jj, m in enumerate(motors):
@@ -292,9 +295,6 @@ def motorfunc_scan(map_dict, mkwargs_read_dict={}, ikwargs_dict={}, mobj_dict={}
                 move_dict[m] = (mtarget, move_back_flag)
         mobj_dict = helper.move_motors(move_dict, mobj_dict, mkwargs_move_dict, mkwargs_read_dict, print_flag=print_flag)
         current_pos = pos
-
-        # carry out function step before data acquisition
-        mobj_dict, iobj_dict, mkwargs_read_dict, ikwargs_dict, mkwargs_move_dict = function(pos, mobj_dict, iobj_dict, mkwargs_read_dict, ikwargs_dict, mkwargs_move_dict)
 
         # acquire data and read actual motor positions - should test how long this takes for typical motor setup
         #t0 = time.time()

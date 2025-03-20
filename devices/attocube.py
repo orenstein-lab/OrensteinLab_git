@@ -116,13 +116,17 @@ def close_attocube(anc):
 def move_pos(x, y, z=0):
 
     anc = initialize_attocube()
-    move_x(x, anc)
-    move_y(y, anc)
+    anc = move_x(x, anc)
+    anc = move_y(y, anc)
     if z==0:
         pass
     else:
-        move_z(z, anc)
+        anc = move_z(z, anc)
+    xm, anc = read_x(anc)
+    ym, anc = read_y(anc)
+    zm, anc = read_z(anc)
     close_attocube(anc)
+    return xm, ym, zm
 
 def move_x(position,  anc=None, tolerance=1, go_back=0, check_stability=True):
     '''

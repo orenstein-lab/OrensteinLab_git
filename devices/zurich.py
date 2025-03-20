@@ -13,7 +13,7 @@ DEVICE_ID2 = CONFIG_DICT['Zurich Lockin ID 2']
 ZURICH_HANDLE_FNAME = CONFIG_DICT['Zurich Handle']
 
 ######################
-### Core Functions ###
+### Core Functions ### Defaults to work with lockin at DEVICE_ID
 ######################
 
 def read_zurich_lockin(daq_objs=None, time_constant=0.3, poll_length=None, poll_timeout=500, wait_factor=3, channels=[1,2,3,4], device_id=DEVICE_ID, name=""):
@@ -24,14 +24,16 @@ def read_zurich_lockin(daq_objs=None, time_constant=0.3, poll_length=None, poll_
     '''
 
     # initialize
+    obj_passed = True
     if daq_objs is None:
-        daq, device, props = initialize_zurich_lockin_gen(device_id)
+        daq, device, props = initialize_zurich_lockin(device_id)
         daq_objs = [daq, device, props]
+        obj_passed = False
     else:
         daq, device, props = daq_objs
 
     for ii, channel in enumerate(channels):
-        if type(time_constant) is float:
+        if type(time_constant) is float or type(time_constant) is int:
             daq.setDouble(f'/{device}/demods/{channel-1}/timeconstant', time_constant)
         else:
             daq.setDouble(f'/{device}/demods/{channel-1}/timeconstant', time_constant[ii])
@@ -69,14 +71,17 @@ def read_zurich_lockin(daq_objs=None, time_constant=0.3, poll_length=None, poll_
         data_dict[f'{name}Demod {channel} frequency'] = freq
 
     # add any other data from lockin to data_dict
+    if obj_passed==False:
+        close_zurich_lockin(daq_objs)
+        return data_dict, None
+    else:
+        return data_dict, daq_objs
 
-    return data_dict, daq_objs
-
-def set_zurich_osc(osc, daq_objs=None, wait_time=0, channel=1, check_stability=True):
+def set_zurich_osc(osc, daq_objs=None, wait_time=0, channel=1, check_stability=True, device_id=DEVICE_ID):
 
     # initialize
     if daq_objs is None:
-        daq, device, props = initialize_zurich_lockin()
+        daq, device, props = initialize_zurich_lockin(device_id)
     else:
         daq, device, props = daq_objs
 
@@ -85,11 +90,11 @@ def set_zurich_osc(osc, daq_objs=None, wait_time=0, channel=1, check_stability=T
 
     return daq_objs
 
-def set_zurich_autophase(angle, daq_objs=None, wait_time=0, channel=1, check_stability=True):
+def set_zurich_autophase(angle, daq_objs=None, wait_time=0, channel=1, check_stability=True, device_id=DEVICE_ID):
 
     # initialize
     if daq_objs is None:
-        daq, device, props = initialize_zurich_lockin()
+        daq, device, props = initialize_zurich_lockin(device_id)
     else:
         daq, device, props = daq_objs
 
@@ -98,11 +103,11 @@ def set_zurich_autophase(angle, daq_objs=None, wait_time=0, channel=1, check_sta
 
     return daq_objs
 
-def set_zurich_output_amplitude(amplitude, daq_objs=None, wait_time=0, channel=1, check_stability=True):
+def set_zurich_output_amplitude(amplitude, daq_objs=None, wait_time=0, channel=1, check_stability=True, device_id=DEVICE_ID):
 
     # initialize
     if daq_objs is None:
-        daq, device, props = initialize_zurich_lockin()
+        daq, device, props = initialize_zurich_lockin(device_id)
     else:
         daq, device, props = daq_objs
 
@@ -111,44 +116,44 @@ def set_zurich_output_amplitude(amplitude, daq_objs=None, wait_time=0, channel=1
 
     return daq_objs
 
-def read_zurich_osc(daq_objs=None, channel=1):
+def read_zurich_osc(daq_objs=None, channel=1, device_id=DEVICE_ID):
 
     # initialize
     if daq_objs is None:
-        daq, device, props = initialize_zurich_lockin()
+        daq, device, props = initialize_zurich_lockin(device_id)
     else:
         daq, device, props = daq_objs
 
     osc = daq.getInt(f'/{device}/demods/{channel-1}/oscselect')
     return osc+1, daq_objs
 
-def read_zurich_autophase(daq_objs=None, channel=1):
+def read_zurich_autophase(daq_objs=None, channel=1, device_id=DEVICE_ID):
 
     # initialize
     if daq_objs is None:
-        daq, device, props = initialize_zurich_lockin()
+        daq, device, props = initialize_zurich_lockin(device_id)
     else:
         daq, device, props = daq_objs
 
     angle = daq.getDouble(f'/{device}/demods/{channel-1}/phaseshift')
     return angle, daq_objs
 
-def read_zurich_output_amplitude(daq_objs=None, channel=1):
+def read_zurich_output_amplitude(daq_objs=None, channel=1, device_id=DEVICE_ID):
 
     # initialize
     if daq_objs is None:
-        daq, device, props = initialize_zurich_lockin()
+        daq, device, props = initialize_zurich_lockin(device_id)
     else:
         daq, device, props = daq_objs
 
     amplitude = daq.getDouble(f'/%s/sigouts/0/amplitudes/{channel-1}'%device)
     return amplitude, daq_objs
 
-def set_zurich_frequency(freq, daq_objs=None, wait_time=0, osc=2):
+def set_zurich_frequency(freq, daq_objs=None, wait_time=0, osc=2, device_id=DEVICE_ID):
 
     # initialize
     if daq_objs is None:
-        daq, device, props = initialize_zurich_lockin()
+        daq, device, props = initialize_zurich_lockin(device_id)
     else:
         daq, device, props = daq_objs
 
@@ -157,22 +162,22 @@ def set_zurich_frequency(freq, daq_objs=None, wait_time=0, osc=2):
 
     return daq_objs
 
-def read_zurich_frequency(daq_objs=None, osc=2):
+def read_zurich_frequency(daq_objs=None, osc=2, device_id=DEVICE_ID):
 
     # initialize
     if daq_objs is None:
-        daq, device, props = initialize_zurich_lockin()
+        daq, device, props = initialize_zurich_lockin(device_id)
     else:
         daq, device, props = daq_objs
 
     freq = daq.getDouble(f'/%s/oscs/{osc-1}/freq'%device)
     return freq, daq_objs
 
-def set_zurich_aux_offset(offset, daq_objs=None, wait_time=0, channel=1):
+def set_zurich_aux_offset(offset, daq_objs=None, wait_time=0, channel=1, device_id=DEVICE_ID):
 
     # initialize
     if daq_objs is None:
-        daq, device, props = initialize_zurich_lockin()
+        daq, device, props = initialize_zurich_lockin(device_id)
     else:
         daq, device, props = daq_objs
 
@@ -181,25 +186,25 @@ def set_zurich_aux_offset(offset, daq_objs=None, wait_time=0, channel=1):
 
     return daq_objs
 
-def get_zurich_aux_offset(daq_objs=None, wait_time=0, channel=1):
+def get_zurich_aux_offset(daq_objs=None, wait_time=0, channel=1, device_id=DEVICE_ID):
 
     # initialize
     if daq_objs is None:
-        daq, device, props = initialize_zurich_lockin()
+        daq, device, props = initialize_zurich_lockin(device_id)
     else:
         daq, device, props = daq_objs
 
     offset = daq.getDouble(f'/%s/auxouts/{int(channel-1)}/offset'%device)
     return offset, daq_objs
 
-def set_zurich_voltage(v, daq_objs=None, vstep=0.5, channel=1, wait_time=2, check_stability=True):
+def set_zurich_output_ramp(v, daq_objs=None, vstep=0.5, channel=1, wait_time=2, check_stability=True, device_id=DEVICE_ID):
     '''
     For slowly stepping aux out voltage on lockin to a new setpoint.
     '''
 
     if daq_objs is None:
-        daq_objs = initialize_zurich_lockin()
-    vcurr, daq_objs = read_zurich_output_amplitude(daq_objs=daq_objs, channel=channel)
+        daq_objs = initialize_zurich_lockin(device_id)
+    vcurr, daq_objs = read_zurich_output_amplitude(daq_objs=daq_objs, channel=channel, device_id=device_id)
     vcurr = round(vcurr,1)
     sgn = np.sign(v - vcurr)
     if vcurr==v:
@@ -207,19 +212,12 @@ def set_zurich_voltage(v, daq_objs=None, vstep=0.5, channel=1, wait_time=2, chec
     else:
         voltages = np.arange(vcurr,v+sgn*vstep, sgn*vstep)
         for vv in voltages:
-            set_zurich_output_amplitude(vv,wait_time=wait_time, daq_objs=daq_objs, channel=channel)
+            set_zurich_output_amplitude(vv,wait_time=wait_time, daq_objs=daq_objs, channel=channel, device_id=device_id)
             time.sleep(wait_time)
 
     return daq_objs
 
-def initialize_zurich_lockin():
-    apilevel=6
-    objs = ziutils.create_api_session(DEVICE_ID, apilevel)
-    daq, device, props = objs
-
-    return daq, device, props
-
-def initialize_zurich_lockin_gen(device_id):
+def initialize_zurich_lockin(device_id=DEVICE_ID):
     apilevel=6
     objs = ziutils.create_api_session(device_id, apilevel)
     daq, device, props = objs
@@ -331,11 +329,11 @@ def read_zurich_spectrum(daq_objs=None):
 ### Wrapper functions ###
 #########################
 
+###
+### Lockin 1
+###
 def read_zurich_lockin1(daq_objs=None, time_constant=0.3, poll_length=None, poll_timeout=500, wait_factor=3, channels=[1,2,3,4], name='LI1'):
     return read_zurich_lockin(daq_objs=daq_objs, time_constant=time_constant, poll_length=poll_length, poll_timeout=poll_timeout, wait_factor=wait_factor, channels=channels, device_id=DEVICE_ID, name=name)
-
-def read_zurich_lockin2(daq_objs=None, time_constant=0.3, poll_length=None, poll_timeout=500, wait_factor=3, channels=[1], name='LI2'):
-    return read_zurich_lockin(daq_objs=daq_objs, time_constant=time_constant, poll_length=poll_length, poll_timeout=poll_timeout, wait_factor=wait_factor, channels=channels, device_id=DEVICE_ID2, name=name)
 
 def set_zurich_aux_offset_1(offset, daq_objs=None, wait_time=0, check_stability=True):
     return set_zurich_aux_offset(offset, daq_objs, wait_time, 1)
@@ -350,7 +348,35 @@ def get_zurich_aux_offset_2(daq_objs=None, wait_time=0):
     return get_zurich_aux_offset(daq_objs, wait_time, 2)
 
 def initialize_zurich_lockin1():
-    return initialize_zurich_lockin_gen(DEVICE_ID)
+    return initialize_zurich_lockin(DEVICE_ID)
+
+###
+### Lockin 2
+###
+
+def read_zurich_lockin2(daq_objs=None, time_constant=0.3, poll_length=None, poll_timeout=500, wait_factor=3, channels=[1], name='LI2'):
+    return read_zurich_lockin(daq_objs=daq_objs, time_constant=time_constant, poll_length=poll_length, poll_timeout=poll_timeout, wait_factor=wait_factor, channels=channels, device_id=DEVICE_ID2, name=name)
+
+def set_zurich_output_amplitude2(amplitude, daq_objs=None, wait_time=0, channel=2, check_stability=True):
+    return set_zurich_output_amplitude(amplitude, daq_objs=daq_objs, wait_time=wait_time, channel=channel, check_stability=check_stability, device_id=DEVICE_ID2)
+
+def set_zurich_output_ramp2(v, daq_objs=None, vstep=0.5, channel=2, wait_time=2, check_stability=True):
+    return set_zurich_output_ramp(v, daq_objs=daq_objs, vstep=vstep, channel=channel, wait_time=wait_time, check_stability=check_stability, device_id=DEVICE_ID2)
+
+def read_zurich_output_amplitude2(daq_objs=None, channel=2):
+    return read_zurich_output_amplitude(daq_objs=daq_objs, channel=channel, device_id=DEVICE_ID2)
+
+def set_zurich_osc2(osc, daq_objs=None, wait_time=0, channel=1, check_stability=True):
+    return set_zurich_osc(osc, daq_objs=daq_objs, wait_time=wait_time, channel=channel, check_stability=True, device_id=DEVICE_ID2)
+
+def read_zurich_osc2(daq_objs=None, channel=1):
+    return read_zurich_osc(daq_objs=daq_objs, channel=channel, device_id=DEVICE_ID2)
+
+def set_zurich_frequency2(freq, daq_objs=None, wait_time=0, osc=1):
+    return set_zurich_frequency(freq, daq_objs=daq_objs, wait_time=wait_time, osc=osc, device_id=DEVICE_ID2)
+
+def read_zurich_frequency2(daq_objs=None, osc=1):
+    return read_zurich_frequency(daq_objs=daq_objs, osc=osc, device_id=DEVICE_ID2)
 
 def initialize_zurich_lockin2():
-    return initialize_zurich_lockin_gen(DEVICE_ID2)
+    return initialize_zurich_lockin(DEVICE_ID2)

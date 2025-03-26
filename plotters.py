@@ -207,7 +207,7 @@ def setup_2d_plots(vars, xlabel, xrange, ylabel, yrange, figsize=DEFAULT_FIGSIZE
         vax.set_ylabel(ylabel)
         map = vax.imshow(vdata, cmap="bwr", origin='lower', extent=extent, norm=colors.TwoSlopeNorm(0, vmin=min(vdata.min(), -1e-12), vmax=max(vdata.max(), 1e-12)))
         plot_handles_dict[v] = map
-        fig.colorbar(map, ax=vax)
+        fig.colorbar(map, ax=vax, label=v)
     fig.canvas.draw()
     fig.tight_layout()
     fig.show()

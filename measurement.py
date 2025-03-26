@@ -104,7 +104,7 @@ def motor_scan(map_dict, mkwargs_read_dict={}, ikwargs_dict={}, mobj_dict={}, io
     # start user input thread
     run = LockedVar(True)
     user_input_thread = threading.Thread(target=concurrency.press_esc_to_stop, args=(run,))
-    user_input_thread.start()
+    #user_input_thread.start()
 
     # generate motor scan positions recursively.
     # positions: list of positions where each element contains positions of each motor for nth step in scan
@@ -169,7 +169,7 @@ def motor_scan(map_dict, mkwargs_read_dict={}, ikwargs_dict={}, mobj_dict={}, io
 
     # wait for thread to finish
     run.locked_update(False)
-    user_input_thread.join()
+    #user_input_thread.join()
 
     # close instruments and motors
     if close_devices:

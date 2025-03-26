@@ -21,13 +21,8 @@ Example usage:
 """
 import sys
 import os
-<<<<<<<< HEAD:control/montana/cryocore.py
-import OrensteinLab_git.control.montana.instrument as instrument
-import OrensteinLab_git.control.montana.genericcryostat as genericcryostat
-========
-import OrensteinLab_git.devices.montana.instrument as instrument
-import OrensteinLab_git.devices.montana.genericcryostat as genericcryostat
->>>>>>>> d00daecbfb0514325ae5067c195eefd9771a97de:devices/montana/cryocore.py
+import instrument
+import genericcryostat
 
 Ports = instrument.Rest_Ports
 
@@ -162,3 +157,4 @@ class CryoCore(genericcryostat.GenericCryostat):
     def get_user1_temperature_stability(self):
         r = self.get_prop('/sampleChamber/temperatureControllers/user1/thermometer/properties/sample')
         return r['sample']['temperatureStabilityOK'], r['sample']['temperatureStability']
+    

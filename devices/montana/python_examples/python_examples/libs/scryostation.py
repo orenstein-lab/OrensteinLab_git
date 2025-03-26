@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 #
 """
-Class to simplify RESTful API communication with the CryoCore instrument.
+Class to simplify RESTful API communication with the s-series Cryostation instrument.
 
 Example usage:
- import cryocore
- cryo = cryocore.CryoCore('192.168.1.123')
+ import scryostation
+ cryo = scryostation.SCryostation('192.168.1.123')
 
  # Shows how to use high-level methods for accessing common functions
  cryo.cooldown()
@@ -21,20 +21,15 @@ Example usage:
 """
 import sys
 import os
-<<<<<<<< HEAD:control/montana/cryocore.py
-import OrensteinLab_git.control.montana.instrument as instrument
-import OrensteinLab_git.control.montana.genericcryostat as genericcryostat
-========
-import OrensteinLab_git.devices.montana.instrument as instrument
-import OrensteinLab_git.devices.montana.genericcryostat as genericcryostat
->>>>>>>> d00daecbfb0514325ae5067c195eefd9771a97de:devices/montana/cryocore.py
+import instrument
+import genericcryostat
 
 Ports = instrument.Rest_Ports
 
 
 @genericcryostat.register
-class CryoCore(genericcryostat.GenericCryostat):
-    def __init__(self, ip, version='v1', verbose=False, tunnel=False, port=Ports.cryocore_hlm):
+class SCryostation(genericcryostat.GenericCryostat):
+    def __init__(self, ip, version='v1', verbose=False, tunnel=False, port=Ports.scryostation_hlm):
         super().__init__(ip=ip,
                          port=port,
                          version=version,
@@ -162,3 +157,85 @@ class CryoCore(genericcryostat.GenericCryostat):
     def get_user1_temperature_stability(self):
         r = self.get_prop('/sampleChamber/temperatureControllers/user1/thermometer/properties/sample')
         return r['sample']['temperatureStabilityOK'], r['sample']['temperatureStability']
+
+    def set_user1_stability_target(self, target):
+        return self.set_prop('/sampleChamber/temperatureControllers/user1/thermometer/properties/stabilityTarget', target)
+
+    def get_user1_temperature_stable(self):
+        r = self.get_prop('/sampleChamber/temperatureControllers/user1/thermometer/properties/sample')
+        return r['sample']['temperatureStabilityOK'], r['sample']['temperatureStable']    
+
+    def set_user1_temperature_controller_enabled(self, enabled):
+        return self.set_prop('/sampleChamber/temperatureControllers/user1/properties/controllerEnabled', enabled)
+
+    def set_user1_target_temperature(self, target):
+        return self.set_prop('/sampleChamber/temperatureControllers/user1/properties/targetTemperature', target)
+
+    def get_user1_heater_sample(self):
+        r = self.get_prop('/sampleChamber/temperatureControllers/user1/heater/properties/sample')
+        return r['sample']
+
+    #
+    # User2 methods
+    #
+    def get_user2_temperature_sample(self):
+        r = self.get_prop('/sampleChamber/temperatureControllers/user2/thermometer/properties/sample')
+        return r['sample']
+
+    def get_user2_temperature(self):
+        r = self.get_prop('/sampleChamber/temperatureControllers/user2/thermometer/properties/sample')
+        return r['sample']['temperatureOK'], r['sample']['temperature']
+
+    def get_user2_temperature_stability(self):
+        r = self.get_prop('/sampleChamber/temperatureControllers/user2/thermometer/properties/sample')
+        return r['sample']['temperatureStabilityOK'], r['sample']['temperatureStability']
+
+    def set_user2_stability_target(self, target):
+        return self.set_prop('/sampleChamber/temperatureControllers/user2/thermometer/properties/stabilityTarget', target)
+
+    def get_user2_temperature_stable(self):
+        r = self.get_prop('/sampleChamber/temperatureControllers/user2/thermometer/properties/sample')
+        return r['sample']['temperatureStabilityOK'], r['sample']['temperatureStable']
+
+    def set_user2_temperature_controller_enabled(self, enabled):
+        return self.set_prop('/sampleChamber/temperatureControllers/user2/properties/controllerEnabled', enabled)
+
+    def set_user2_target_temperature(self, target):
+        return self.set_prop('/sampleChamber/temperatureControllers/user2/properties/targetTemperature', target)
+
+    def get_user2_heater_sample(self):
+        r = self.get_prop('/sampleChamber/temperatureControllers/user2/heater/properties/sample')
+        return r['sample']
+
+    #
+    # Magneto-Optic
+    #
+    def get_mo_enabled(self):
+        r = self.get_prop('/magnetoOptic/magnet/properties/enabled')
+        return r['enabled']
+    
+    def set_mo_enabled(self, enabled):
+        return self.set_prop('/magnetoOptic/magnet/properties/enabled', enabled)
+    
+    def get_mo_state(self):
+        r = self.get_prop('/magnetoOptic/magnet/properties/state')
+        return r['state']
+    
+    def get_mo_safe_mode(self):
+        r = self.get_prop('/magnetoOptic/magnet/properties/safeMode')
+        return r['safeMode']
+
+    def get_mo_calculated_field(self):
+        r = self.get_prop('/magnetoOptic/magnet/properties/calculatedField')
+        return r['calculatedField']
+
+    def get_mo_measured_current(self):
+        r = self.get_prop('/magnetoOptic/magnet/properties/measuredCurrent')
+        return r['measuredCurrent']
+
+    def get_mo_target_field(self):
+        r = self.get_prop('/magnetoOptic/magnet/properties/targetField')
+        return r['targetField']
+
+    def set_mo_target_field(self, target):
+        return self.set_prop('/magnetoOptic/magnet/properties/targetField', target)

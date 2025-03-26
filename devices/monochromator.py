@@ -98,10 +98,10 @@ def set_wavelength(wavelength, obj=None):
                 ValueError('Fail to change filter')
 
     # the following grating selection is for CS130B-3-MC
-#     if wavelength < 650:
-#         set_grating(1,obj)
-#     else:
-#         set_grating(2,obj)
+    if wavelength < 700:
+        set_grating(1,obj)
+    else:
+        set_grating(2,obj)
     command = 'GOWAVE '+str(round(wavelength,3))
     obj.write(command)
     if obj_passed==False:

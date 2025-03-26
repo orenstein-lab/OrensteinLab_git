@@ -91,7 +91,7 @@ def lockin_time_series(recording_time, filename_head=None, filename=None, mobj_m
     t_delay = 0
     tic = time.perf_counter()
     while (t_delay<recording_time):
-        time.sleep(time_constant)
+        #time.sleep(time_constant)
         toc = time.perf_counter()
         t_delay = toc - tic
 
@@ -2062,6 +2062,137 @@ def mapping(map_dict, single_point_function, function_args_dict):
         obj = mobj_dict[m]
         close_func = motor_dict[m]['close']
         close_func(obj)
+
+
+def capture_sweep_information(sweep_list):
+    
+    sweep_motors, mtargets,mkwargs,tols = [[],[],[],[]]
+    for move in sweep_list:
+        m = move[0]
+        valid_motors = list(motor_dict.keys())
+        if m not in valid_motors:
+            raise ValueError(f'Invalid motor name. Please select motors from the list {valid_motors}.')
+        sweep_motors.append(m)
+        mtargets.append(move[1])
+        mkwargs.append(move[2])
+        tols.append(move[3])
+
+    motors = list(set(sweep_motors))
+    return sweep_motors, mtargets, mkwargs, motors, tols
+
+# sweep_list -> [('motor for step 1',target1,{kwargs}), ('motor for step 2'...]
+
+def cont_motor_meas(sweep_list,filename_head=None, filename=None, mobj_measure_dict={}, metadata={}, time_constant=0.3, channel_index=1, savefile=True, daq_objs=None, plot_flag=True, override_metadata=False):
+    '''
+    aquires data on the lockin over a specified length of time.
+    '''
+
+    # initialize zurich lockin and setup read function
+    if daq_objs==None:
+        daq_objs  = instrument_dict['zurich_lockin']['init']()
+    read_lockin = instrument_dict['zurich_lockin']['read']
+    lockin_header = list(read_lockin(daq_objs=daq_objs, time_constant=time_constant, channel_index=channel_index).keys())
+    
+    # unpack sweep_list
+    sweep_motors, mtargets, mkwargs, motors, tols = capture_sweep_information(sweep_list)
+    
+    # initialize additional motors to measure during scan
+    passed_measure_motors = True
+    if mobj_measure_dict=={}:
+        passed_measure_motors = False
+        mobj_measure_dict = initialize_motors(meta_motors)
+    measure_motors = list(mobj_measure_dict.keys())
+    for m in motors:
+        if m not in measure_motors:
+            init_func = motor_dict[m]['init']
+            mobj_measure_dict[m] = init_func()
+            measure_motors.append(m)
+    
+    # setup metadata - ie, for quick reference of starting state before measurement
+    if override_metadata==True:
+        pass
+    else:
+        metadata = {**metadata, **generate_metadata(mobj_measure_dict)}
+
+    # initialize data bins
+    time_record = np.array([])
+    demod_x = np.array([])
+    demod_y = np.array([])
+    demod_r = np.array([])
+
+    # setup plot
+    if plot_flag==True:
+        fig, axes = plt.subplots(3,1, figsize=(8,10))
+        y_labels = ['Demod x', 'Demod y', 'R']
+        for ii, ax in enumerate(axes):
+            ax.set_xlabel('Time (s)')
+            ax.set_ylabel(y_labels[ii])
+            ax.grid(True)
+        draw_x, = axes[0].plot([],'-o')
+        draw_y, = axes[1].plot([],'-o')
+        draw_r, = axes[2].plot([],'-o')
+        fig.canvas.draw()
+        fig.show()
+
+    # setup file for writing
+    if savefile:
+        filename_head, filename = generate_filename(filename_head, filename, 'lockin_time_series')
+        fname = get_unique_filename(filename_head, filename)
+        header_motors = [motor_dict[m]['name'] for m in measure_motors]
+        header = ['Time (s)']+lockin_header+header_motors
+        write_file_header(fname, header, metadata)
+
+    # loop
+    t0 = time.time()
+    for ii, m in enumerate(sweep_motors):
+        move_func = motor_dict[m]['move']
+        read_func = motor_dict[m]['read']
+        mkwarg = mkwargs[ii]
+        mcurrent = read_func()
+        mtarget = mtargets[ii]
+        move_func(mtarget,check_stability=0,**mkwarg)
+        tol = tols[ii]
+        while np.abs(mcurrent - mtarget) > tol:
+            # time.sleep(time_constant)
+            
+            t_delay = time.time()-t0
+            lockin_data = read_lockin(daq_objs=daq_objs, time_constant=time_constant, channel_index=channel_index)
+            x = lockin_data['Demod x']
+            y = lockin_data['Demod y']
+            r = lockin_data['Demod r']
+
+            # read additional motors
+            measured_positions_dict = read_motors(mobj_measure_dict)
+            measured_positions = [measured_positions_dict[m] for m in measure_motors]
+
+            time_record = np.append(time_record, t_delay)
+            demod_x = np.append(demod_x, x)
+            demod_y = np.append(demod_y, y)
+            demod_r = np.append(demod_r, r)
+
+            # update plot
+            if plot_flag==True:
+                draw_x.set_data(time_record-time_record[0],demod_x)
+                draw_y.set_data(time_record-time_record[0],demod_y)
+                draw_r.set_data(time_record-time_record[0],demod_r)
+                for ax in axes:
+                    ax.relim()
+                    ax.autoscale()
+                fig.canvas.draw()
+                fig.canvas.flush_events()
+
+            # update file
+            if savefile:
+                vars = [t_delay]+list(lockin_data.values())+measured_positions
+                append_data_to_file(fname, vars)
+            
+            mcurrent = read_func()
+
+    # close motors
+    if not passed_measure_motors:
+        close_motors(mobj_measure_dict)
+
+    return time_record, demod_x, demod_y, demod_r
 
 
 #############

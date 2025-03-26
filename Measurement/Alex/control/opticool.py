@@ -69,7 +69,7 @@ def get_opticool_temp_info(optc=None):
 def read_opticool_temperature(optc=None):
     return get_opticool_temp_info(optc)[0]
 
-def set_opticool_field(field, optc=None, rate=110, approach=0, mode=0, wait_time=0):
+def set_opticool_field(field, optc=None, check_stability=True,rate=110, approach=0, mode=0, wait_time=0):
 
     obj_passed=True
     if optc==None:
@@ -82,10 +82,13 @@ def set_opticool_field(field, optc=None, rate=110, approach=0, mode=0, wait_time
             optc.write(message+('\r\n').encode('ascii'))
             output=optc.read_some().decode('ascii')
 
-            time.sleep(3)
-            while get_opticool_field_info(optc)[1]!='Holding (Driven)':
-                time.sleep(1)
-            break
+            if check_stability:
+                time.sleep(3)
+                while get_opticool_field_info(optc)[1]!='Holding (Driven)':
+                    time.sleep(1)
+                break
+            else:
+                break
         except:
             #print('failed to set opticool field, trying again.')
             pass

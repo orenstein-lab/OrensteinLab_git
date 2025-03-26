@@ -602,7 +602,7 @@ def motor_scan_balance(map_dict, balance, balance_table=None, slope=0, tol=0, ba
 
     autobalance before each scan of last motor in map_dict according to balance table, which has the form of an xarray object with balance angle data over the various coordinates.
 
-    only works if corotate_axes12 is in the map_dict (not sure that this is true anymore...)
+    only works if corotate_axes12 is in the map_dict
     '''
 
     # setup threading stuff
@@ -744,14 +744,10 @@ def motor_scan_balance(map_dict, balance, balance_table=None, slope=0, tol=0, ba
     else:
         if 'axis_1' in motors:
             axis_1 = mobj_dict['axis_1']
-        elif 'axis_1' in list(mobj_measure_dict.keys()):
-            axis_1 = mobj_measure_dict['axis_1']
         else:
             axis_1 = motor_dict['axis_1']['init']()
         if 'axis_2' in motors:
             axis_2 = mobj_dict['axis_2']
-        elif 'axis_2' in list(mobj_measure_dict.keys()):
-            axis_2 = mobj_measure_dict['axis_2']
         else:
             axis_2 = motor_dict['axis_2']['init']()
     move_axis_1 = motor_dict['axis_1']['move']

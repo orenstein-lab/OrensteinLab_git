@@ -6,13 +6,8 @@
 import time
 import numpy as np
 import sys
+import pyvisa
 
-try:
-  import pyvisa
-except ImportError:
-  # Change this to match your pyvisa installation path.
-  sys.path.append( r"C:\Users\BigLab2020\anaconda3\lib\site-packages\pyvisa" )
-  import pyvisa
 
 def read_wavelength(obj=None):
 

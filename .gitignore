@@ -1,30 +1,16 @@
 # ignore ALL pycache files
 *.pyc
 
-<<<<<<< HEAD
-# ignore ALL files in ANY directory named..
-user/Alex/__pycache__/
-user/Elizabeth/__pycache__/
-user/Changmin/__pycache__/
-user/Veronika/__pycache__/
-user/Yue/__pycache__/
-=======
 # ignore cached files
 __pycache__/
->>>>>>> d00daecbfb0514325ae5067c195eefd9771a97de
 
 # ignore temp handle files
 attocube_handle
 zurich_handle
 opticool_handle
 
-<<<<<<< HEAD
-# ignore config file
-motors.py
-=======
 # ignore config and motor file
 motors_and_instruments.py
->>>>>>> d00daecbfb0514325ae5067c195eefd9771a97de
 configuration.py
 
 # other files that pop up:

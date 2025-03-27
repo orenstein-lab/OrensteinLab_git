@@ -6,11 +6,7 @@
 
 import sys
 import os
-<<<<<<<< HEAD:control/montana/genericcryostat.py
-import OrensteinLab_git.control.montana.instrument as instrument
-========
 import OrensteinLab_git.devices.montana.instrument as instrument
->>>>>>>> d00daecbfb0514325ae5067c195eefd9771a97de:devices/montana/genericcryostat.py
 
 class PidScheduleItem:
     def __init__(self, temperature, kc=None, ti=None, td=None):

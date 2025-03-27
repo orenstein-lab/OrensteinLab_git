@@ -17,20 +17,13 @@ import requests
 import json
 import re
 import time
-
-<<<<<<<< HEAD:control/montana/instrument.py
-import OrensteinLab_git.control.montana.ssh_tunnel as ssh_tunnel
 import socket
 import http
 
-import OrensteinLab_git.control.montana.mirs_helpers as mirs_helpers
-========
 import OrensteinLab_git.devices.montana.ssh_tunnel as ssh_tunnel
+import OrensteinLab_git.devices.montana.mirs_helpers as mirs_helpers
 import socket
 import http
-
-import OrensteinLab_git.devices.montana.mirs_helpers as mirs_helpers
->>>>>>>> d00daecbfb0514325ae5067c195eefd9771a97de:devices/montana/instrument.py
 
 _force_ipv4 = True  # Some day IPv6 will be ubiquitous.  Today is not that day.
 

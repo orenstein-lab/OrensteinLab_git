@@ -95,5 +95,7 @@ def press_esc_to_stop(run_var):
     print('Press \"Esc\" to stop:')
     while run_var.locked_read():
         if keyboard.is_pressed('esc'):  # Check if the 'Esc' key is pressed
-            run_var.locked_update(False)
+            answer = input("Are you sure you want to stop?")
+            if answer=='yes' or answer=='Yes':
+                run_var.locked_update(False)
         time.sleep(0.1)

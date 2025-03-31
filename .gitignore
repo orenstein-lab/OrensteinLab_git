@@ -17,6 +17,7 @@ opticool_handle
 Measurement/Alex/motors.py
 configuration.py
 Configuration.txt
+motors_and_instruments.py
 
 # other files that pop up:
 .DS_Store

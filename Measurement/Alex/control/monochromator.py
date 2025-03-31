@@ -64,7 +64,6 @@ def set_wavelength(wavelength, lsobj=None):
 
     lsobj, lsobj_passed = get_lsobj(lsobj)
     filter_ind = 0
-
     if wavelength < 800:
         filter_ind = 1 # empty slot: 450 ~ 800 nm
     elif wavelength < 1200:
@@ -75,7 +74,6 @@ def set_wavelength(wavelength, lsobj=None):
 #         filter_ind = 4
     else:
         ValueError('Wavelength out of range!')
-    
     if filter_ind > 0:
         filter_ind_old = read_filter(lsobj)
         if filter_ind != filter_ind_old :
@@ -86,10 +84,10 @@ def set_wavelength(wavelength, lsobj=None):
                 ValueError('Fail to change filter')
     
     # the following grating selection is for CS130B-3-MC
-#     if wavelength < 650:
-#         set_grating(1,lsobj)
-#     else:
-#         set_grating(2,lsobj)
+    if wavelength < 700:
+        set_grating(1,lsobj)
+    else:
+        set_grating(2,lsobj)
     command = 'GOWAVE '+str(round(wavelength,3))
     lsobj.write(command)
     if lsobj_passed==False:

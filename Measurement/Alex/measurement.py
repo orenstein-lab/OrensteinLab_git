@@ -2190,7 +2190,8 @@ def cont_motor_meas(sweep_list,filename_head=None, filename=None, mobj_measure_d
                 vars = [t_delay]+list(lockin_data.values())+measured_positions
                 append_data_to_file(fname, vars)
             
-            mcurrent = read_func()
+            # mcurrent = read_func()
+            mcurrent = measured_positions_dict[m]
 
     # close motors
     if not passed_measure_motors:

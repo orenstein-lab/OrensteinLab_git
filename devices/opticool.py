@@ -26,9 +26,13 @@ def set_opticool_temperature(temperature, optc=None, rate=10, mode=0, wait_time=
             output=optc.read_some().decode('ascii')
 
             if check_stability:
-                while get_opticool_temp_info(optc)[1]!='Stable':
+                info, optc = get_opticool_temp_info(optc)
+                temp, status = info
+                while status!='Stable':
+                    info, optc = get_opticool_temp_info(optc)
+                    temp, status = info
                     time.sleep(1)
-                    break
+                break
         except:
             print('failed to set opticool temperature, trying agian.')
 
@@ -47,21 +51,17 @@ def get_opticool_temp_info(optc=None):
         optc = initialize_opticool()
         obj_passed==False
 
-    while True:
-        try:
-            message=('TEMP?').encode('ascii')
-            optc.write(message+('\r\n').encode('ascii'))
-            output=optc.read_some().decode('ascii')
-            output_value = output.split(',')[1].strip()
-            output_status = output.split(',')[3].strip()
-            output_status = output_status.replace("\"","")
-            if output_value == 'nan':
-                temp = output_value
-            else:
-                temp = float(output_value)
-            break
-        except:
-            print('failed to get opticool tmep info, trying agian.')
+
+    message=('TEMP?').encode('ascii')
+    optc.write(message+('\r\n').encode('ascii'))
+    output=optc.read_some().decode('ascii')
+    output_value = output.split(',')[1].strip()
+    output_status = output.split(',')[3].strip()
+    output_status = output_status.replace("\"","")
+    if output_value == 'nan':
+        temp = output_value
+    else:
+        temp = float(output_value)
 
     if obj_passed==False:
         close_opticool(optc)
@@ -82,13 +82,19 @@ def set_opticool_field(field, optc=None, rate=110, approach=0, mode=0, wait_time
 
     while True:
         try:
+            #print('foo')
             message=f'FIELD {field}, {rate}, {approach}, {mode}'.encode('ascii')
             optc.write(message+('\r\n').encode('ascii'))
             output=optc.read_some().decode('ascii')
+            #print('bar')
 
             if check_stability:
                 time.sleep(3)
-                while get_opticool_field_info(optc)[1]!='Holding (Driven)':
+                info, optc = get_opticool_field_info(optc)
+                field, status = info
+                while status!='Holding (Driven)':
+                    info, optc = get_opticool_field_info(optc)
+                    field, status = info
                     time.sleep(1)
                 break
             else:
@@ -115,25 +121,17 @@ def get_opticool_field_info(optc=None):
         optc = initialize_opticool()
         obj_passed==False
 
-    while True:
-        try:
-            message=('FIELD?').encode('ascii')
-            optc.write(message+('\r\n').encode('ascii'))
-            output=optc.read_some().decode('ascii')
-            output_value = output.split(',')[1].strip()
-            output_status = output.split(',')[3].strip()
-            output_status = output_status.replace("\"","")
-            if output_value == 'nan':
-                field = output_value
-            else:
-                field = float(output_value)
-            break
-        except:
-            # print('failed to read opticool field, reinitializing.')
-            # print(optc)
-            optc = initialize_opticool()
-            # print(optc)
-            pass
+
+    message=('FIELD?').encode('ascii')
+    optc.write(message+('\r\n').encode('ascii'))
+    output=optc.read_some().decode('ascii')
+    output_value = output.split(',')[1].strip()
+    output_status = output.split(',')[3].strip()
+    output_status = output_status.replace("\"","")
+    if output_value == 'nan':
+        field = output_value
+    else:
+        field = float(output_value)
 
     if obj_passed==False:
         close_opticool(optc)

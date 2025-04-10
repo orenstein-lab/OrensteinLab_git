@@ -884,7 +884,7 @@ def corotate_scan(start_angle, end_angle, step_size, angle_offset, rate_axis_2=1
         # move angles
         angle_1 = angle
         angle_2 = angles_2[ii]
-        axis_1, axis_2 = newport.corotate_axes(1, 2, start_angle-move_back_1, start_angle+angle_offset-move_back_2, axis_1=axis_1, axis_2=axis_2)
+        axis_1, axis_2 = newport.corotate_axes(1, 2, angle-move_back_1, angle+angle_offset-move_back_2, axis_1=axis_1, axis_2=axis_2)
         mobj_dict['axis_1'] = axis_1
         mobj_dict['axis_2'] = axis_2
 

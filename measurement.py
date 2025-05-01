@@ -79,7 +79,8 @@ def motor_scan(map_dict, mkwargs_read_dict={}, ikwargs_dict={}, mobj_dict={}, io
     if savefile:
         # setup metadata
         measured_motors_dict, mobj_dict = helper.read_motors(ACTIVE_MOTORS, mobj_dict, mkwargs_read_dict)
-        metadata = {**metadata, **measured_motors_dict}
+        metamotors_dict = dict([(MOTOR_DICT[m]['name'], measured_motors_dict[m]) for m in list(measured_motors_dict.keys())])
+        metadata = {**metadata, **metamotors_dict}
         # setup and write metadta + header to file
         fname = helper.setup_filename(filename, filename_head, 'motor_scan_'+'_'.join([f'{m}' for m in motors]))
         helper.write_file_header(fname, header, metadata)
@@ -233,7 +234,8 @@ def motorfunc_scan(map_dict, mkwargs_read_dict={}, ikwargs_dict={}, mobj_dict={}
     if savefile:
         # setup metadata
         measured_motors_dict, mobj_dict = helper.read_motors(ACTIVE_MOTORS, mobj_dict, mkwargs_read_dict)
-        metadata = {**metadata, **measured_motors_dict}
+        metamotors_dict = dict([(MOTOR_DICT[m]['name'], measured_motors_dict[m]) for m in list(measured_motors_dict.keys())])
+        metadata = {**metadata, **metamotors_dict}
         # setup and write metadta + header to file
         fname = helper.setup_filename(filename, filename_head, 'motorfunc_scan_'+'_'.join([f'{m}' for m in motors]))
         helper.write_file_header(fname, header, metadata)
@@ -376,7 +378,8 @@ def timed_measurement(recording_time, mkwargs_read_dict={}, ikwargs_dict={}, mob
     if savefile:
         # setup metadata
         measured_motors_dict, mobj_dict = helper.read_motors(ACTIVE_MOTORS, mobj_dict, mkwargs_read_dict)
-        metadata = {**metadata, **measured_motors_dict}
+        metamotors_dict = dict([(MOTOR_DICT[m]['name'], measured_motors_dict[m]) for m in list(measured_motors_dict.keys())])
+        metadata = {**metadata, **metamotors_dict}
         # setup and write metadta + header to file
         fname = helper.setup_filename(filename, filename_head, 'timed_measurement')
         helper.write_file_header(fname, header, metadata)
@@ -490,7 +493,8 @@ def motor_sequence(sequence_list, mkwargs_read_dict={}, ikwargs_dict={}, mobj_di
     if savefile:
         # setup metadata
         measured_motors_dict, mobj_dict = helper.read_motors(ACTIVE_MOTORS, mobj_dict, mkwargs_read_dict)
-        metadata = {**metadata, **measured_motors_dict}
+        metamotors_dict = dict([(MOTOR_DICT[m]['name'], measured_motors_dict[m]) for m in list(measured_motors_dict.keys())])
+        metadata = {**metadata, **metamotors_dict}
         # setup and write metadta + header to file
         fname = helper.setup_filename(filename, filename_head, 'motor_sequence_'+'_'.join([f'{m}' for m in sequence_motors]))
         helper.write_file_header(fname, header, metadata)
@@ -714,7 +718,8 @@ def rotate_scan(start_angle, end_angle, step_size, axis_index=1, mkwargs_read_di
     if savefile:
         # setup metadata
         measured_motors_dict, mobj_dict = helper.read_motors(ACTIVE_MOTORS, mobj_dict, mkwargs_read_dict)
-        metadata = {**metadata, **measured_motors_dict}
+        metamotors_dict = dict([(MOTOR_DICT[m]['name'], measured_motors_dict[m]) for m in list(measured_motors_dict.keys())])
+        metadata = {**metadata, **metamotors_dict}
         # setup and write metadta + header to file
         fname = helper.setup_filename(filename, filename_head, 'rotate_scan')
         helper.write_file_header(fname, header, metadata)
@@ -839,7 +844,8 @@ def corotate_scan(start_angle, end_angle, step_size, angle_offset, rate_axis_2=1
     if savefile:
         # setup metadata
         measured_motors_dict, mobj_dict = helper.read_motors(ACTIVE_MOTORS, mobj_dict, mkwargs_read_dict)
-        metadata = {**metadata, **measured_motors_dict}
+        metamotors_dict = dict([(MOTOR_DICT[m]['name'], measured_motors_dict[m]) for m in list(measured_motors_dict.keys())])
+        metadata = {**metadata, **metamotors_dict}
         # setup and write metadta + header to file
         fname = helper.setup_filename(filename, filename_head, 'corotate_scan')
         helper.write_file_header(fname, header, metadata)

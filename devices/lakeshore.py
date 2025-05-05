@@ -100,7 +100,7 @@ def read_setpoint(lsobj=None):
         return setpoint, lsobj
     return setpoint, lsobj
 
-def set_ramp(lsobj=None, output=1, on_off=0, rate=0):
+def set_ramp(on_off, rate, lsobj=None, output=1):
     '''
     args:
         - output: specifies which output control loop to configure. 1 or 2
@@ -180,6 +180,74 @@ def read_pid(lsobj=None, output=1):
         close_lakeshore(lsobj)
         return [p, i, d], None
     return [p, i, d], lsobj
+
+def set_outmode(mode, lsobj=None, output=1, input=1, powerup_enable=1):
+    '''
+    mode:
+        - 0: off
+        - 1: closed loop pid
+        - 2: zone
+        - 3: open loop
+        - 4: monitor out
+        - 5: warmup supply
+    '''
+
+    lsobj, lsobj_passed = get_lsobj(lsobj)
+    lsobj.command(f'OUTMODE {output}, {mode}, {input}, {powerup_enable}')
+    if lsobj_passed==False:
+        close_lakeshore(lsobj)
+        return None
+    else:
+        return lsobj
+
+def read_outmode(lsobj=None, output=1):
+
+    lsobj, lsobj_passed = get_lsobj(lsobj)
+    outmode = lsobj.query(f'OUTMODE? {output}')
+    message = [int(i) for i in outmode.split(',')]
+    if lsobj_passed==False:
+        close_lakeshore(lsobj)
+        return message, None
+    return message, lsobj
+
+def set_mout(mout, lsobj=None, output=1, input=1, powerup_enable=1):
+
+    lsobj, lsobj_passed = get_lsobj(lsobj)
+    lsobj.command(f'MOUT {output}, {mout}')
+    if lsobj_passed==False:
+        close_lakeshore(lsobj)
+        return None
+    else:
+        return lsobj
+
+def read_mout(lsobj=None, output=1):
+
+    lsobj, lsobj_passed = get_lsobj(lsobj)
+    mout = float(lsobj.query(f'MOUT? {output}'))
+    if lsobj_passed==False:
+        close_lakeshore(lsobj)
+        return mout, None
+    return mout, lsobj
+
+def set_zone(zone, upper_bound, p, i, d, range, rate, lsobj=None, mout=0, output=1, input=1):
+
+    lsobj, lsobj_passed = get_lsobj(lsobj)
+    lsobj.command(f'ZONE {output}, {zone}, {upper_bound}, {p}, {i}, {d}, {mout}, {range}, {input}, {rate}')
+    if lsobj_passed==False:
+        close_lakeshore(lsobj)
+        return None
+    else:
+        return lsobj
+
+def read_zone(zone, lsobj=None, output=1):
+
+    lsobj, lsobj_passed = get_lsobj(lsobj)
+    message = lsobj.query(f'ZONE? {output}, {zone}')
+    message = [float(i) for i in message.split(',')]
+    if lsobj_passed==False:
+        close_lakeshore(lsobj)
+        return message, None
+    return message, lsobj
 
 def initialize_lakeshore():
     if lakeshore_model == '335':

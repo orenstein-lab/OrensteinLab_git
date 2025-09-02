@@ -45,7 +45,7 @@ def setup_1d_plots_append(vars, xlabel, figsize=DEFAULT_FIGSIZE):
 
     # setup 1d plot
     fig, axes = plt.subplots(nvars, 1, figsize=(figsize[0],nvars*figsize[1]))
-    if type(axes) is matplotlib.axes._axes.Axes:
+    if nvars==1:
         axes = [axes]
     for ii, ax in enumerate(axes):
         ax.set_xlabel(xlabel)
@@ -120,7 +120,7 @@ def setup_1d_plots(vars, xlabel, xrange, figsize=DEFAULT_FIGSIZE):
 
     # setup 1d plot
     fig, axes = plt.subplots(nvars, 1, figsize=(figsize[0],nvars*figsize[1]))
-    if type(axes) is matplotlib.axes._axes.Axes:
+    if nvars==1:
         axes = [axes]
     for ii, ax in enumerate(axes):
         ax.set_xlabel(xlabel)
@@ -197,7 +197,7 @@ def setup_2d_plots(vars, xlabel, xrange, ylabel, yrange, figsize=DEFAULT_FIGSIZE
 
     # setup 2d plots
     fig, axes = plt.subplots(nvars, 1, figsize=(figsize[0],nvars*figsize[1]))
-    if type(axes) is matplotlib.axes._axes.Axes:
+    if nvars==1:
         axes = [axes]
     plot_handles_dict = {}
     for ii, v in enumerate(vars):

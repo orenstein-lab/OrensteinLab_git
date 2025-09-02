@@ -14,8 +14,8 @@ import scipy.interpolate as interp
 import inspect
 import pickle
 import OrensteinLab_git.devices.newport as newport
-from OrensteinLab_git.devices.concurrency_classes import LockedVar, StoppableThread, LockedDict
-from OrensteinLab_git.motors_and_instruments import MOTOR_DICT, INSTRUMENT_DICT, META_MOTORS, ACTIVE_MOTORS, ACTIVE_INSTRUMENTS, DEFAULT_VARS
+from OrensteinLab_git.concurrency import LockedVar, StoppableThread, LockedDict
+from OrensteinLab_git.motors_and_instruments import MOTOR_DICT, INSTRUMENT_DICT, ACTIVE_MOTORS, ACTIVE_INSTRUMENTS, DEFAULT_VARS
 import OrensteinLab_git.helper as helper
 import OrensteinLab_git.plotters as plotters
 from orenstein_analysis.measurement import loader, process

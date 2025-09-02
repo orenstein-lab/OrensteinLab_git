@@ -34,7 +34,8 @@ def set_opticool_temperature(temperature, optc=None, rate=10, mode=0, wait_time=
                     time.sleep(1)
                 break
         except:
-            print('failed to set opticool temperature, trying agian.')
+            print('failed to set opticool temperature, reinitializing.')
+            optc = initialize_opticool()
 
     time.sleep(wait_time)
 
@@ -70,7 +71,13 @@ def get_opticool_temp_info(optc=None):
         return [temp, output_status], optc
 
 def read_opticool_temperature(optc=None):
-    info, optc = get_opticool_temp_info(optc)
+    while True:
+        try:
+            info, optc = get_opticool_temp_info(optc)
+            break
+        except:
+            time.sleep(0.01)
+            optc = initialize_opticool()
     return info[0], optc
 
 def set_opticool_field(field, optc=None, rate=110, approach=0, mode=0, wait_time=0, check_stability=True):
@@ -100,7 +107,7 @@ def set_opticool_field(field, optc=None, rate=110, approach=0, mode=0, wait_time
             else:
                 break
         except:
-            # print('failed to set opticool field, reinitializing.')
+            print('failed to set opticool field, reinitializing.')
             # print(optc)
             optc = initialize_opticool()
             # print(optc)
@@ -140,7 +147,13 @@ def get_opticool_field_info(optc=None):
         return [field, output_status], optc
 
 def read_opticool_field(optc=None):
-    info, optc = get_opticool_field_info(optc)
+    while True:
+        try:
+            info, optc = get_opticool_field_info(optc)
+            break
+        except:
+            time.sleep(0.1)
+            optc = initialize_opticool()
     return info[0], optc
 
 def initialize_opticool():

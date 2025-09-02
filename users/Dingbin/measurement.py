@@ -521,7 +521,6 @@ def motor_sequence(sequence_list, mkwargs_read_dict={}, ikwargs_dict={}, mobj_di
         mobj_dict = helper.move_motors(move_dict, mobj_dict, mkwargs_move_dict, mkwargs_read_dict, print_flag=False)
         tol = tols[ii]
         measured_motors_dict, mobj_dict = helper.read_motors([m], mobj_dict, mkwargs_read_dict)
-        #print(mobj_dict)
         mcurrent = measured_motors_dict[m]
         #time.sleep(time_constant)
         while np.abs(mcurrent - mtarget) > tol:
@@ -662,7 +661,7 @@ def list_motors():
 
     return m_list
 
-############################## 
+##############################
 ###                        ###
 ###   Optics Lab Methods   ###
 ###                        ###
@@ -863,10 +862,14 @@ def corotate_scan(start_angle, end_angle, step_size, angle_offset, rate_axis_2=1
 
     # convert input to angle lists
     angles_1 = helper.get_motor_range(start_angle, end_angle, step_size)
+        
     angles_2 = rate_axis_2*angles_1 + angle_offset
+    # print(rate_axis_2)
+    # print(angles_2)
 
     # move axis to start
-    axis_1, axis_2 = newport.corotate_axes(1, 2, start_angle-move_back_1, start_angle+angle_offset-move_back_2, axis_1=axis_1, axis_2=axis_2)
+    axis_1, axis_2 = newport.corotate_axes(1, 2, start_angle-move_back_1, angles_2[0]-move_back_2*np.sign(rate_axis_2), axis_1=axis_1, axis_2=axis_2)
+    axis_1, axis_2 = newport.corotate_axes(1, 2, start_angle, angles_2[0], axis_1=axis_1, axis_2=axis_2)
     mobj_dict['axis_1'] = axis_1
     mobj_dict['axis_2'] = axis_2
 
@@ -874,7 +877,7 @@ def corotate_scan(start_angle, end_angle, step_size, angle_offset, rate_axis_2=1
     run = LockedVar(True)
     user_input_thread = threading.Thread(target=concurrency.press_esc_to_stop, args=(run,))
     user_input_thread.start()
-
+    time.sleep(3)
     # scan
     for ii, angle in enumerate(angles_1):
 
@@ -885,7 +888,7 @@ def corotate_scan(start_angle, end_angle, step_size, angle_offset, rate_axis_2=1
         # move angles
         angle_1 = angle
         angle_2 = angles_2[ii]
-        axis_1, axis_2 = newport.corotate_axes(1, 2, start_angle-move_back_1, start_angle+angle_offset-move_back_2, axis_1=axis_1, axis_2=axis_2)
+        axis_1, axis_2 = newport.corotate_axes(1, 2, angle, angle_2, axis_1=axis_1, axis_2=axis_2)
         mobj_dict['axis_1'] = axis_1
         mobj_dict['axis_2'] = axis_2
 
@@ -912,10 +915,15 @@ def corotate_scan(start_angle, end_angle, step_size, angle_offset, rate_axis_2=1
             xrange, vdata1d_dict = plotters.update_1d_plots_append(fig, axes, vars, plot_handles_dict, xrange, vdata1d_dict, angle, newdata)
 
     # move motor back to original positions
-    axis_1, axis_2 = newport.corotate_axes(1, 2, start_angle-move_back_1, start_angle+angle_offset-move_back_2, axis_1=axis_1, axis_2=axis_2)
+    if type(angle_offset)==type(np.arange(3)):
+        angle_offset0 = angle_offset[0]
+    else:
+        angle_offset0 = angle_offset
+
+    axis_1, axis_2 = newport.corotate_axes(1, 2, start_angle-move_back_1, start_angle+angle_offset0-move_back_2, axis_1=axis_1, axis_2=axis_2)
     mobj_dict['axis_1'] = axis_1
     mobj_dict['axis_2'] = axis_2
-    axis_1, axis_2 = newport.corotate_axes(1, 2, start_angle, start_angle+angle_offset, axis_1=axis_1, axis_2=axis_2)
+    axis_1, axis_2 = newport.corotate_axes(1, 2, start_angle, start_angle+angle_offset0, axis_1=axis_1, axis_2=axis_2)
     mobj_dict['axis_1'] = axis_1
     mobj_dict['axis_2'] = axis_2
 
@@ -1145,6 +1153,128 @@ def corotate_map(map_dict, start_angle, end_angle, step_size, angle_offset, rate
     else:
         return iobj_dict, mobj_dict
 
+
+def corotate_map_with_dr(map_dict, start_angle, end_angle, step_size, angle_offset, rate_axis_2=1, mkwargs_read_dict={}, ikwargs_dict={}, mobj_dict={}, iobj_dict={}, vars=[], metadata={}, filename_head=None, filename=None, savefile=True, print_flag=False, plot=False, close_devices=True):
+    '''
+    method to record corotation measurements on instruments as a function of motors specified by dictionary map_dict. meant to acquire data one point at a time in a multidimensional motor space.
+
+    Corotation scan moving axes 1 and 2, typically representing wave plates.
+
+    axis_2_angle = rate_axis_2*axis_1_angle + angle_offset
+
+    args:
+        - map_dict:         dictionary of key:value pairs where key is name of a motor in MOTOR_DICT and value is a tuple (start, stop step, mkwargs_move) or (positions, mkwargs_move), and where mkwargs_move is a dictionary where keys are kwarg names for the motor move function, and value the corresponding value to set during move calls. motors are scanned from left to right.
+
+            ex: {'temp':(100,200,10,{'wait_time':30})} or {'temp':(np.arange(100,200,10),{'wait_time':30})}
+
+        - start_angle:
+        - end_angle:
+        - step_size:
+        - angle_offset:
+        - mkwargs_read_dict:    dictionary of mkwargs for motor read functions. if left empty, defaults to no kwargs
+        - ikwargs_dict:        dictionary of key value pairs where keys are name of instruments in INSTRUMENT_DICT and values are dictionary of kwargs for the instrument read function. Defaults to instruments in ACTIVE_INSTRUMENTS with no kwargs.
+
+            ex: {'zurich_lockin':{'time_constant':0.3, 'channel_index':3}}
+
+        - mobj_dict:        dictionary containing key:value pairs where keys are motor name and value are motor handle objects
+        - iobj_dict:        same as mobj_dict but for instruments
+        - vars:             list of variable names to return and, if applicable, plot, must match something in measurd_header (see below). defaults to DEFAULT_VARS in configuration.py
+        - metadata:         dictionary with any additional entries to add to metadata
+        - filename_head:    path to directory in which to save data. defaults ot current working directory of notebook
+        - filename:         name of file
+        - savefile:         if true, saves file
+        - print_flag:       if true, print motor positions during scan
+        - plot:             if true, plots data in vars
+        - close_devices:    if true, closes all devices in mobj_dict and iobj_dict
+    '''
+
+    # parse motor scanning information contained in map_dict
+    motors, mranges, mkwargs_move_dict = helper.capture_motor_information(map_dict)
+
+    # initialize motors and instruments, and create kwarg dictionaries for each
+    mkwargs_read_dict, ikwargs_dict, mobj_dict, iobj_dict = helper.initialize_instruments_and_motors(ACTIVE_MOTORS, ACTIVE_INSTRUMENTS, mkwargs_read_dict, ikwargs_dict, mobj_dict, iobj_dict)
+    instruments_header, iobj_dict = helper.get_instruments_header(ACTIVE_INSTRUMENTS, iobj_dict, ikwargs_dict)
+
+    # take default value for vars, and check that vars is valid
+    if vars==[]:
+        vars = DEFAULT_VARS
+    measured_vars = [MOTOR_DICT[m]['name'] for m in ACTIVE_MOTORS]+instruments_header
+    if not set(vars).issubset(set(measured_vars)):
+        raise ValueError(f'vars {vars} not in measurd values {measured_vars}')
+
+    # setup filenames
+    filepath1 = filename_head+'\corotate'
+    if not os.path.exists(filepath1):
+        os.makedirs(filepath1)
+
+    filepath2 = filename_head+'\dR'
+    if not os.path.exists(filepath2):
+        os.makedirs(filepath2)
+
+    filename1 = helper.setup_filename(filename, filepath1, 'corotate_map')
+    filename2 = helper.setup_filename(filename, filepath2, 'dR_map')
+    # start user input thread
+    run = LockedVar(True)
+    user_input_thread = threading.Thread(target=concurrency.press_esc_to_stop, args=(run,))
+    user_input_thread.start()
+
+    # generate motor scan positions recursively.
+    # positions: list of positions where each element contains positions of each motor for nth step in scan
+    positions = helper.gen_positions_recurse(mranges, len(mranges)-1)
+    num_pos = len(positions)
+
+    # move motors to start
+    move_dict = {}
+    for jj, m in enumerate(motors):
+        move_dict[m] = (positions[0][jj], True)
+    mobj_dict = helper.move_motors(move_dict, mobj_dict, mkwargs_move_dict, mkwargs_read_dict, print_flag=print_flag)
+
+    # loop over positions, only moving a motor if its target position has changed.
+    start_pos = positions[0]
+    current_pos = start_pos
+
+
+
+    for ii in tqdm(range(num_pos)):
+        pos = positions[ii]
+
+        # if run is False, break loop
+        if not run.locked_read():
+            break
+
+        # move motors for which position has changed, moving first to "go back" position if moving back to start of initial motor position
+        move_dict = {}
+        for jj, m in enumerate(motors):
+            mtarget = pos[jj]
+            if current_pos[jj]!=mtarget:
+                move_back_flag=False
+                if start_pos[jj]==mtarget:
+                    move_back_flag=True
+                move_dict[m] = (mtarget, move_back_flag)
+        mobj_dict = helper.move_motors(move_dict, mobj_dict, mkwargs_move_dict, mkwargs_read_dict, print_flag=print_flag)
+        current_pos = pos
+
+        # setup each filename
+        expanded_filename1 = filename1
+        expanded_filename2 = filename2
+        for jj, m in enumerate(motors):
+            p = pos[jj]
+            expanded_filename1 = expanded_filename1+f'_{m}{p}'
+            expanded_filename2 = expanded_filename2+f'_{m}{p}'
+        # scan corotate
+        iobj_dict, mobj_dict = corotate_scan(start_angle, end_angle, step_size, angle_offset, rate_axis_2=rate_axis_2, mkwargs_read_dict=mkwargs_read_dict, ikwargs_dict=ikwargs_dict, mobj_dict=mobj_dict, iobj_dict=iobj_dict, vars=vars, metadata=metadata, filename_head=filepath1, filename=expanded_filename1, savefile=True, plot=plot, close_devices=False)
+        # scan dR_dT
+        iobj_dict, mobj_dict = corotate_scan(start_angle, start_angle+60., 30., angle_offset+22.5, rate_axis_2=rate_axis_2, mkwargs_read_dict=mkwargs_read_dict, ikwargs_dict=ikwargs_dict, mobj_dict=mobj_dict, iobj_dict=iobj_dict, vars=vars, metadata=metadata, filename_head=filepath2, filename=expanded_filename2, savefile=True, plot=plot, close_devices=False)
+    # wait for thread to finish
+    run.locked_update(False)
+    user_input_thread.join()
+
+    # close instruments and motors
+    if close_devices:
+        helper.close_instruments(iobj_dict)
+        helper.close_motors(mobj_dict)
+    else:
+        return iobj_dict, mobj_dict
 #########################
 ### Balancing Methods ###
 #########################

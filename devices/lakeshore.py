@@ -22,7 +22,7 @@ def set_temperature(temperature, lsobj=None, tolerance=0.1, avg_time=3, wait_tim
     lsobj, lsobj_passed = get_lsobj(lsobj)
 
     temp=float(temperature)
-    #lsobj = set_ramp(lsobj, output, on_off, rate)
+    #lsobj = set_ramp(lsobj, output, on_off, rate)b
     set_setpoint(temp, lsobj, output)
     time.sleep(0.1)
 

@@ -13,15 +13,19 @@ from plotly.subplots import make_subplots
 from IPython.display import display  # Import display once at the top
 
 # Default figure size: width, height per subplot (in pixels)
-DEFAULT_FIGSIZE = (600, 300)
+SCALE=4/5
+DEFAULT_FIGSIZE = (600*SCALE, 300*SCALE)
 TEMPLATE = "ggplot2"
-MARKERSIZE = 15
-TITLEFONT = 12
-TICKFONT = 12
-VSPACE = 0.075
+FONT = "Arial, sans-serif"
+MARKERSIZE = 10
+TITLESIZE = 14
+TICKSIZE = 12
+VSPACE = 0.075/SCALE
 EXPONENTFORMATX = 'E'
 EXPONENTFORMATY = 'E'
 COLORSCALE = 'RdBu'
+TITLEDICT =dict(size=TITLESIZE, family=FONT)
+TICKDICT =dict(size=TICKSIZE, family=FONT)
 
 def setup_1d_plots_append(vars, xlabel, figsize=DEFAULT_FIGSIZE):
     """
@@ -67,8 +71,8 @@ def setup_1d_plots_append(vars, xlabel, figsize=DEFAULT_FIGSIZE):
         template=TEMPLATE,
         margin=dict(l=90, r=30, t=25, b=50),
     )
-    fig.update_yaxes(title_font=dict(size=TITLEFONT), tickfont=dict(size=TICKFONT), automargin=True, exponentformat=EXPONENTFORMATY)
-    fig.update_xaxes(title_font=dict(size=TITLEFONT), tickfont=dict(size=TICKFONT), exponentformat=EXPONENTFORMATX)
+    fig.update_yaxes(title_font=TITLEDICT, tickfont=TICKDICT, automargin=True, exponentformat=EXPONENTFORMATY)
+    fig.update_xaxes(title_font=TITLEDICT, tickfont=TICKDICT, exponentformat=EXPONENTFORMATX)
     fig.update_traces(marker=dict(size=MARKERSIZE))
     display(fig)
     axes = [None] * nvars  # Dummy axes for compatibility
@@ -140,8 +144,8 @@ def setup_1d_plots(vars, xlabel, xrange, figsize=DEFAULT_FIGSIZE):
         template=TEMPLATE,
         margin=dict(l=90, r=30, t=25, b=50)
     )
-    fig.update_yaxes(title_font=dict(size=TITLEFONT), tickfont=dict(size=TICKFONT), automargin=True, exponentformat=EXPONENTFORMATY)
-    fig.update_xaxes(title_font=dict(size=TITLEFONT), tickfont=dict(size=TICKFONT), exponentformat=EXPONENTFORMATX)
+    fig.update_yaxes(title_font=TITLEDICT, tickfont=TICKDICT, automargin=True, exponentformat=EXPONENTFORMATY)
+    fig.update_xaxes(title_font=TITLEDICT, tickfont=TICKDICT, exponentformat=EXPONENTFORMATX)
     fig.update_traces(marker=dict(size=MARKERSIZE))
     display(fig)
     axes = [None] * nvars
@@ -223,8 +227,8 @@ def setup_2d_plots(vars, xlabel, xrange, ylabel, yrange, figsize=DEFAULT_FIGSIZE
         template=TEMPLATE,
         margin=dict(l=90, r=30, t=25, b=50)
     )
-    fig.update_yaxes(title_font=dict(size=TITLEFONT), tickfont=dict(size=TICKFONT), automargin=True, exponentformat=EXPONENTFORMATX)
-    fig.update_xaxes(title_font=dict(size=TITLEFONT), tickfont=dict(size=TICKFONT), exponentformat=EXPONENTFORMATX)
+    fig.update_yaxes(title_font=TITLEDICT, tickfont=TICKDICT, automargin=True, exponentformat=EXPONENTFORMATX)
+    fig.update_xaxes(title_font=TITLEDICT, tickfont=TICKDICT, exponentformat=EXPONENTFORMATX)
     display(fig)
     axes = [None] * nvars
     return fig, axes, plot_handles_dict, vdata2d_dict

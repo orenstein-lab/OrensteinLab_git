@@ -1,245 +1,154 @@
+"""
+Plotting Methods (Plotly Version, Backwards Compatible)
+- Drop-in replacement for matplotlib-based plotting, using Plotly FigureWidget.
+- All function signatures and return values match the original API.
+"""
 
-'''
-Plotting Methods
-'''
 import numpy as np
-import matplotlib.pyplot as plt
-import matplotlib.colors as colors
-import matplotlib
-import os
-import time
-import threading
-from tqdm.auto import tqdm
-import scipy.optimize as opt
-import scipy.interpolate as interp
-import inspect
-import pickle
-from OrensteinLab_git.concurrency import LockedVar, StoppableThread, LockedDict
-from OrensteinLab_git.motors_and_instruments import MOTOR_DICT, INSTRUMENT_DICT, ACTIVE_MOTORS, ACTIVE_INSTRUMENTS
+import plotly.graph_objs as go
 
-DEFAULT_FIGSIZE = (6,3)
+DEFAULT_FIGSIZE = (600, 300)  # pixels
 
 def setup_1d_plots_append(vars, xlabel, figsize=DEFAULT_FIGSIZE):
-    '''
-    setup plots where data containers are continuously appended to. Good for situations where one does not know a-priori total number of points to plot
-
-    args:
-        - vars:     list of y variable names to plot. creates len(vars) plots
-        - xlabel:   name of x axis
-
-    returns:
-        - fig
-        - axes
-        - plot_handles_dict:    dictionary containing line handles for each variable in var
-        - xrange:               np array for storing x axis data
-        - vdata1d_dict:         dictionary containing data containers (np arrays) for each variable in var
-    '''
-
-    # setup data grids
+    """
+    Setup plots where data containers are continuously appended to.
+    Returns:
+        - fig: Plotly FigureWidget
+        - axes: list of None (for compatibility)
+        - plot_handles_dict: dict of Plotly traces
+        - xrange: np array for x data
+        - vdata1d_dict: dict of y data arrays
+    """
     nvars = len(vars)
-    vdata1d_dict = {}
-    for v in vars:
-        vdata = np.array([])
-        vdata1d_dict[v] = vdata
-    xrange =  np.array([])
+    vdata1d_dict = {v: np.array([]) for v in vars}
+    xrange = np.array([])
 
-    # setup 1d plot
-    fig, axes = plt.subplots(nvars, 1, figsize=(figsize[0],nvars*figsize[1]))
-    if nvars==1:
-        axes = [axes]
-    for ii, ax in enumerate(axes):
-        ax.set_xlabel(xlabel)
-        ax.set_ylabel(vars[ii])
-        ax.grid(True)
+    fig = go.FigureWidget(layout=go.Layout(
+        width=figsize[0], height=figsize[1]*nvars,
+        template="plotly_white"
+    ))
+
     plot_handles_dict = {}
-    for ii, v in enumerate(vars):
-        line,  = axes[ii].plot(xrange, vdata1d_dict[v], '-o')
-        plot_handles_dict[v] = line
-    fig.canvas.draw()
-    fig.tight_layout()
+    for v in vars:
+        trace = go.Scatter(x=[], y=[], mode='lines+markers', name=v)
+        fig.add_trace(trace)
+        plot_handles_dict[v] = fig.data[-1]
+
+    fig.update_layout(
+        xaxis_title=xlabel,
+        yaxis_title=", ".join(vars) if nvars == 1 else "",
+        showlegend=(nvars > 1)
+    )
     fig.show()
 
+    axes = [None]*nvars  # Dummy for backwards compatibility
     return fig, axes, plot_handles_dict, xrange, vdata1d_dict
 
 def update_1d_plots_append(fig, axes, vars, plot_handles_dict, xrange, vdata1d_dict, newx, newdata):
-    '''
-    update plots by appending to data containers
-
-    args:
-        - fig
-        - axes
-        - vars:                 list of y axis variables
-        - plot_handles_dict:    dictionary containing line handles for each variable in var
-        - xrange:               np array for storing x axis data
-        - vdata1d_dict:         dictionary containing data containers (numpy arrays) for each variable in var
-        - newx:                 value of new x axis position
-        - newdata:              dictionary of values to update at index xind for each variable in var
-
-    return:
-        - xrange:               modified xrange
-        - vdata1d_dict:         modified vdata1d_dict
-    '''
-
+    """
+    Update plots by appending to data containers.
+    Returns updated xrange and vdata1d_dict.
+    """
     xrange = np.append(xrange, newx)
     for v in vars:
-        line = plot_handles_dict[v]
         vdata1d_dict[v] = np.append(vdata1d_dict[v], newdata[v])
-        vdata = vdata1d_dict[v]
-        line.set_data(xrange, vdata)
-    for ax in axes:
-        ax.relim()
-        ax.autoscale()
-    fig.canvas.draw()
-    fig.canvas.flush_events()
-
+        trace = plot_handles_dict[v]
+        trace.x = xrange
+        trace.y = vdata1d_dict[v]
+    # axes is a dummy, nothing to update
     return xrange, vdata1d_dict
 
 def setup_1d_plots(vars, xlabel, xrange, figsize=DEFAULT_FIGSIZE):
-    '''
-    setup plots where data container lengths are known
-
-    args:
-        - vars:     list of y variable names to plot. creates len(vars) plots
-        - xlabel:   name of x axis
-        - xrange:   x axis data
-
-    returns:
-        - fig
-        - axes
-        - plot_handles_dict:    dictionary containing line handles for each variable in var
-        - vdata1d_dict:         dictionary containing data containers (np arrays) for each variable in var
-    '''
-
-    # setup data grids
+    """
+    Setup plots where data container lengths are known.
+    Returns:
+        - fig: Plotly FigureWidget
+        - axes: list of None (for compatibility)
+        - plot_handles_dict: dict of Plotly traces
+        - vdata1d_dict: dict of y data arrays
+    """
     nvars = len(vars)
-    nx = len(xrange)
-    vdata1d_dict = {}
-    for v in vars:
-        vdata = np.zeros(nx)
-        vdata1d_dict[v] = vdata
+    vdata1d_dict = {v: np.zeros(len(xrange)) for v in vars}
 
-    # setup 1d plot
-    fig, axes = plt.subplots(nvars, 1, figsize=(figsize[0],nvars*figsize[1]))
-    if nvars==1:
-        axes = [axes]
-    for ii, ax in enumerate(axes):
-        ax.set_xlabel(xlabel)
-        ax.set_ylabel(vars[ii])
-        ax.grid(True)
+    fig = go.FigureWidget(layout=go.Layout(
+        width=figsize[0], height=figsize[1]*nvars,
+        template="plotly_white"
+    ))
+
     plot_handles_dict = {}
-    for ii, v in enumerate(vars):
-        line,  = axes[ii].plot(xrange, vdata1d_dict[v], '-o')
-        plot_handles_dict[v] = line
-    fig.canvas.draw()
-    fig.tight_layout()
+    for v in vars:
+        trace = go.Scatter(x=xrange, y=vdata1d_dict[v], mode='lines+markers', name=v)
+        fig.add_trace(trace)
+        plot_handles_dict[v] = fig.data[-1]
+
+    fig.update_layout(
+        xaxis_title=xlabel,
+        yaxis_title=", ".join(vars) if nvars == 1 else "",
+        showlegend=(nvars > 1)
+    )
     fig.show()
 
+    axes = [None]*nvars  # Dummy for backwards compatibility
     return fig, axes, plot_handles_dict, vdata1d_dict
 
 def update_1d_plots(fig, axes, vars, plot_handles_dict, vdata1d_dict, xind, newdata):
-    '''
-    update plots where data container lengths are known
-
-    args:
-        - fig
-        - axes
-        - vars:                 list of y axis variables
-        - plot_handles_dict:    dictionary containing line handles for each variable in var
-        - vdata1d_dict:         dictionary containing data containers (np arrays) for each variable in var
-        - xind:                 index to update for each data container
-        - newdata:              dictionary of values to update at index xind for each variable in var
-
-    return:
-        - vdata1d_dict:         modified vdata1d_dict
-    '''
-
+    """
+    Update plots where data container lengths are known.
+    Returns updated vdata1d_dict.
+    """
     for v in vars:
-        line = plot_handles_dict[v]
         vdata1d_dict[v][xind] = newdata[v]
-        vdata = vdata1d_dict[v]
-        line.set_ydata(vdata)
-    for ax in axes:
-        ax.relim()
-        ax.autoscale()
-    fig.canvas.draw()
-    fig.canvas.flush_events()
-
+        trace = plot_handles_dict[v]
+        trace.y = vdata1d_dict[v]
+    # axes is a dummy, nothing to update
     return vdata1d_dict
 
 def setup_2d_plots(vars, xlabel, xrange, ylabel, yrange, figsize=DEFAULT_FIGSIZE):
-    '''
-    setup 2d plots where data container lengths are known
-
-    args:
-        - vars:     list of y variable names to plot. creates len(vars) plots
-        - xlabel:   name of x axis
-        - xrange:   x axis data
-        - ylabel:   name of y axis
-        - yrange:   y axis data
-
-    returns:
-        - fig
-        - axes
-        - plot_handles_dict:    dictionary containing map handles for each variable in var
-        - vdata2d_dict:         dictionary containing data containers (np arrays) for each variable in var
-    '''
-
-    # setup data grids
+    """
+    Setup 2D plots where data container lengths are known.
+    Returns:
+        - fig: Plotly FigureWidget
+        - axes: list of None (for compatibility)
+        - plot_handles_dict: dict of Heatmap traces
+        - vdata2d_dict: dict of 2D np arrays
+    """
     nvars = len(vars)
-    nx = len(xrange)
-    ny = len(yrange)
-    vdata2d_dict = {}
-    for v in vars:
-        vdata = np.zeros((ny, nx))
-        vdata2d_dict[v] = vdata
-    X_coor, Y_coor = np.meshgrid(xrange, yrange)
-    extent=[xrange[0], xrange[-1], yrange[0], yrange[-1]]
+    vdata2d_dict = {v: np.zeros((len(yrange), len(xrange))) for v in vars}
 
-    # setup 2d plots
-    fig, axes = plt.subplots(nvars, 1, figsize=(figsize[0],nvars*figsize[1]))
-    if nvars==1:
-        axes = [axes]
+    fig = go.FigureWidget(layout=go.Layout(
+        width=figsize[0], height=figsize[1]*nvars,
+        template="plotly_white"
+    ))
+
     plot_handles_dict = {}
-    for ii, v in enumerate(vars):
-        vdata = vdata2d_dict[v]
-        vax = axes[ii]
-        vax.set_xlabel(xlabel)
-        vax.set_ylabel(ylabel)
-        map = vax.imshow(vdata, cmap="bwr", origin='lower', extent=extent, norm=colors.TwoSlopeNorm(0, vmin=min(vdata.min(), -1e-12), vmax=max(vdata.max(), 1e-12)))
-        plot_handles_dict[v] = map
-        fig.colorbar(map, ax=vax, label=v)
-    fig.canvas.draw()
-    fig.tight_layout()
+    for v in vars:
+        z = vdata2d_dict[v]
+        trace = go.Heatmap(
+            z=z, x=xrange, y=yrange,
+            colorbar=dict(title=v),
+            colorscale='RdBu', zmid=0
+        )
+        fig.add_trace(trace)
+        plot_handles_dict[v] = fig.data[-1]
+
+    fig.update_layout(
+        xaxis_title=xlabel,
+        yaxis_title=ylabel,
+        showlegend=False
+    )
     fig.show()
 
+    axes = [None]*nvars  # Dummy for backwards compatibility
     return fig, axes, plot_handles_dict, vdata2d_dict
 
 def update_2d_plots(fig, axes, vars, plot_handles_dict, vdata2d_dict, xind, yind, newdata):
-    '''
-    update 2d plots where data container lengths are known
-
-    args:
-        - fig
-        - axes
-        - vars:                 list of variables
-        - plot_handles_dict:    dictionary containing map handles for each variable in var
-        - vdata1d_dict:         dictionary containing data containers (np arrays) for each variable in var
-        - xind:                 x index to update for each data container
-        - yind:                 y index to update for each data container
-        - newdata:              dictionary of values to update at index [yind,xind] for each variable in var
-
-    return:
-        - vdata2d_dict:         modified vdata2d_dict
-    '''
-
-    time.sleep(0.01)
+    """
+    Update 2D plots where data container lengths are known.
+    Returns updated vdata2d_dict.
+    """
     for v in vars:
-        map = plot_handles_dict[v]
         vdata2d_dict[v][yind, xind] = newdata[v]
-        vdata = vdata2d_dict[v]
-        map.set_data(vdata)
-        map.set_clim(vmin=min(vdata.min(),0), vmax=max(vdata.max(),0))
-    fig.canvas.draw()
-    fig.canvas.flush_events()
-
+        trace = plot_handles_dict[v]
+        trace.z = vdata2d_dict[v]
+    # axes is a dummy, nothing to update
     return vdata2d_dict

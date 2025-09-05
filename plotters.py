@@ -13,7 +13,7 @@ from plotly.subplots import make_subplots
 from IPython.display import display  # Import display once at the top
 
 # Default figure size: width, height per subplot (in pixels)
-SCALE=4/5
+SCALE=1
 DEFAULT_FIGSIZE = (600*SCALE, 300*SCALE)
 TEMPLATE = "ggplot2"
 FONT = "Arial, sans-serif"

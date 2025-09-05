@@ -4,18 +4,6 @@ Plotting Methods
 '''
 import numpy as np
 import matplotlib.pyplot as plt
-import matplotlib.colors as colors
-import matplotlib
-import os
-import time
-import threading
-from tqdm.auto import tqdm
-import scipy.optimize as opt
-import scipy.interpolate as interp
-import inspect
-import pickle
-from OrensteinLab_git.concurrency import LockedVar, StoppableThread, LockedDict
-from OrensteinLab_git.motors_and_instruments import MOTOR_DICT, INSTRUMENT_DICT, ACTIVE_MOTORS, ACTIVE_INSTRUMENTS
 
 DEFAULT_FIGSIZE = (6,3)
 

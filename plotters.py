@@ -59,6 +59,7 @@ def setup_1d_plots_append(vars, xlabel, figsize=DEFAULT_FIGSIZE):
         fig.add_trace(trace, row=i+1, col=1)
         # Set y-axis label for each subplot
         fig.update_yaxes(title_text=v, row=i+1, col=1)
+        plot_handles_dict[v] = fig.data[-1]
 
     # Set x-axis label
     fig.update_xaxes(title_text=xlabel)

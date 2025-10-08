@@ -9,8 +9,8 @@ A hackable python interface for running physics lab experiments. In addition to 
 	  - *motors_and_instruments.py - file defining the important MOTOR_DICT, INSTRUMENT_DICT, ACTIVE_MOTORS, and ACTIVE_INSTRUMENTS objects, which link abstract motors ('x', 'y', temp', etc...) to specific hardware whose interface is defined in /devices. In general this is different for each cryostat and is easy to modify, so it is not tracket by git.
 	  - *configuration.py - file containing CONFIG_DICT, which holds configuration information that is specific to each system.
 	  - /users - folder containing folders for each user to write their own scripts and functions, a sandbox of sorts
-	  - plotters.py - file containing plotting routines for plotting in real time during experiments
-	  - helper.py - file with various helper functions
+	  - helper.py - file with various helper functions that form the basis of scripts in measurement.py. These functions should be used when writing new high-level scripts, a they makes it easy to do lots of common taskts (initialize motors/instruments, move motors, read motors/instruments, write to files, etc) in a standard way.
+	  - plotters.py - file containing plotting routines for plotting in real time during experiments. These functions should also be used when writing new high-level scripts.
 	  - concurrency.py - file with multithreading routines
 	  
 	  * not tracked by git so that each system can have its own copy

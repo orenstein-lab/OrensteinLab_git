@@ -96,9 +96,9 @@ This is the trickiest part of contributing to this package, as the architecture 
 
 (1) As much as possible, code that can be recycled for different kinds of motors (for example, scanning) should be written so as to work with any kind of abstract motor. The arguments to these functions should therefore rely on names of abstract motors above all else. 
 
-(2)Make sure to make it easy to pass `**kwargs` to motor `read` and `move` functions, for maximal functionality (this makes it easy to change all sorts of paramters in your scanning functions without actually having a million entries in the function itself).
+(2)Make sure to make it easy to pass `**kwargs` to motor `read` and `move` functions, for maximal functionality (this makes it easy to change all sorts of paramters in your scanning functions without actually having a million entries in the function itself). See note on `mkwargs_dict` and `ikwargs_dict` arguments below.
 
-(3) Follow some protocols for writing to files. Every data file should have the following structure:
+(3) Follow some protocols for writing to files. Every data file should have the following structure. There are functions in `helper.py` to quickly write data files in a standard format:
 
 	[Metadata]
 	...
@@ -124,16 +124,17 @@ This needs to get fleshed out, but for now I just want to make a few comments:
 
 (1) all scanning/mapping functions work based of an argument called `map_dict`, which is a a dictionary where each entry is of the form `'motor_name:(start, stop, step, kwarg_dict)'`, or alternatively `'motor_name:(positions, kwarg_dict)'`, and where entries to the 	`kwarg_dict` are `key:value` pairs where `key` is the name of a kwarg to the`move` function of the given motor, and `value` is the value to set that kwarg to. For example, you might specify a wait time with `kwarg_dict={'wait_time':30}` to have the motor wait 30 seconds after each movement.
 
-(2) `motor_sequence` works similarly, except that the `map_dict` is replaced by a `sequence_list` defining a set of consecutive motor sweeps. Here, each entry is a tuple ('motor_name', target, kwargs_move_dict, tolerance) and the function will acquire data as it sweeps the motors in order from left to right.
+(2) `motor_sequence` works similarly, except that the `map_dict` is replaced by a `sequence_list` defining a set of consecutive motor sweeps. Here, each entry is a tuple `(motor_name, target, kwargs_move_dict, tolerance)` and the function will acquire data as it sweeps the motors in order from left to right.
 
 (3) `timed_measurement` is used to just record the lockin for some specified time, can be useful
 
 (4) most functions in `measurement.py` have the following optional arguments:
-	- `mkwargs_read_dict`: dictionary where keys are `motor` names and values are a dictionary of kwargs for motor read functions. if left empty, defaults to no kwargs
-	- `ikwargs_dict`: dictionary of key value pairs where keys are name of `instruments` and values are dictionary of kwargs for the instrument read function. Defaults to instruments in `ACTIVE_INSTRUMENTS` with no kwargs.
-	- `mobj_dict`: dictionary of key:value pairs where keys are `motor` names and values are `motor` handle object. This makes it very easy to pass around all active motor objects.
-	- `iobj_dict`: dictionary of key:value pairs where keys are `instrument` names and values are `instrument` handle object. This makes it very easy to pass around all active motor objects.
-	- `vars`: list of variables to plot during measurement. Defaults to `DEFAULT_VARS`.
+
+		- `mkwargs_read_dict`: dictionary where keys are `motor` names and values are a dictionary of kwargs for motor read functions. if left empty, defaults to no kwargs
+		- `ikwargs_dict`: dictionary of key value pairs where keys are name of `instruments` and values are dictionary of kwargs for the instrument read function. Defaults to instruments in `ACTIVE_INSTRUMENTS` with no kwargs.
+		- `mobj_dict`: dictionary of key:value pairs where keys are `motor` names and values are `motor` handle object. This makes it very easy to pass around all active motor objects.
+		- `iobj_dict`: dictionary of key:value pairs where keys are `instrument` names and values are `instrument` handle object. This makes it very easy to pass around all active motor objects.
+		- `vars`: list of variables to plot during measurement. Defaults to `DEFAULT_VARS`.
 
 (5) `monitor_motors` plots the position of a motor as a function of time. can also be useful
 

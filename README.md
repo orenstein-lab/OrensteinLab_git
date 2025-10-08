@@ -51,10 +51,10 @@ Below is a quick example of what a script might look like that uses this package
 	read_x(); read_y()
 	
 	# take an xy scan, specifiying which demodulator channel to display to view DC reflectivity
-	meas.motor_scan({'x':(0,100,20,{}), 'y':(0,100,20,{})}, filename='testscan', channel_index=2)
+	meas.motor_scan({'x':(0,100,20,{}), 'y':(0,100,20,{})}, filename='testscan', vars=['Demod 1 r'])
 
-	# move to a position and take a time-resolved measurement as a function of temperature,showcasing how the same function be used for very different types of scans.
-	meas.motor_scan({'time_delay':(0,3000,10,{}), 'temp':(300,200,10,{'wait_time':30})}, filename='test_pumpprobe', channel_index=1)
+	# move to a position and take a time-resolved measurement as a function of temperature,showcasing how the same function be used for very different types of scans. Now it displays two demodulator values
+	meas.motor_scan({'time_delay':(0,3000,10,{}), 'temp':(300,200,10,{'wait_time':30})}, filename='test_pumpprobe', vars=['Demod 1 r', 'Demod 2 r'])
 
 # Reference
 	

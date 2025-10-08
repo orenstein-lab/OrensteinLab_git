@@ -15,6 +15,10 @@ A hackable python interface for running physics lab experiments. In addition to 
 	  
 	  * not tracked by git so that each system can have its own copy
 
+<p align="center">
+<img width="622" height="372" alt="heirarchy" src="https://github.com/user-attachments/assets/f65b67bf-e4e3-4f4d-8a1a-fbecb3d0d753" />
+</p>
+
 The philosophy behind this structure is that the same set of routines in `measurement.py` can be used throughout the lab regardless of the specific hardware used at a given cryostat. To accomplish this, high-level functions in `measurement.py` are written to handle abstracted `motors` and `instruments`, which are linked to concrete low-level hardware functions in `/devices` through the `MOTOR_DICT` and `INSTRUMENT_DICT`. Although `MOTOR_DICT` and `INSTRUMENT_DICT` define the abstracted motors and instruments available for sure, the lists `ACTIVE_INSTRUMENTS` and `ACTIVE_MOTORS` define which instruments are actually active at runtime. The scripts in `measurement.py` only can interact with activated motors and instruments. For example, most data acquisition scripts will automatically keep metadata associated with active motors and instruments. All datafiles are generate within the folder of the script that runs this pacakge.
 
 A distinction is made between abstracted `motors` and `instruments`. `motors` are equipment that have a `move` and `read` function, for example a temperature controller. `instruments` have only a `read` function, which can return a large stream of labeled measurements. The whole point of abstracting low-level control and high-level functionality is that the user can easily and quickly define abstracted `motors` and `instruments` at will. A single piece of physical hardware equipment can be both a `motor` and and `instrument`; for example, a Zurich lock-in amplifier might be a treated as an `instrument` when it comes to reading the output of a measurement, but a `motor` can be defined to control AUX-OUT, or change the oscillator frequency, etc.

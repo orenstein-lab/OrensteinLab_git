@@ -216,10 +216,10 @@ def setup_2d_plots(vars, xlabel, xrange, ylabel, yrange, figsize=DEFAULT_FIGSIZE
             showscale=True
         )
         fig.add_trace(trace, row=i+1, col=1)
-        fig.update_yaxes(title_text=v, row=i+1, col=1)
         plot_handles_dict[v] = fig.data[-1]
 
     fig.update_xaxes(title_text=xlabel)
+    fig.update_xaxes(title_text=ylabel)
 
     fig.update_layout(
         width=figsize[0],

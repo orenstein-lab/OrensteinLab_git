@@ -621,7 +621,7 @@ def monitor_motors(motors, mkwargs_read_dict={}, filename_head=None, filename=No
     # setup plots for displaying
     if plot:
         xlabel = 'Time (s)'
-        fig, axes, plot_handles_dict, xrange, vdata1d_dict = plotters.setup_1d_plots_append(motors, xlabel, figsize=(4,3))
+        fig, axes, plot_handles_dict, xrange, vdata1d_dict = plotters.setup_1d_plots_append(motors, xlabel)
 
     # start user input thread
     run = LockedVar(True)
@@ -666,7 +666,7 @@ def list_motors():
 
     return m_list
 
-############################## 
+##############################
 ###                        ###
 ###   Optics Lab Methods   ###
 ###                        ###

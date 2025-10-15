@@ -4,6 +4,8 @@ Plotting Methods
 '''
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.colors as colors
+import time
 
 DEFAULT_FIGSIZE = (6,3)
 

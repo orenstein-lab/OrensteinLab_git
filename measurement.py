@@ -730,7 +730,7 @@ def rotate_scan(start_angle, end_angle, step_size, axis_index=1, mkwargs_read_di
         xlabel = f'Angle {axis_index} (deg)'
         fig, axes, plot_handles_dict, xrange, vdata1d_dict = plotters.setup_1d_plots_append(vars, xlabel)
 
-    # select axis to rotate and setup both that axis and conjugate axis
+    # select axis to rotate and setup that axis
     if axis_index not in [1,2,3]:
         raise ValueError('Invalid axis_index, please select either 1, 2, or 3')
     axis_name = f'axis_{axis_index}'
@@ -1344,6 +1344,192 @@ def autobalance(slope, tolerance, offset=0, bal_axis=2, var='Demod 1 x', ikwargs
         helper.close_motors(mobj_dict)
 
     return curr_pos-balance_at
+
+##########################
+### Pump Probe Methods ###
+##########################
+
+def pump_probe_scan(start_pos, end_pos, velocity, mkwargs_read_dict={}, ikwargs_dict={}, mobj_dict={}, iobj_dict={}, vars=[], metadata={}, filename_head=None, filename=None, savefile=True, print_flag=False, plot=False, close_devices=True, axis_index=1, go_back=5, time_step=0.25):
+
+    # initialize motors and instruments, and create kwarg dictionaries for each
+    mkwargs_read_dict, ikwargs_dict, mobj_dict, iobj_dict = helper.initialize_instruments_and_motors(ACTIVE_MOTORS, ACTIVE_INSTRUMENTS, mkwargs_read_dict, ikwargs_dict, mobj_dict, iobj_dict)
+
+    # create motor and instrument header
+    instruments_header, iobj_dict = helper.get_instruments_header(ACTIVE_INSTRUMENTS, iobj_dict, ikwargs_dict)
+    motors_header_measured = [MOTOR_DICT[m]['name']+str(' measured') for m in ACTIVE_MOTORS] # for tracking measured motor positions
+    header = [f'Axis {axis_index} (deg)']+instruments_header+motors_header_measured
+
+    # take default value for vars, and check that vars is valid
+    if vars==[]:
+        vars = DEFAULT_VARS
+    if not set(vars).issubset(set(header)):
+        raise ValueError(f'vars {vars} not in measurd values {header}')
+
+    # setup file for writing - adds metadata at top and writes the data header
+    if savefile:
+        # setup metadata
+        measured_motors_dict, mobj_dict = helper.read_motors(ACTIVE_MOTORS, mobj_dict, mkwargs_read_dict)
+        metamotors_dict = dict([(MOTOR_DICT[m]['name'], measured_motors_dict[m]) for m in list(measured_motors_dict.keys())])
+        metadata = {**metadata, **metamotors_dict}
+        # setup and write metadta + header to file
+        fname = helper.setup_filename(filename, filename_head, 'pump_probe_scan')
+        helper.write_file_header(fname, header, metadata)
+
+    # setup plots for displaying
+    if plot:
+        xlabel = f'Axis {axis_index} (deg)'
+        fig, axes, plot_handles_dict, xrange, vdata1d_dict = plotters.setup_1d_plots_append(vars, xlabel)
+
+    # select axis to rotate and setup that axis
+    if axis_index not in [1,2,3]:
+        raise ValueError('Invalid axis_index, please select either 1, 2, or 3')
+    axis_name = f'axis_{axis_index}'
+    move_axis = MOTOR_DICT[axis_name]['move']
+    move_back = MOTOR_DICT[axis_name]['move_back']
+    read_axis = MOTOR_DICT[axis_name]['read']
+    axis_obj = mobj_dict[axis_name]
+
+    # measure motors
+    measured_motors_dict, mobj_dict = helper.read_motors(ACTIVE_MOTORS, mobj_dict, mkwargs_read_dict)
+
+    # move axis to start
+    axis_obj = move_axis(start_pos-move_back, axis=axis_obj)
+    axis_obj = move_axis(start_pos, axis=axis_obj)
+    mobj_dict[axis_name] = axis_obj
+
+    # move axis to end
+    axis_obj = move_axis(end_pos, axis=axis_obj, velocity=velocity)
+    mobj_dict[axis_name] = axis_obj
+
+    # acquire data
+    instrument_data_dict, iobj_dict = helper.read_instruments(ACTIVE_INSTRUMENTS, iobj_dict, ikwargs_dict)
+    #data_dict = read_lockin_data(daq, device, props, float(abs(end_pos-start_pos)/velocity), channel_name, 0)
+
+    # convert to real time
+    time_real = (end_pos-start_pos) / (data_dict['timestamp'][-1] - data_dict['timestamp'][0]) * (data_dict['timestamp'] - data_dict['timestamp'][0]) + start_pos
+    # time_real_3 = (end_pos-start_pos) / (data_dict_3['timestamp'][-1] - data_dict_3['timestamp'][0]) * (data_dict_3['timestamp'] - data_dict_3['timestamp'][0]) + start_pos
+    x_array = data_dict['x']
+    y_array = data_dict['y']
+    # x3_array = data_dict_3['x']
+    # y3_array = data_dict_3['y']
+
+    time_bin, x_bin, counts = bin_average(time_real, x_array, bins=int((end_pos-start_pos) // time_step), range=[start_pos, end_pos])
+    time_bin, y_bin, counts = bin_average(time_real, y_array, bins=int((end_pos - start_pos) // time_step), range=[start_pos, end_pos])
+    # time_bin, x3_bin, counts = bin_average(time_real_3, x3_array, bins=int((end_pos-start_pos) // time_step), range=[start_pos, end_pos])
+    # time_bin, y3_bin, counts = bin_average(time_real_3, y3_array, bins=int((end_pos - start_pos) // time_step), range=[start_pos, end_pos])
+
+    # combine dictionaries to keep all new data in a single dictionary
+    newdata = {**instrument_data_dict, **measured_motors_dict}
+
+    # convert acquired data from dictionaries to list for file writing
+    instrument_data = [instrument_data_dict[h] for h in instruments_header]
+    measured_motors_data = [measured_motors_dict[m] for m in ACTIVE_MOTORS]
+
+    # append new data to file
+    if savefile:
+        helper.append_data_to_file(fname, [angle]+instrument_data+measured_motors_data)
+
+    # update plots
+    if plot==True:
+        xrange, vdata1d_dict = plotters.update_1d_plots_append(fig, axes, vars, plot_handles_dict, xrange, vdata1d_dict, angle, newdata)
+
+    axis_obj = move_axis(angle, axis=axis_obj)
+    mobj_dict[axis_name] = axis_obj
+
+    # close instruments and motors
+    if close_devices:
+        helper.close_instruments(iobj_dict)
+        helper.close_motors(mobj_dict)
+    else:
+        return iobj_dict, mobj_dict
+
+
+def Pump_probe_scan(axis_index, start_pos, end_pos, go_back, velocity, filename_head, filename, time_step):
+    # Lock-in Amplifier initialization
+    apilevel = 6
+    (daq, device, props) = ziutils.create_api_session(device_id, apilevel)
+
+
+
+    controller = newport.NewportESP301.open_serial(port=port_id, baud=921600)
+    axis_delay_1 = newport.NewportESP301Axis(controller,axis_index-1)
+    axis_delay_1._newport_cmd("VA", target=axis_delay_1.axis_id, params=[50])
+
+    axis_delay_1.move(start_pos-go_back, absolute=True)
+    while True:
+        time.sleep(0.03)
+        try:
+            motion_done = axis_delay_1.is_motion_done
+            break
+        except ValueError:
+            pass
+    while (motion_done == False):
+        while True:
+            time.sleep(0.03)
+            try:
+                motion_done = axis_delay_1.is_motion_done
+                break
+            except ValueError:
+                pass
+
+    axis_delay_1.move(start_pos, absolute=True)
+    while True:
+        time.sleep(0.03)
+        try:
+            motion_done = axis_delay_1.is_motion_done
+            break
+        except ValueError:
+            pass
+    while (motion_done == False):
+        while True:
+            time.sleep(0.03)
+            try:
+                motion_done = axis_delay_1.is_motion_done
+                break
+            except ValueError:
+                pass
+
+    axis_delay_1._newport_cmd("VA", target=axis_delay_1.axis_id, params=[velocity])
+
+    axis_delay_1.move(end_pos, absolute=True)
+
+    data_dict = read_lockin_data(daq, device, props, float(abs(end_pos-start_pos)/velocity), channel_name, 0)
+    # data_dict_3 = read_lockin_data(daq, device, props, float(abs(end_pos-start_pos)/velocity), channel_name, 2)
+
+    axis_delay_1._newport_cmd("VA", target=axis_delay_1.axis_id, params=[50])
+
+    time_real = (end_pos-start_pos) / (data_dict['timestamp'][-1] - data_dict['timestamp'][0]) * (data_dict['timestamp'] - data_dict['timestamp'][0]) + start_pos
+    # time_real_3 = (end_pos-start_pos) / (data_dict_3['timestamp'][-1] - data_dict_3['timestamp'][0]) * (data_dict_3['timestamp'] - data_dict_3['timestamp'][0]) + start_pos
+    x_array = data_dict['x']
+    y_array = data_dict['y']
+    # x3_array = data_dict_3['x']
+    # y3_array = data_dict_3['y']
+
+    time_bin, x_bin, counts = bin_average(time_real, x_array, bins=int((end_pos-start_pos) // time_step), range=[start_pos, end_pos])
+    time_bin, y_bin, counts = bin_average(time_real, y_array, bins=int((end_pos - start_pos) // time_step), range=[start_pos, end_pos])
+    # time_bin, x3_bin, counts = bin_average(time_real_3, x3_array, bins=int((end_pos-start_pos) // time_step), range=[start_pos, end_pos])
+    # time_bin, y3_bin, counts = bin_average(time_real_3, y3_array, bins=int((end_pos - start_pos) // time_step), range=[start_pos, end_pos])
+
+    # Filename & title
+    filename = log_data(filename_head, filename)
+    savefile = 1
+    if (savefile):
+        file = open(filename, 'a')
+        file.write("Position (mm)" + "\t" + "Demod 1 x" + '\t' + "Demod 1 y" + '\t' + "Demod 1 r"+'\n')
+        # file.write("Position (mm)" + "\t" + "Demod 1 x" + '\t' + "Demod 1 y" + '\t' + "Demod 1 r"+ '\t' + "Demod 3 x"+ '\t' + "Demod 3 y"+ '\t' + "Demod 3 r" + '\n')
+
+    for index in range(len(x_bin)):
+        pos = time_bin[index]
+        x = x_bin[index]
+        y = y_bin[index]
+        # x3 = x3_bin[index]
+        # y3 = y3_bin[index]
+        r = np.sqrt(x**2+y**2)
+        # r3 = np.sqrt(x3**2+y3**2)
+        file.write(format(pos, '.15f') + "\t" + format(x, '.15f') + '\t' + format(y, '.15f') + '\t' + format(r, '.15f')+ '\n')
+        # file.write(format(pos, '.15f') + "\t" + format(x, '.15f') + '\t' + format(y, '.15f') + '\t' + format(r, '.15f')+ '\t' + format(x3, '.15f')+ '\t' + format(y3, '.15f')+ '\t' + format(r3, '.15f') + '\n')
+    file.close()
+
 
 #######################
 ### Other Utilities ###

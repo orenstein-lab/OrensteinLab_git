@@ -762,6 +762,8 @@ def rotate_scan(start_angle, end_angle, step_size, axis_index=1, mkwargs_read_di
         # move
         axis_obj = move_axis(angle, axis=axis_obj)
         mobj_dict[axis_name] = axis_obj
+        if ii==0:
+            time.sleep(0.3)
 
         # acquire data and read actual motor positions - should test how long this takes for typical motor setup
         #t0 = time.time()
@@ -895,6 +897,8 @@ def corotate_scan(start_angle, end_angle, step_size, angle_offset, rate_axis_2=1
         axis_1, axis_2 = newport.corotate_axes(1, 2, angle, angle+angle_offset, axis_1=axis_1, axis_2=axis_2)
         mobj_dict['axis_1'] = axis_1
         mobj_dict['axis_2'] = axis_2
+        if ii==0:
+            time.sleep(0.3)
 
         # acquire data and read actual motor positions - should test how long this takes for typical motor setup
         #t0 = time.time()
@@ -1215,9 +1219,9 @@ def find_balance_angle(start_angle, end_angle, step_size, balance_at=0, offset=0
 
     # move both motors to balance_at
     static_axis_obj = move_static_axis(balance_at-move_back_static_axis, static_axis_obj)
-    bal_axis_obj = move_bal_axis(balance_at-move_back_bal_axis, bal_axis_obj)
+    bal_axis_obj = move_bal_axis(balance_at+start_angle-move_back_bal_axis, bal_axis_obj)
     static_axis_obj = move_static_axis(balance_at, static_axis_obj)
-    bal_axis_obj = move_bal_axis(balance_at, bal_axis_obj)
+    bal_axis_obj = move_bal_axis(balance_at+start_angle, bal_axis_obj)
 
     # convert input to angle lists
     angles = helper.get_motor_range(balance_at+start_angle, balance_at+end_angle, step_size)
@@ -1233,6 +1237,8 @@ def find_balance_angle(start_angle, end_angle, step_size, balance_at=0, offset=0
 
         # move
         bal_axis_obj = move_bal_axis(angle, bal_axis_obj)
+        if ii==0:
+            time.sleep(0.3)
 
         instrument_data_dict, iobj_dict = helper.read_instruments(ACTIVE_INSTRUMENTS, iobj_dict, ikwargs_dict)
 
@@ -1322,7 +1328,8 @@ def autobalance(slope, tolerance, offset=0, bal_axis=2, var='Demod 1 x', ikwargs
     balance_at, bal_static_obj = read_static_axis(static_axis_obj)
 
     # minimize var-offset
-    signal = 10000
+    data_dict, iobj_dict = helper.read_instruments(ACTIVE_INSTRUMENTS, iobj_dict, ikwargs_dict)
+    signal = data_dict[var]
     curr_pos, bal_axis_obj = read_bal_axis(bal_axis_obj)
     while (np.abs(signal-offset)>tolerance):
 

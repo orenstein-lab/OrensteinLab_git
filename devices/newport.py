@@ -215,8 +215,8 @@ def corotate_axes301(axis_1_index, axis_2_index, angle_1, angle_2, axis_1=None, 
     if axis_2==None:
         axis_2 = initialize_esp301(axis_2_index)
 
-    axis_1._newport_cmd("VA", target=axis_1.axis_id, params=[velocity])
-    axis_2._newport_cmd("VA", target=axis_2.axis_id, params=[velocity])
+    #axis_1._newport_cmd("VA", target=axis_1.axis_id, params=[velocity])
+    #axis_2._newport_cmd("VA", target=axis_2.axis_id, params=[velocity])
     while True:
         try:
             axis_1.move(angle_1, absolute=True)

@@ -156,6 +156,35 @@ def update_1d_plots(fig, axes, vars, plot_handles_dict, vdata1d_dict, xind, newd
 
     return vdata1d_dict
 
+def update_1d_plots_replace(fig, axes, vars, plot_handles_dict, vdata1d_dict, newdata):
+    '''
+    update plots where data container lengths are known, and newdata replaces all data
+
+    args:
+        - fig
+        - axes
+        - vars:                 list of y axis variables
+        - plot_handles_dict:    dictionary containing line handles for each variable in var
+        - vdata1d_dict:         dictionary containing data containers (np arrays) for each variable in var
+        - newdata:              dictionary of values to update at index xind for each variable in var
+
+    return:
+        - vdata1d_dict:         modified vdata1d_dict
+    '''
+
+    for v in vars:
+        line = plot_handles_dict[v]
+        vdata1d_dict[v] = newdata[v]
+        vdata = vdata1d_dict[v]
+        line.set_ydata(vdata)
+    for ax in axes:
+        ax.relim()
+        ax.autoscale()
+    fig.canvas.draw()
+    fig.canvas.flush_events()
+
+    return vdata1d_dict
+
 def setup_2d_plots(vars, xlabel, xrange, ylabel, yrange, figsize=DEFAULT_FIGSIZE):
     '''
     setup 2d plots where data container lengths are known

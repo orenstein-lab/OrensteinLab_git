@@ -16,7 +16,7 @@ ZURICH_HANDLE_FNAME = CONFIG_DICT['Zurich Handle']
 ### Core Functions ### Defaults to work with lockin at DEVICE_ID
 ######################
 
-def read_zurich_lockin(daq_objs=None, time_constant=0.3, poll_length=None, poll_timeout=500, wait_factor=3, channels=[1,2,3,4], device_id=DEVICE_ID, name=""):
+def read_zurich_lockin(daq_objs=None, time_constant=0.3, poll_length=None, poll_timeout=500, wait_factor=3, channels=[1,2,3,4], device_id=DEVICE_ID, name="", average=True):
     '''
     in the future, change this to output a dictionary such that function that call this can pull out any variety of infomation. alternatively, make the subscriptions flexible (ie some list of objects we want to subscribe to with a convenient default) and then the output dictionary with names that make sense. I'll then have to change upstream functions to pull out the right values, or really they should just save everything that comes out. This is a fairly straight forwward thing to implement.
 
@@ -57,18 +57,24 @@ def read_zurich_lockin(daq_objs=None, time_constant=0.3, poll_length=None, poll_
     # extract data from mfli_dict
     data_dict = {}
     for channel in channels:
-        x = np.mean(mfli_dict[f'/{device}/demods/{channel-1}/sample']['x'])
-        y = np.mean(mfli_dict[f'/{device}/demods/{channel-1}/sample']['y'])
+        x = mfli_dict[f'/{device}/demods/{channel-1}/sample']['x']
+        y = mfli_dict[f'/{device}/demods/{channel-1}/sample']['y']
+        timestamp = mfli_dict[f'/{device}/demods/{channel-1}/sample']['timestamp']
+        if average:
+            x = np.mean(x)
+            y = np.mean(y)
+            timestamp = np.mean(timestamp)
         autophase = daq.getDouble(f'/{device}/demods/{channel-1}/phaseshift')
         osc = daq.getInt(f'/{device}/demods/{channel-1}/oscselect')
         freq = daq.getDouble(f'/{device}/oscs/{osc}/freq')
         data_dict[f'{name}Demod {channel} x'] = x
         data_dict[f'{name}Demod {channel} y'] = y
         data_dict[f'{name}Demod {channel} r'] = np.abs(x + 1j*y)
+        data_dict[f'{name}Demod {channel} timestamp'] = timestamp
         data_dict[f'{name}Demod {channel} phase'] = np.arctan2(y,x)
-        data_dict[f'{name}Demod {channel} autophase'] = autophase
-        data_dict[f'{name}Demod {channel} oscillator'] = osc+1
-        data_dict[f'{name}Demod {channel} frequency'] = freq
+        data_dict[f'{name}Demod {channel} autophase'] = float(autophase) if np.ndim(x) == 0 else np.full_like(x, autophase) 
+        data_dict[f'{name}Demod {channel} oscillator'] = float(osc+1) if np.ndim(x) == 0 else np.full_like(x, osc+1)
+        data_dict[f'{name}Demod {channel} frequency'] = float(freq) if np.ndim(x) == 0 else np.full_like(x, freq)
 
     # add any other data from lockin to data_dict
     if obj_passed==False:

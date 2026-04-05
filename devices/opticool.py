@@ -3,6 +3,7 @@ import telnetlib
 import pickle
 import time
 import numpy as np
+import traceback
 from OrensteinLab_git.configuration import CONFIG_DICT
 
 host = CONFIG_DICT['Opticool IP']
@@ -162,8 +163,9 @@ def initialize_opticool():
             optc=telnetlib.Telnet(host, port, timeout=15)
             optc.read_until(('Connected to QDInstrument Socket Server.\r\n').encode('ascii'))
             break
-        except:
+        except Exception as e:
             print('failed to initialize opticool, tryping again')
+            print(traceback.format_exc())
             time.sleep(0.1)
 
     return optc

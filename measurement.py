@@ -1402,12 +1402,13 @@ def pump_probe_scan(start_pos, end_pos, velocity=2, mkwargs_read_dict={}, ikwarg
         mobj_dict[axis_name] = axis_obj
 
         # move axis to end
-        axis_obj = move_axis(end_pos, axis=axis_obj, velocity=velocity)
+        axis_obj = move_axis(end_pos, axis=axis_obj, velocity=velocity, check_stability=False)
         mobj_dict[axis_name] = axis_obj
 
         # acquire data. ensuring proper mfli reading settings
         time_constant = float(abs(end_pos-start_pos)/velocity)
         ikwargs_dict[ACTIVE_INSTRUMENTS[0]]['time_constant'] = time_constant
+        ikwargs_dict[ACTIVE_INSTRUMENTS[0]]['poll_length'] = time_constant
         ikwargs_dict[ACTIVE_INSTRUMENTS[0]]['average'] = False
         ikwargs_dict[ACTIVE_INSTRUMENTS[0]]['wait_factor'] = 0
         instrument_data_dict, iobj_dict = helper.read_instruments(ACTIVE_INSTRUMENTS, iobj_dict, ikwargs_dict)

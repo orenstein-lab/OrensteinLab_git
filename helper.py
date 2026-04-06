@@ -541,3 +541,23 @@ def setup_filename(filename, filename_head, autoname):
     filename_head, filename = generate_filename(filename_head, filename, autoname)
     fullpath = get_unique_filename(filename_head, filename)
     return fullpath
+
+###
+### Other
+###
+
+def bin_average(x, y, bins, range=None):
+
+    # digitize x into bins
+    counts, bin_edges = np.histogram(x, bins=bins, range=range)
+    bin_indices = np.digitize(x, bin_edges) - 1  # subtract 1 for 0-based index
+
+    # compute mean of y within each bin
+    y_sums = np.bincount(bin_indices, weights=y, minlength=len(bin_edges))
+    with np.errstate(invalid="ignore"):  # ignore division by zero warnings
+        y_means = y_sums[:len(counts)] / counts
+
+    # compute bin centers
+    bin_centers = 0.5 * (bin_edges[1:] + bin_edges[:-1])
+
+    return bin_centers, y_means, counts

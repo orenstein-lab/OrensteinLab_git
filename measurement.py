@@ -283,9 +283,6 @@ def motorfunc_scan(map_dict, mkwargs_read_dict={}, ikwargs_dict={}, mobj_dict={}
         if not run.locked_read():
             break
 
-        # carry out function step before moving and data acquisition
-        mobj_dict, iobj_dict, mkwargs_read_dict, ikwargs_dict, mkwargs_move_dict = function(pos, mobj_dict, iobj_dict, mkwargs_read_dict, ikwargs_dict, mkwargs_move_dict)
-
         # move motors for which position has changed, moving first to "go back" position if moving back to start of initial motor position
         move_dict = {}
         for jj, m in enumerate(motors):
@@ -297,6 +294,9 @@ def motorfunc_scan(map_dict, mkwargs_read_dict={}, ikwargs_dict={}, mobj_dict={}
                 move_dict[m] = (mtarget, move_back_flag)
         mobj_dict = helper.move_motors(move_dict, mobj_dict, mkwargs_move_dict, mkwargs_read_dict, print_flag=print_flag)
         current_pos = pos
+
+        # carry out function step after moving before data acquisition
+        mobj_dict, iobj_dict, mkwargs_read_dict, ikwargs_dict, mkwargs_move_dict = function(pos, mobj_dict, iobj_dict, mkwargs_read_dict, ikwargs_dict, mkwargs_move_dict)
 
         # acquire data and read actual motor positions - should test how long this takes for typical motor setup
         #t0 = time.time()
@@ -730,7 +730,7 @@ def rotate_scan(start_angle, end_angle, step_size, axis_index=1, mkwargs_read_di
         xlabel = f'Angle {axis_index} (deg)'
         fig, axes, plot_handles_dict, xrange, vdata1d_dict = plotters.setup_1d_plots_append(vars, xlabel)
 
-    # select axis to rotate and setup both that axis and conjugate axis
+    # select axis to rotate and setup that axis
     if axis_index not in [1,2,3]:
         raise ValueError('Invalid axis_index, please select either 1, 2, or 3')
     axis_name = f'axis_{axis_index}'
@@ -762,6 +762,8 @@ def rotate_scan(start_angle, end_angle, step_size, axis_index=1, mkwargs_read_di
         # move
         axis_obj = move_axis(angle, axis=axis_obj)
         mobj_dict[axis_name] = axis_obj
+        if ii==0:
+            time.sleep(0.3)
 
         # acquire data and read actual motor positions - should test how long this takes for typical motor setup
         #t0 = time.time()
@@ -895,6 +897,8 @@ def corotate_scan(start_angle, end_angle, step_size, angle_offset, rate_axis_2=1
         axis_1, axis_2 = newport.corotate_axes(1, 2, angle, angle+angle_offset, axis_1=axis_1, axis_2=axis_2)
         mobj_dict['axis_1'] = axis_1
         mobj_dict['axis_2'] = axis_2
+        if ii==0:
+            time.sleep(0.3)
 
         # acquire data and read actual motor positions - should test how long this takes for typical motor setup
         #t0 = time.time()
@@ -1215,9 +1219,9 @@ def find_balance_angle(start_angle, end_angle, step_size, balance_at=0, offset=0
 
     # move both motors to balance_at
     static_axis_obj = move_static_axis(balance_at-move_back_static_axis, static_axis_obj)
-    bal_axis_obj = move_bal_axis(balance_at-move_back_bal_axis, bal_axis_obj)
+    bal_axis_obj = move_bal_axis(balance_at+start_angle-move_back_bal_axis, bal_axis_obj)
     static_axis_obj = move_static_axis(balance_at, static_axis_obj)
-    bal_axis_obj = move_bal_axis(balance_at, bal_axis_obj)
+    bal_axis_obj = move_bal_axis(balance_at+start_angle, bal_axis_obj)
 
     # convert input to angle lists
     angles = helper.get_motor_range(balance_at+start_angle, balance_at+end_angle, step_size)
@@ -1233,6 +1237,8 @@ def find_balance_angle(start_angle, end_angle, step_size, balance_at=0, offset=0
 
         # move
         bal_axis_obj = move_bal_axis(angle, bal_axis_obj)
+        if ii==0:
+            time.sleep(0.3)
 
         instrument_data_dict, iobj_dict = helper.read_instruments(ACTIVE_INSTRUMENTS, iobj_dict, ikwargs_dict)
 
@@ -1322,7 +1328,8 @@ def autobalance(slope, tolerance, offset=0, bal_axis=2, var='Demod 1 x', ikwargs
     balance_at, bal_static_obj = read_static_axis(static_axis_obj)
 
     # minimize var-offset
-    signal = 10000
+    data_dict, iobj_dict = helper.read_instruments(ACTIVE_INSTRUMENTS, iobj_dict, ikwargs_dict)
+    signal = data_dict[var]
     curr_pos, bal_axis_obj = read_bal_axis(bal_axis_obj)
     while (np.abs(signal-offset)>tolerance):
 
@@ -1344,6 +1351,116 @@ def autobalance(slope, tolerance, offset=0, bal_axis=2, var='Demod 1 x', ikwargs
         helper.close_motors(mobj_dict)
 
     return curr_pos-balance_at
+
+##########################
+### Pump Probe Methods ###
+##########################
+
+def pump_probe_scan(start_pos, end_pos, velocity=2, mkwargs_read_dict={}, ikwargs_dict={}, mobj_dict={}, iobj_dict={}, vars=[], metadata={}, filename_head=None, filename=None, savefile=True, print_flag=False, plot=False, close_devices=True, move_back=5, time_step=0.25, navg=1):
+
+    # initialize motors and instruments, and create kwarg dictionaries for each
+    mkwargs_read_dict, ikwargs_dict, mobj_dict, iobj_dict = helper.initialize_instruments_and_motors(ACTIVE_MOTORS, ACTIVE_INSTRUMENTS, mkwargs_read_dict, ikwargs_dict, mobj_dict, iobj_dict)
+
+    # create motor and instrument header
+    instruments_header, iobj_dict = helper.get_instruments_header(ACTIVE_INSTRUMENTS, iobj_dict, ikwargs_dict)
+    motors_header_measured = [MOTOR_DICT[m]['name']+str(' measured') for m in ACTIVE_MOTORS] # for tracking measured motor positions
+    header = [f'Delay Stage (mm)']+instruments_header+motors_header_measured
+
+    # setup time delay axis bins
+    time_bin_edges = np.arange(start_pos, end_pos+time_step, time_step)
+    time = 0.5*(time_bin_edges[1:] + time_bin_edges[:-1])
+
+    # take default value for vars, and check that vars is valid
+    if vars==[]:
+        vars = DEFAULT_VARS
+    if not set(vars).issubset(set(header)):
+        raise ValueError(f'vars {vars} not in measurd values {header}')
+
+    # setup file for writing - adds metadata at top and writes the data header
+    if savefile:
+        # setup metadata
+        measured_motors_dict, mobj_dict = helper.read_motors(ACTIVE_MOTORS, mobj_dict, mkwargs_read_dict)
+        metamotors_dict = dict([(MOTOR_DICT[m]['name'], measured_motors_dict[m]) for m in list(measured_motors_dict.keys())])
+        metadata = {**metadata, **metamotors_dict}
+        # setup and write metadta + header to file
+        fname = helper.setup_filename(filename, filename_head, 'pump_probe_scan')
+
+    # setup plots for displaying
+    if plot:
+        xlabel = 'Delay Stage (mm)'
+        fig, axes, plot_handles_dict, vdata1d_dict = plotters.setup_1d_plots(vars, xlabel, time)
+
+    # select axis to rotate and setup that axis
+    axis_name = 'delay_stage'
+    move_axis = MOTOR_DICT[axis_name]['move']
+    move_back = MOTOR_DICT[axis_name]['move_back']
+    read_axis = MOTOR_DICT[axis_name]['read']
+    axis_obj = mobj_dict[axis_name]
+ 
+    # do loop
+    for n in range(navg):
+
+        # measure motors
+        measured_motors_dict, mobj_dict = helper.read_motors(ACTIVE_MOTORS, mobj_dict, mkwargs_read_dict)
+
+        # move axis to start
+        axis_obj = move_axis(start_pos-move_back, axis=axis_obj)
+        axis_obj = move_axis(start_pos, axis=axis_obj)
+        mobj_dict[axis_name] = axis_obj
+
+        # move axis to end
+        axis_obj = move_axis(end_pos, axis=axis_obj, velocity=velocity, check_stability=False)
+        mobj_dict[axis_name] = axis_obj
+
+        # acquire data. ensuring proper mfli reading settings
+        poll_length = float(abs(end_pos-start_pos)/velocity)
+        ikwargs_dict[ACTIVE_INSTRUMENTS[0]]['poll_length'] = poll_length
+        ikwargs_dict[ACTIVE_INSTRUMENTS[0]]['average'] = False
+        ikwargs_dict[ACTIVE_INSTRUMENTS[0]]['wait_factor'] = 0
+        instrument_data_dict, iobj_dict = helper.read_instruments(ACTIVE_INSTRUMENTS, iobj_dict, ikwargs_dict)
+
+        # convert to real time and bin data
+        for channel in [1,2,3,4]:
+            timestamp = instrument_data_dict[f'Demod {channel} timestamp']
+            time_real = (end_pos-start_pos)/(timestamp[-1] - timestamp[0])*(timestamp - timestamp[0]) + start_pos
+            for var in ['x', 'y', 'r', 'phase', 'autophase', 'oscillator', 'frequency']:
+                vardata = instrument_data_dict[f'Demod {channel} {var}']
+                time_bin, var_bin, counts = helper.bin_average(time_real, vardata, bins=time_bin_edges, range=[start_pos, end_pos])
+                instrument_data_dict[f'Demod {channel} {var}'] = var_bin
+            instrument_data_dict[f'Demod {channel} timestamp'] = time_bin
+
+        # resize motor measurements
+        for m in list(measured_motors_dict.keys()):
+            measured_motors_dict[m] = np.full_like(time_bin, measured_motors_dict[m])
+
+        # combine dictionaries to keep all new data in a single dictionary
+        newdata = {'time_delay':time, **instrument_data_dict, **measured_motors_dict}
+        
+        # average data from previous runs
+        avg_data = newdata.copy()
+
+        # convert acquired data from dictionaries to numpy array for data writing
+        instrument_data = [avg_data[h] for h in instruments_header]
+        measured_motors_data = [avg_data[m] for m in ACTIVE_MOTORS]
+        alldata = np.transpose(np.concatenate([[time_bin], instrument_data, measured_motors_data]))
+
+        # append new data to file
+        if savefile:
+            helper.save_data_to_file(fname, alldata, header)
+
+        # update plots
+        if plot==True:
+            newdata = 1
+            vdata1d_dict = plotters.update_1d_plots_replace(fig, axes, vars, plot_handles_dict, vdata1d_dict, avg_data)
+
+    mobj_dict[axis_name] = axis_obj
+
+    # close instruments and motors
+    if close_devices:
+        helper.close_instruments(iobj_dict)
+        helper.close_motors(mobj_dict)
+    else:
+        return iobj_dict, mobj_dict
 
 #######################
 ### Other Utilities ###
@@ -1370,9 +1487,9 @@ def align_delay_stage(wait_time=5, range=(-125,125)):
 
     while run.locked_read():
         delay_stage = move(range[0], delay_stage)
-        time.sleep(wait)
+        time.sleep(wait_time)
         delay_stage = move(range[1], delay_stage)
-        time.sleep(wait)
+        time.sleep(wait_time)
 
     # wait for thread to finish
     run.locked_update(False)

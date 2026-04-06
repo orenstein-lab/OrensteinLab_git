@@ -174,6 +174,28 @@ def update_1d_plots(fig, axes, vars, plot_handles_dict, vdata1d_dict, xind, newd
         trace.y = vdata1d_dict[v]
     return vdata1d_dict
 
+def update_1d_plots_replace(fig, axes, vars, plot_handles_dict, vdata1d_dict, newdata):
+    '''
+    update plots where data container lengths are known, and newdata replaces all data
+
+    args:
+        - fig
+        - axes
+        - vars:                 list of y axis variables
+        - plot_handles_dict:    dictionary containing line handles for each variable in var
+        - vdata1d_dict:         dictionary containing data containers (np arrays) for each variable in var
+        - newdata:              dictionary of values to update at index xind for each variable in var
+
+    return:
+        - vdata1d_dict:         modified vdata1d_dict
+    '''
+
+    for v in vars:
+        vdata1d_dict[v] = newdata[v]
+        trace = plot_handles_dict[v]
+        trace.y = vdata1d_dict[v]
+    return vdata1d_dict
+
 def setup_2d_plots(vars, xlabel, xrange, ylabel, yrange, figsize=DEFAULT_FIGSIZE):
     """
     Set up 2D heatmap plots (one subplot per variable), for data with known x and y values.

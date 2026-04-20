@@ -1396,6 +1396,7 @@ def pump_probe_scan(start_pos, end_pos, velocity=2, time_step=0.25, navg=1, mkwa
     # proper mfli settings
     ikwargs_dict_temp = copy.deepcopy(ikwargs_dict)
     poll_length = float(abs(end_pos-start_pos)/velocity)
+    ikwargs_dict_temp[ACTIVE_INSTRUMENTS[0]]['time_constant'] = 8e-3
     ikwargs_dict_temp[ACTIVE_INSTRUMENTS[0]]['poll_length'] = poll_length
     ikwargs_dict_temp[ACTIVE_INSTRUMENTS[0]]['average'] = False
     ikwargs_dict_temp[ACTIVE_INSTRUMENTS[0]]['wait_factor'] = 0
@@ -1449,7 +1450,7 @@ def pump_probe_scan(start_pos, end_pos, velocity=2, time_step=0.25, navg=1, mkwa
 
         # append new data to file
         if savefile:
-            helper.save_data_to_file(fname, alldata, header)
+            helper.save_data_to_file(fname, alldata, header, metadata)
 
         # update plots
         if plot==True:

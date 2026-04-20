@@ -478,11 +478,11 @@ def save_data_to_file(fname, data, header, metadata=None):
     if not(len(header) == len(data[0,:])):
         raise ValueError('number of header items does not match number of data columns.')
     with open(fname, 'w') as f:
-        if not(metadata==None):
-            f.write('[METADATA]\n')
-            for key, value in list(metadata.keys()):
-                f.write(f'{key}:\t{value}\n')
-            f.write('[DATA]\n')
+        if metadata is not None:
+            f.write(f'[Metadata]\n')
+            for key in list(metadata.keys()):
+                f.write(f'{key}:\t{metadata[key]}\n')
+            f.write(f'[Data]\n')
         for item in header:
             f.write(str(item)+'\t')
         f.write('\n')

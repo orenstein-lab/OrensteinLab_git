@@ -113,15 +113,15 @@ def close_attocube(anc):
 ### Wrapper Functions ###
 #########################
 
-def move_pos(x, y, z=0):
+def move_pos(x, y, z=0, go_back=0):
 
     anc = initialize_attocube()
-    anc = move_x(x, anc)
-    anc = move_y(y, anc)
+    anc = move_x(x, anc, go_back=go_back)
+    anc = move_y(y, anc, go_back=go_back)
     if z==0:
         pass
     else:
-        anc = move_z(z, anc)
+        anc = move_z(z, anc, go_back=go_back)
     xm, anc = read_x(anc)
     ym, anc = read_y(anc)
     zm, anc = read_z(anc)

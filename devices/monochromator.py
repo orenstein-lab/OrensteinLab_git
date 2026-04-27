@@ -7,6 +7,7 @@ import time
 import numpy as np
 import sys
 import pyvisa
+import serial
 
 
 def read_wavelength(obj=None):
@@ -50,6 +51,7 @@ def set_filter(filter_ind, obj=None):
     obj, obj_passed = get_obj(obj)
     command = 'FILTER '+str(filter_ind)
     obj.write(command)
+    time.sleep(10)
     if obj_passed==False:
         close_monochromator(obj)
         return None
@@ -61,6 +63,7 @@ def set_grating(grating_ind, obj=None):
     obj, obj_passed = get_obj(obj)
     command = 'GRATing '+str(grating_ind)
     obj.write(command)
+    time.sleep(10)
     if obj_passed==False:
         close_monochromator(obj)
         return None
@@ -83,21 +86,52 @@ def set_wavelength(wavelength, obj=None):
         ValueError('Wavelength out of range!')
 
     if filter_ind > 0:
-        filter_ind_old = read_filter(obj)
+        filter_ind_old, _ = read_filter(obj)
         if filter_ind != filter_ind_old :
             set_filter(filter_ind,obj)
             time.sleep(1)
-            filter_ind_new = read_filter(obj)
+            filter_ind_new, _ = read_filter(obj)
             if filter_ind_new != filter_ind:
                 ValueError('Fail to change filter')
 
     # the following grating selection is for CS130B-3-MC
-    if wavelength < 700:
-        set_grating(1,obj)
-    else:
-        set_grating(2,obj)
+    if wavelength < 500:
+        grating_ind = 1
+    elif wavelength < 1900:
+        grating_ind = 2
+    else: 
+        ValueError('Wavelength out of range!')
+    
+    if grating_ind > 0:
+        grating_ind_old, _ = read_grating(obj)
+        if grating_ind != grating_ind_old:
+            set_grating(grating_ind,obj)
+            time.sleep(1)
+            grating_ind_new, _ = read_grating(obj)
+            if grating_ind_new != grating_ind:
+                ValueError('Fail to change grating')
     command = 'GOWAVE '+str(round(wavelength,3))
     obj.write(command)
+
+    # changing the wavelength of PEM simultaneously 
+    # Set up the serial connection
+    # ser = serial.Serial(
+    # port='COM6',             # Replace with your serial port
+    # baudrate=2400,           # Set the baud rate for your device
+    # parity=serial.PARITY_NONE,
+    # stopbits=serial.STOPBITS_ONE,  # 2 stop bits
+    # bytesize=serial.EIGHTBITS,
+    # timeout=100,                # Timeout for read operations
+    # rtscts=True
+    # )
+
+    # command = "W:"+str(round(wavelength*10)).zfill(6)+'\r'
+    # ser.write(command.encode())
+    # time.sleep(0.5)
+    # ser.close()
+    # end of PEM wavelength control
+
+
     if obj_passed==False:
         close_monochromator(obj)
         return None

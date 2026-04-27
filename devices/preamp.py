@@ -42,20 +42,42 @@ def write_to_instrument(command,obj=None):
 #     return data.decode().strip() #decode the bytes to string
 
 
-def set_v_bias(volt): #input bias voltage in (V)
-    
+def set_v_bias(volt, obj=None): #input bias voltage in (V)
+    obj, obj_passed = get_obj(obj)
+
     V_mv = int(volt*1000)
     if (V_mv>5000) or (V_mv<-5000):
         ValueError('Bias voltage out of range')
     else:
         command = 'BSLV'+str(V_mv)
-        write_to_instrument(command)
+        write_to_instrument(command,obj)
         command = 'BSON1'
-        write_to_instrument(command)
+        write_to_instrument(command,obj)
+        time.sleep(4)
 
-def bias_off(): #turn off bias voltage
+    if obj_passed==False:
+        close_preamp(obj)
+        return None
+    else:
+        return obj
+
+
+
+def bias_off(obj=None): #turn off bias voltage
+    obj, obj_passed = get_obj(obj)
+
     command = 'BSON0'
-    write_to_instrument(command)
+    write_to_instrument(command,obj)
+
+def read_v_bias(obj=None):# fake read bias voltage function
+    obj, obj_passed = get_obj(obj)
+    bias_volt = 0 # fake value
+    if obj_passed==False:
+        close_preamp(obj)
+        return bias_volt, None
+    else:
+        return bias_volt, obj
+    
 
 
 def initialize_preamp():
@@ -64,7 +86,7 @@ def initialize_preamp():
         ser = serial.Serial(
             port = preamp_port,
             baudrate = 9600,
-            partity = serial.PARITY_NONE,
+            parity = serial.PARITY_NONE,
             stopbits = serial.STOPBITS_TWO,
             bytesize = serial.EIGHTBITS,
             timeout = 1
@@ -86,6 +108,4 @@ def get_obj(obj):
         obj = initialize_preamp()
         obj_passed=False
     return obj, obj_passed
-
-
 

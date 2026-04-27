@@ -73,7 +73,7 @@ def set_strain_capacitance(cap, sc=None):
         sc = initialize_strain_cell_client()
         sc_passed = False
 
-    sc.set_cap(cap)
+    sc.set_pid_setpoint(cap)
 
     if not sc_passed:
         close_strain_cell_client(sc)
@@ -133,7 +133,7 @@ def read_strain_capacitance(sc=None):
     cap = sc.get_cap()
 
     if not sc_passed:
-        print(cap)
+        #print(cap)
         return cap, None
     else:
         return cap, sc

@@ -13,6 +13,7 @@ import scipy.optimize as opt
 import scipy.interpolate as interp
 import inspect
 import pickle
+import copy
 import OrensteinLab_git.devices.newport as newport
 from OrensteinLab_git.concurrency import LockedVar, StoppableThread, LockedDict
 from OrensteinLab_git.motors_and_instruments import MOTOR_DICT, INSTRUMENT_DICT, ACTIVE_MOTORS, ACTIVE_INSTRUMENTS, DEFAULT_VARS
@@ -79,7 +80,8 @@ def motor_scan(map_dict, mkwargs_read_dict={}, ikwargs_dict={}, mobj_dict={}, io
     if savefile:
         # setup metadata
         measured_motors_dict, mobj_dict = helper.read_motors(ACTIVE_MOTORS, mobj_dict, mkwargs_read_dict)
-        metadata = {**metadata, **measured_motors_dict}
+        metamotors_dict = dict([(MOTOR_DICT[m]['name'], measured_motors_dict[m]) for m in list(measured_motors_dict.keys())])
+        metadata = {**metadata, **metamotors_dict}
         # setup and write metadta + header to file
         fname = helper.setup_filename(filename, filename_head, 'motor_scan_'+'_'.join([f'{m}' for m in motors]))
         helper.write_file_header(fname, header, metadata)
@@ -210,7 +212,7 @@ def motorfunc_scan(map_dict, mkwargs_read_dict={}, ikwargs_dict={}, mobj_dict={}
     if function is None:
         def function(pos, mobj_d, iobj_d):
             return mobj_d, iobj_d
-
+    
     # parse motor scanning information contained in map_dict
     motors, mranges, mkwargs_move_dict = helper.capture_motor_information(map_dict)
 
@@ -233,7 +235,8 @@ def motorfunc_scan(map_dict, mkwargs_read_dict={}, ikwargs_dict={}, mobj_dict={}
     if savefile:
         # setup metadata
         measured_motors_dict, mobj_dict = helper.read_motors(ACTIVE_MOTORS, mobj_dict, mkwargs_read_dict)
-        metadata = {**metadata, **measured_motors_dict}
+        metamotors_dict = dict([(MOTOR_DICT[m]['name'], measured_motors_dict[m]) for m in list(measured_motors_dict.keys())])
+        metadata = {**metadata, **metamotors_dict}
         # setup and write metadta + header to file
         fname = helper.setup_filename(filename, filename_head, 'motorfunc_scan_'+'_'.join([f'{m}' for m in motors]))
         helper.write_file_header(fname, header, metadata)
@@ -281,9 +284,6 @@ def motorfunc_scan(map_dict, mkwargs_read_dict={}, ikwargs_dict={}, mobj_dict={}
         if not run.locked_read():
             break
 
-        # carry out function step before moving and data acquisition
-        mobj_dict, iobj_dict, mkwargs_read_dict, ikwargs_dict, mkwargs_move_dict = function(pos, mobj_dict, iobj_dict, mkwargs_read_dict, ikwargs_dict, mkwargs_move_dict)
-
         # move motors for which position has changed, moving first to "go back" position if moving back to start of initial motor position
         move_dict = {}
         for jj, m in enumerate(motors):
@@ -295,6 +295,9 @@ def motorfunc_scan(map_dict, mkwargs_read_dict={}, ikwargs_dict={}, mobj_dict={}
                 move_dict[m] = (mtarget, move_back_flag)
         mobj_dict = helper.move_motors(move_dict, mobj_dict, mkwargs_move_dict, mkwargs_read_dict, print_flag=print_flag)
         current_pos = pos
+
+        # carry out function step after moving before data acquisition
+        mobj_dict, iobj_dict, mkwargs_read_dict, ikwargs_dict, mkwargs_move_dict = function(pos, mobj_dict, iobj_dict, mkwargs_read_dict, ikwargs_dict, mkwargs_move_dict)
 
         # acquire data and read actual motor positions - should test how long this takes for typical motor setup
         #t0 = time.time()
@@ -376,7 +379,8 @@ def timed_measurement(recording_time, mkwargs_read_dict={}, ikwargs_dict={}, mob
     if savefile:
         # setup metadata
         measured_motors_dict, mobj_dict = helper.read_motors(ACTIVE_MOTORS, mobj_dict, mkwargs_read_dict)
-        metadata = {**metadata, **measured_motors_dict}
+        metamotors_dict = dict([(MOTOR_DICT[m]['name'], measured_motors_dict[m]) for m in list(measured_motors_dict.keys())])
+        metadata = {**metadata, **metamotors_dict}
         # setup and write metadta + header to file
         fname = helper.setup_filename(filename, filename_head, 'timed_measurement')
         helper.write_file_header(fname, header, metadata)
@@ -490,7 +494,8 @@ def motor_sequence(sequence_list, mkwargs_read_dict={}, ikwargs_dict={}, mobj_di
     if savefile:
         # setup metadata
         measured_motors_dict, mobj_dict = helper.read_motors(ACTIVE_MOTORS, mobj_dict, mkwargs_read_dict)
-        metadata = {**metadata, **measured_motors_dict}
+        metamotors_dict = dict([(MOTOR_DICT[m]['name'], measured_motors_dict[m]) for m in list(measured_motors_dict.keys())])
+        metadata = {**metadata, **metamotors_dict}
         # setup and write metadta + header to file
         fname = helper.setup_filename(filename, filename_head, 'motor_sequence_'+'_'.join([f'{m}' for m in sequence_motors]))
         helper.write_file_header(fname, header, metadata)
@@ -521,6 +526,7 @@ def motor_sequence(sequence_list, mkwargs_read_dict={}, ikwargs_dict={}, mobj_di
         mobj_dict = helper.move_motors(move_dict, mobj_dict, mkwargs_move_dict, mkwargs_read_dict, print_flag=False)
         tol = tols[ii]
         measured_motors_dict, mobj_dict = helper.read_motors([m], mobj_dict, mkwargs_read_dict)
+        #print(mobj_dict)
         mcurrent = measured_motors_dict[m]
         #time.sleep(time_constant)
         while np.abs(mcurrent - mtarget) > tol:
@@ -616,7 +622,7 @@ def monitor_motors(motors, mkwargs_read_dict={}, filename_head=None, filename=No
     # setup plots for displaying
     if plot:
         xlabel = 'Time (s)'
-        fig, axes, plot_handles_dict, xrange, vdata1d_dict = plotters.setup_1d_plots_append(motors, xlabel, figsize=(4,3))
+        fig, axes, plot_handles_dict, xrange, vdata1d_dict = plotters.setup_1d_plots_append(motors, xlabel)
 
     # start user input thread
     run = LockedVar(True)
@@ -714,7 +720,8 @@ def rotate_scan(start_angle, end_angle, step_size, axis_index=1, mkwargs_read_di
     if savefile:
         # setup metadata
         measured_motors_dict, mobj_dict = helper.read_motors(ACTIVE_MOTORS, mobj_dict, mkwargs_read_dict)
-        metadata = {**metadata, **measured_motors_dict}
+        metamotors_dict = dict([(MOTOR_DICT[m]['name'], measured_motors_dict[m]) for m in list(measured_motors_dict.keys())])
+        metadata = {**metadata, **metamotors_dict}
         # setup and write metadta + header to file
         fname = helper.setup_filename(filename, filename_head, 'rotate_scan')
         helper.write_file_header(fname, header, metadata)
@@ -724,7 +731,7 @@ def rotate_scan(start_angle, end_angle, step_size, axis_index=1, mkwargs_read_di
         xlabel = f'Angle {axis_index} (deg)'
         fig, axes, plot_handles_dict, xrange, vdata1d_dict = plotters.setup_1d_plots_append(vars, xlabel)
 
-    # select axis to rotate and setup both that axis and conjugate axis
+    # select axis to rotate and setup that axis
     if axis_index not in [1,2,3]:
         raise ValueError('Invalid axis_index, please select either 1, 2, or 3')
     axis_name = f'axis_{axis_index}'
@@ -756,6 +763,8 @@ def rotate_scan(start_angle, end_angle, step_size, axis_index=1, mkwargs_read_di
         # move
         axis_obj = move_axis(angle, axis=axis_obj)
         mobj_dict[axis_name] = axis_obj
+        if ii==0:
+            time.sleep(0.3)
 
         # acquire data and read actual motor positions - should test how long this takes for typical motor setup
         #t0 = time.time()
@@ -839,7 +848,8 @@ def corotate_scan(start_angle, end_angle, step_size, angle_offset, rate_axis_2=1
     if savefile:
         # setup metadata
         measured_motors_dict, mobj_dict = helper.read_motors(ACTIVE_MOTORS, mobj_dict, mkwargs_read_dict)
-        metadata = {**metadata, **measured_motors_dict}
+        metamotors_dict = dict([(MOTOR_DICT[m]['name'], measured_motors_dict[m]) for m in list(measured_motors_dict.keys())])
+        metadata = {**metadata, **metamotors_dict}
         # setup and write metadta + header to file
         fname = helper.setup_filename(filename, filename_head, 'corotate_scan')
         helper.write_file_header(fname, header, metadata)
@@ -888,6 +898,8 @@ def corotate_scan(start_angle, end_angle, step_size, angle_offset, rate_axis_2=1
         axis_1, axis_2 = newport.corotate_axes(1, 2, angle, angle+angle_offset, axis_1=axis_1, axis_2=axis_2)
         mobj_dict['axis_1'] = axis_1
         mobj_dict['axis_2'] = axis_2
+        if ii==0:
+            time.sleep(0.3)
 
         # acquire data and read actual motor positions - should test how long this takes for typical motor setup
         #t0 = time.time()
@@ -930,7 +942,7 @@ def corotate_scan(start_angle, end_angle, step_size, angle_offset, rate_axis_2=1
     else:
         return iobj_dict, mobj_dict
 
-def rotate_map(map_dict, start_angle, end_angle, step_size, mkwargs_read_dict={}, ikwargs_dict={}, mobj_dict={}, iobj_dict={}, vars=[], metadata={}, filename_head=None, filename=None, savefile=True, print_flag=False, plot=False, close_devices=True):
+def rotate_map(map_dict, start_angle, end_angle, step_size, mkwargs_read_dict={}, ikwargs_dict={}, mobj_dict={}, iobj_dict={}, vars=[], metadata={}, filename_head=None, filename='rotate_map', savefile=True, print_flag=False, plot=False, close_devices=True):
     '''
     method to record single axis rotation measurements on instruments as a function of motors specified by dictionary map_dict. meant to acquire data one point at a time in a multidimensional motor space.
 
@@ -974,9 +986,6 @@ def rotate_map(map_dict, start_angle, end_angle, step_size, mkwargs_read_dict={}
     measured_vars = [MOTOR_DICT[m]['name'] for m in ACTIVE_MOTORS]+instruments_header
     if not set(vars).issubset(set(measured_vars)):
         raise ValueError(f'vars {vars} not in measurd values {measured_vars}')
-
-    # setup filenames
-    filename = helper.setup_filename(filename, filename_head, 'rotate_map')
 
     # start user input thread
     run = LockedVar(True)
@@ -1023,7 +1032,7 @@ def rotate_map(map_dict, start_angle, end_angle, step_size, mkwargs_read_dict={}
             expanded_filename = expanded_filename+f'_{m}{p}'
 
         # scan
-        iobj_dict, mobj_dict = rotate_scan(start_angle, end_angle, step_size, axis_index=1, mkwargs_read_dict=mkwargs_read_dict, ikwargs_dict=ikwargs_dict, mobj_dict=mobj_dict, iobj_dict=iobj_dict, vars=vars, metadata=metadata, filename_head=filename_head, filename=filename, savefile=True, plot=plot, close_devices=False)
+        iobj_dict, mobj_dict = rotate_scan(start_angle, end_angle, step_size, axis_index=1, mkwargs_read_dict=mkwargs_read_dict, ikwargs_dict=ikwargs_dict, mobj_dict=mobj_dict, iobj_dict=iobj_dict, vars=vars, metadata=metadata, filename_head=filename_head, filename=expanded_filename, savefile=True, plot=plot, close_devices=False)
 
     # wait for thread to finish
     run.locked_update(False)
@@ -1036,7 +1045,7 @@ def rotate_map(map_dict, start_angle, end_angle, step_size, mkwargs_read_dict={}
     else:
         return iobj_dict, mobj_dict
 
-def corotate_map(map_dict, start_angle, end_angle, step_size, angle_offset, rate_axis_2=1, mkwargs_read_dict={}, ikwargs_dict={}, mobj_dict={}, iobj_dict={}, vars=[], metadata={}, filename_head=None, filename=None, savefile=True, print_flag=False, plot=False, close_devices=True):
+def corotate_map(map_dict, start_angle, end_angle, step_size, angle_offset, rate_axis_2=1, mkwargs_read_dict={}, ikwargs_dict={}, mobj_dict={}, iobj_dict={}, vars=[], metadata={}, filename_head=None, filename='corotate_map', savefile=True, print_flag=False, plot=False, close_devices=True):
     '''
     method to record corotation measurements on instruments as a function of motors specified by dictionary map_dict. meant to acquire data one point at a time in a multidimensional motor space.
 
@@ -1084,9 +1093,6 @@ def corotate_map(map_dict, start_angle, end_angle, step_size, angle_offset, rate
     if not set(vars).issubset(set(measured_vars)):
         raise ValueError(f'vars {vars} not in measurd values {measured_vars}')
 
-    # setup filenames
-    filename = helper.setup_filename(filename, filename_head, 'corotate_map')
-
     # start user input thread
     run = LockedVar(True)
     user_input_thread = threading.Thread(target=concurrency.press_esc_to_stop, args=(run,))
@@ -1132,7 +1138,7 @@ def corotate_map(map_dict, start_angle, end_angle, step_size, angle_offset, rate
             expanded_filename = expanded_filename+f'_{m}{p}'
 
         # scan
-        iobj_dict, mobj_dict = corotate_scan(start_angle, end_angle, step_size, angle_offset, rate_axis_2=rate_axis_2, mkwargs_read_dict=mkwargs_read_dict, ikwargs_dict=ikwargs_dict, mobj_dict=mobj_dict, iobj_dict=iobj_dict, vars=vars, metadata=metadata, filename_head=filename_head, filename=filename, savefile=True, plot=plot, close_devices=False)
+        iobj_dict, mobj_dict = corotate_scan(start_angle, end_angle, step_size, angle_offset, rate_axis_2=rate_axis_2, mkwargs_read_dict=mkwargs_read_dict, ikwargs_dict=ikwargs_dict, mobj_dict=mobj_dict, iobj_dict=iobj_dict, vars=vars, metadata=metadata, filename_head=filename_head, filename=expanded_filename, savefile=True, plot=plot, close_devices=False)
 
     # wait for thread to finish
     run.locked_update(False)
@@ -1144,6 +1150,7 @@ def corotate_map(map_dict, start_angle, end_angle, step_size, angle_offset, rate
         helper.close_motors(mobj_dict)
     else:
         return iobj_dict, mobj_dict
+
 
 #########################
 ### Balancing Methods ###
@@ -1208,9 +1215,9 @@ def find_balance_angle(start_angle, end_angle, step_size, balance_at=0, offset=0
 
     # move both motors to balance_at
     static_axis_obj = move_static_axis(balance_at-move_back_static_axis, static_axis_obj)
-    bal_axis_obj = move_bal_axis(balance_at-move_back_bal_axis, bal_axis_obj)
+    bal_axis_obj = move_bal_axis(balance_at+start_angle-move_back_bal_axis, bal_axis_obj)
     static_axis_obj = move_static_axis(balance_at, static_axis_obj)
-    bal_axis_obj = move_bal_axis(balance_at, bal_axis_obj)
+    bal_axis_obj = move_bal_axis(balance_at+start_angle, bal_axis_obj)
 
     # convert input to angle lists
     angles = helper.get_motor_range(balance_at+start_angle, balance_at+end_angle, step_size)
@@ -1226,6 +1233,8 @@ def find_balance_angle(start_angle, end_angle, step_size, balance_at=0, offset=0
 
         # move
         bal_axis_obj = move_bal_axis(angle, bal_axis_obj)
+        if ii==0:
+            time.sleep(0.3)
 
         instrument_data_dict, iobj_dict = helper.read_instruments(ACTIVE_INSTRUMENTS, iobj_dict, ikwargs_dict)
 
@@ -1315,7 +1324,8 @@ def autobalance(slope, tolerance, offset=0, bal_axis=2, var='Demod 1 x', ikwargs
     balance_at, bal_static_obj = read_static_axis(static_axis_obj)
 
     # minimize var-offset
-    signal = 10000
+    data_dict, iobj_dict = helper.read_instruments(ACTIVE_INSTRUMENTS, iobj_dict, ikwargs_dict)
+    signal = data_dict[var]
     curr_pos, bal_axis_obj = read_bal_axis(bal_axis_obj)
     while (np.abs(signal-offset)>tolerance):
 
@@ -1337,6 +1347,338 @@ def autobalance(slope, tolerance, offset=0, bal_axis=2, var='Demod 1 x', ikwargs
         helper.close_motors(mobj_dict)
 
     return curr_pos-balance_at
+
+##########################
+### Pump Probe Methods ###
+##########################
+
+def pump_probe_scan(start_pos, end_pos, velocity=2, time_step=0.25, navg=1, mkwargs_read_dict={}, ikwargs_dict={}, mobj_dict={}, iobj_dict={}, vars=[], metadata={}, filename_head=None, filename=None, savefile=True, print_flag=False, plot=False, close_devices=True):
+
+    # initialize motors and instruments, and create kwarg dictionaries for each
+    mkwargs_read_dict, ikwargs_dict, mobj_dict, iobj_dict = helper.initialize_instruments_and_motors(ACTIVE_MOTORS, ACTIVE_INSTRUMENTS, mkwargs_read_dict, ikwargs_dict, mobj_dict, iobj_dict)
+
+    # create motor and instrument header
+    instruments_header, iobj_dict = helper.get_instruments_header(ACTIVE_INSTRUMENTS, iobj_dict, ikwargs_dict)
+    motors_header_measured = [MOTOR_DICT[m]['name']+str(' measured') for m in ACTIVE_MOTORS] # for tracking measured motor positions
+    header = [f'Delay Stage (mm)']+instruments_header+motors_header_measured
+
+    # setup time delay axis bins
+    time_bin_edges = np.arange(start_pos, end_pos+time_step, time_step)
+    time = 0.5*(time_bin_edges[1:] + time_bin_edges[:-1])
+
+    # take default value for vars, and check that vars is valid
+    if vars==[]:
+        vars = DEFAULT_VARS
+    if not set(vars).issubset(set(header)):
+        raise ValueError(f'vars {vars} not in measurd values {header}')
+
+    # setup file for writing - adds metadata at top and writes the data header
+    if savefile:
+        # setup metadata
+        measured_motors_dict, mobj_dict = helper.read_motors(ACTIVE_MOTORS, mobj_dict, mkwargs_read_dict)
+        metamotors_dict = dict([(MOTOR_DICT[m]['name'], measured_motors_dict[m]) for m in list(measured_motors_dict.keys())])
+        metadata = {**metadata, **metamotors_dict}
+        # setup and write metadta + header to file
+        fname = helper.setup_filename(filename, filename_head, 'pump_probe_scan')
+
+    # setup plots for displaying
+    if plot:
+        xlabel = 'Delay Stage (mm)'
+        fig, axes, plot_handles_dict, vdata1d_dict = plotters.setup_1d_plots(vars, xlabel, time)
+
+    # select axis to rotate and setup that axis
+    axis_name = 'delay_stage'
+    move_axis = MOTOR_DICT[axis_name]['move']
+    move_back = MOTOR_DICT[axis_name]['move_back']
+    read_axis = MOTOR_DICT[axis_name]['read']
+    axis_obj = mobj_dict[axis_name]
+ 
+    # proper mfli settings
+    ikwargs_dict_temp = copy.deepcopy(ikwargs_dict)
+    poll_length = float(abs(end_pos-start_pos)/velocity)
+    ikwargs_dict_temp[ACTIVE_INSTRUMENTS[0]]['time_constant'] = 8e-3
+    ikwargs_dict_temp[ACTIVE_INSTRUMENTS[0]]['poll_length'] = poll_length
+    ikwargs_dict_temp[ACTIVE_INSTRUMENTS[0]]['average'] = False
+    ikwargs_dict_temp[ACTIVE_INSTRUMENTS[0]]['wait_factor'] = 0
+
+    # do loop
+    avg_data = {}
+    for n in range(navg):
+
+        # measure motors
+        measured_motors_dict, mobj_dict = helper.read_motors(ACTIVE_MOTORS, mobj_dict, mkwargs_read_dict)
+
+        # move axis to start
+        axis_obj = move_axis(start_pos-move_back, axis=axis_obj)
+        axis_obj = move_axis(start_pos, axis=axis_obj)
+        mobj_dict[axis_name] = axis_obj
+
+        # move axis to end
+        axis_obj = move_axis(end_pos, axis=axis_obj, velocity=velocity, check_stability=False)
+        mobj_dict[axis_name] = axis_obj
+
+        # acquire data.
+        instrument_data_dict, iobj_dict = helper.read_instruments(ACTIVE_INSTRUMENTS, iobj_dict, ikwargs_dict_temp)
+
+        # convert to real time and bin data
+        for channel in [1,2,3,4]:
+            timestamp = instrument_data_dict[f'Demod {channel} timestamp']
+            time_real = (end_pos-start_pos)/(timestamp[-1] - timestamp[0])*(timestamp - timestamp[0]) + start_pos
+            for var in ['x', 'y', 'r', 'phase', 'autophase', 'oscillator', 'frequency']:
+                vardata = instrument_data_dict[f'Demod {channel} {var}']
+                time_bin, var_bin, counts = helper.bin_average(time_real, vardata, bins=time_bin_edges, range=[start_pos, end_pos])
+                instrument_data_dict[f'Demod {channel} {var}'] = var_bin
+            instrument_data_dict[f'Demod {channel} timestamp'] = time_bin
+
+        # resize motor measurements
+        for m in list(measured_motors_dict.keys()):
+            measured_motors_dict[m] = np.full_like(time_bin, measured_motors_dict[m])
+
+        # combine dictionaries to keep all new data in a single dictionary
+        newdata = {'time_delay':time, **instrument_data_dict, **measured_motors_dict}
+        
+        # average data from previous runs
+        if n==0:
+            avg_data = newdata.copy()
+        for key in list(newdata.keys()):
+                avg_data[key] = (avg_data[key]*n + newdata[key])/(n+1)
+
+        # convert acquired data from dictionaries to numpy array for data writing
+        instrument_data = [avg_data[h] for h in instruments_header]
+        measured_motors_data = [avg_data[m] for m in ACTIVE_MOTORS]
+        alldata = np.transpose(np.concatenate([[time_bin], instrument_data, measured_motors_data]))
+
+        # append new data to file
+        if savefile:
+            helper.save_data_to_file(fname, alldata, header, metadata)
+
+        # update plots
+        if plot==True:
+            newdata = 1
+            vdata1d_dict = plotters.update_1d_plots_replace(fig, axes, vars, plot_handles_dict, vdata1d_dict, avg_data)
+
+    mobj_dict[axis_name] = axis_obj
+
+    # close instruments and motors
+    if close_devices:
+        helper.close_instruments(iobj_dict)
+        helper.close_motors(mobj_dict)
+    else:
+        return iobj_dict, mobj_dict
+
+def pump_probe_map(map_dict, start_pos, end_pos, velocity=2, time_step=0.25, navg=1, mkwargs_read_dict={}, ikwargs_dict={}, mobj_dict={}, iobj_dict={}, vars=[], metadata={}, filename_head=None, filename='pump_probe_map', savefile=True, print_flag=False, plot=False, close_devices=True):
+    '''
+    method to record single axis rotation measurements on instruments as a function of motors specified by dictionary map_dict. meant to acquire data one point at a time in a multidimensional motor space.
+
+    rotation scan for axes 1, 2 or 3
+
+    args:
+        - map_dict:         dictionary of key:value pairs where key is name of a motor in MOTOR_DICT and value is a tuple (start, stop step, mkwargs_move) or (positions, mkwargs_move), and where mkwargs_move is a dictionary where keys are kwarg names for the motor move function, and value the corresponding value to set during move calls. motors are scanned from left to right.
+
+            ex: {'temp':(100,200,10,{'wait_time':30})} or {'temp':(np.arange(100,200,10),{'wait_time':30})}
+
+        - start_angle:
+        - end_angle:
+        - step_size:
+        - mkwargs_read_dict:    dictionary of mkwargs for motor read functions. if left empty, defaults to no kwargs
+        - ikwargs_dict:        dictionary of key value pairs where keys are name of instruments in INSTRUMENT_DICT and values are dictionary of kwargs for the instrument read function. Defaults to instruments in ACTIVE_INSTRUMENTS with no kwargs.
+
+            ex: {'zurich_lockin':{'time_constant':0.3, 'channel_index':3}}
+
+        - mobj_dict:        dictionary containing key:value pairs where keys are motor name and value are motor handle objects
+        - iobj_dict:        same as mobj_dict but for instruments
+        - vars:             list of variable names to return and, if applicable, plot, must match something in measurd_header (see below). defaults to DEFAULT_VARS in configuration.py
+        - metadata:         dictionary with any additional entries to add to metadata
+        - filename_head:    path to directory in which to save data. defaults ot current working directory of notebook
+        - filename:         name of file
+        - savefile:         if true, saves file
+        - print_flag:       if true, print motor positions during scan
+        - plot:             if true, plots data in vars
+        - close_devices:    if true, closes all devices in mobj_dict and iobj_dict
+    '''
+
+    # parse motor scanning information contained in map_dict
+    motors, mranges, mkwargs_move_dict = helper.capture_motor_information(map_dict)
+
+    # initialize motors and instruments, and create kwarg dictionaries for each
+    mkwargs_read_dict, ikwargs_dict, mobj_dict, iobj_dict = helper.initialize_instruments_and_motors(ACTIVE_MOTORS, ACTIVE_INSTRUMENTS, mkwargs_read_dict, ikwargs_dict, mobj_dict, iobj_dict)
+    instruments_header, iobj_dict = helper.get_instruments_header(ACTIVE_INSTRUMENTS, iobj_dict, ikwargs_dict)
+
+    # take default value for vars, and check that vars is valid
+    if vars==[]:
+        vars = DEFAULT_VARS
+    measured_vars = [MOTOR_DICT[m]['name'] for m in ACTIVE_MOTORS]+instruments_header
+    if not set(vars).issubset(set(measured_vars)):
+        raise ValueError(f'vars {vars} not in measurd values {measured_vars}')
+
+    # start user input thread
+    run = LockedVar(True)
+    user_input_thread = threading.Thread(target=concurrency.press_esc_to_stop, args=(run,))
+    user_input_thread.start()
+
+    # generate motor scan positions recursively.
+    # positions: list of positions where each element contains positions of each motor for nth step in scan
+    positions = helper.gen_positions_recurse(mranges, len(mranges)-1)
+    num_pos = len(positions)
+
+    # move motors to start
+    move_dict = {}
+    for jj, m in enumerate(motors):
+        move_dict[m] = (positions[0][jj], True)
+    mobj_dict = helper.move_motors(move_dict, mobj_dict, mkwargs_move_dict, mkwargs_read_dict, print_flag=print_flag)
+
+    # loop over positions, only moving a motor if its target position has changed.
+    start_position = positions[0]
+    current_position = start_position
+    for ii in tqdm(range(num_pos)):
+        pos = positions[ii]
+
+        # if run is False, break loop
+        if not run.locked_read():
+            break
+
+        # move motors for which position has changed, moving first to "go back" position if moving back to start of initial motor position
+        move_dict = {}
+        for jj, m in enumerate(motors):
+            mtarget = pos[jj]
+            if current_position[jj]!=mtarget:
+                move_back_flag=False
+                if start_position[jj]==mtarget:
+                    move_back_flag=True
+                move_dict[m] = (mtarget, move_back_flag)
+        mobj_dict = helper.move_motors(move_dict, mobj_dict, mkwargs_move_dict, mkwargs_read_dict, print_flag=print_flag)
+        current_position = pos
+
+        # setup each filename
+        expanded_filename = filename
+        for jj, m in enumerate(motors):
+            p = pos[jj]
+            expanded_filename = expanded_filename+f'_{m}{p}'
+
+        # scan
+        iobj_dict, mobj_dict = pump_probe_scan(start_pos, end_pos, velocity=velocity, time_step=time_step, navg=navg, mkwargs_read_dict=mkwargs_read_dict, ikwargs_dict=ikwargs_dict, mobj_dict=mobj_dict, iobj_dict=iobj_dict, vars=vars, metadata=metadata, filename_head=filename_head, filename=expanded_filename, savefile=True, plot=plot, close_devices=False)
+
+    # wait for thread to finish
+    run.locked_update(False)
+    user_input_thread.join()
+
+    # close instruments and motors
+    if close_devices:
+        helper.close_instruments(iobj_dict)
+        helper.close_motors(mobj_dict)
+    else:
+        return iobj_dict, mobj_dict
+
+def pump_probe_funcmap(map_dict, start_pos, end_pos, velocity=2, time_step=0.25, navg=1, mkwargs_read_dict={}, ikwargs_dict={}, mobj_dict={}, iobj_dict={}, vars=[], metadata={}, filename_head=None, filename='pump_probe_map', savefile=True, print_flag=False, plot=False, close_devices=True, function=None):
+    '''
+    method to record single axis rotation measurements on instruments as a function of motors specified by dictionary map_dict. meant to acquire data one point at a time in a multidimensional motor space.
+
+    rotation scan for axes 1, 2 or 3
+
+    args:
+        - map_dict:         dictionary of key:value pairs where key is name of a motor in MOTOR_DICT and value is a tuple (start, stop step, mkwargs_move) or (positions, mkwargs_move), and where mkwargs_move is a dictionary where keys are kwarg names for the motor move function, and value the corresponding value to set during move calls. motors are scanned from left to right.
+
+            ex: {'temp':(100,200,10,{'wait_time':30})} or {'temp':(np.arange(100,200,10),{'wait_time':30})}
+
+        - start_angle:
+        - end_angle:
+        - step_size:
+        - mkwargs_read_dict:    dictionary of mkwargs for motor read functions. if left empty, defaults to no kwargs
+        - ikwargs_dict:        dictionary of key value pairs where keys are name of instruments in INSTRUMENT_DICT and values are dictionary of kwargs for the instrument read function. Defaults to instruments in ACTIVE_INSTRUMENTS with no kwargs.
+
+            ex: {'zurich_lockin':{'time_constant':0.3, 'channel_index':3}}
+
+        - mobj_dict:        dictionary containing key:value pairs where keys are motor name and value are motor handle objects
+        - iobj_dict:        same as mobj_dict but for instruments
+        - vars:             list of variable names to return and, if applicable, plot, must match something in measurd_header (see below). defaults to DEFAULT_VARS in configuration.py
+        - metadata:         dictionary with any additional entries to add to metadata
+        - filename_head:    path to directory in which to save data. defaults ot current working directory of notebook
+        - filename:         name of file
+        - savefile:         if true, saves file
+        - print_flag:       if true, print motor positions during scan
+        - plot:             if true, plots data in vars
+        - close_devices:    if true, closes all devices in mobj_dict and iobj_dict
+    '''
+
+    # define default function, which does nothing
+    if function is None:
+        def function(pos, mobj_d, iobj_d):
+            return mobj_d, iobj_d
+
+    # parse motor scanning information contained in map_dict
+    motors, mranges, mkwargs_move_dict = helper.capture_motor_information(map_dict)
+
+    # initialize motors and instruments, and create kwarg dictionaries for each
+    mkwargs_read_dict, ikwargs_dict, mobj_dict, iobj_dict = helper.initialize_instruments_and_motors(ACTIVE_MOTORS, ACTIVE_INSTRUMENTS, mkwargs_read_dict, ikwargs_dict, mobj_dict, iobj_dict)
+    instruments_header, iobj_dict = helper.get_instruments_header(ACTIVE_INSTRUMENTS, iobj_dict, ikwargs_dict)
+
+    # take default value for vars, and check that vars is valid
+    if vars==[]:
+        vars = DEFAULT_VARS
+    measured_vars = [MOTOR_DICT[m]['name'] for m in ACTIVE_MOTORS]+instruments_header
+    if not set(vars).issubset(set(measured_vars)):
+        raise ValueError(f'vars {vars} not in measurd values {measured_vars}')
+
+    # start user input thread
+    run = LockedVar(True)
+    user_input_thread = threading.Thread(target=concurrency.press_esc_to_stop, args=(run,))
+    user_input_thread.start()
+
+    # generate motor scan positions recursively.
+    # positions: list of positions where each element contains positions of each motor for nth step in scan
+    positions = helper.gen_positions_recurse(mranges, len(mranges)-1)
+    num_pos = len(positions)
+
+    # move motors to start
+    move_dict = {}
+    for jj, m in enumerate(motors):
+        move_dict[m] = (positions[0][jj], True)
+    mobj_dict = helper.move_motors(move_dict, mobj_dict, mkwargs_move_dict, mkwargs_read_dict, print_flag=print_flag)
+
+    # loop over positions, only moving a motor if its target position has changed.
+    start_position = positions[0]
+    current_position = start_position
+    for ii in tqdm(range(num_pos)):
+        pos = positions[ii]
+
+        # if run is False, break loop
+        if not run.locked_read():
+            break
+
+        # move motors for which position has changed, moving first to "go back" position if moving back to start of initial motor position
+        move_dict = {}
+        for jj, m in enumerate(motors):
+            mtarget = pos[jj]
+            if current_position[jj]!=mtarget:
+                move_back_flag=False
+                if start_position[jj]==mtarget:
+                    move_back_flag=True
+                move_dict[m] = (mtarget, move_back_flag)
+        mobj_dict = helper.move_motors(move_dict, mobj_dict, mkwargs_move_dict, mkwargs_read_dict, print_flag=print_flag)
+        current_position = pos
+
+        # carry out function step after moving before data acquisition
+        mobj_dict, iobj_dict, mkwargs_read_dict, ikwargs_dict, mkwargs_move_dict = function(pos, mobj_dict, iobj_dict, mkwargs_read_dict, ikwargs_dict, mkwargs_move_dict)
+
+        # setup each filename
+        expanded_filename = filename
+        for jj, m in enumerate(motors):
+            p = pos[jj]
+            expanded_filename = expanded_filename+f'_{m}{p}'
+
+        # scan
+        iobj_dict, mobj_dict = pump_probe_scan(start_pos, end_pos, velocity=velocity, time_step=time_step, navg=navg, mkwargs_read_dict=mkwargs_read_dict, ikwargs_dict=ikwargs_dict, mobj_dict=mobj_dict, iobj_dict=iobj_dict, vars=vars, metadata=metadata, filename_head=filename_head, filename=expanded_filename, savefile=True, plot=plot, close_devices=False)
+
+    # wait for thread to finish
+    run.locked_update(False)
+    user_input_thread.join()
+
+    # close instruments and motors
+    if close_devices:
+        helper.close_instruments(iobj_dict)
+        helper.close_motors(mobj_dict)
+    else:
+        return iobj_dict, mobj_dict
 
 #######################
 ### Other Utilities ###
@@ -1363,9 +1705,9 @@ def align_delay_stage(wait_time=5, range=(-125,125)):
 
     while run.locked_read():
         delay_stage = move(range[0], delay_stage)
-        time.sleep(wait)
+        time.sleep(wait_time)
         delay_stage = move(range[1], delay_stage)
-        time.sleep(wait)
+        time.sleep(wait_time)
 
     # wait for thread to finish
     run.locked_update(False)

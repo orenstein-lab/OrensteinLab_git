@@ -478,11 +478,11 @@ def save_data_to_file(fname, data, header, metadata=None):
     if not(len(header) == len(data[0,:])):
         raise ValueError('number of header items does not match number of data columns.')
     with open(fname, 'w') as f:
-        if not(metadata==None):
-            f.write('[METADATA]\n')
-            for key, value in list(metadata.keys()):
-                f.write(f'{key}:\t{value}\n')
-            f.write('[DATA]\n')
+        if metadata is not None:
+            f.write(f'[Metadata]\n')
+            for key in list(metadata.keys()):
+                f.write(f'{key}:\t{metadata[key]}\n')
+            f.write(f'[Data]\n')
         for item in header:
             f.write(str(item)+'\t')
         f.write('\n')
@@ -541,3 +541,23 @@ def setup_filename(filename, filename_head, autoname):
     filename_head, filename = generate_filename(filename_head, filename, autoname)
     fullpath = get_unique_filename(filename_head, filename)
     return fullpath
+
+###
+### Other
+###
+
+def bin_average(x, y, bins, range=None):
+
+    # digitize x into bins
+    counts, bin_edges = np.histogram(x, bins=bins, range=range)
+    bin_indices = np.digitize(x, bin_edges) - 1  # subtract 1 for 0-based index
+
+    # compute mean of y within each bin
+    y_sums = np.bincount(bin_indices, weights=y, minlength=len(bin_edges))
+    with np.errstate(invalid="ignore"):  # ignore division by zero warnings
+        y_means = y_sums[:len(counts)] / counts
+
+    # compute bin centers
+    bin_centers = 0.5 * (bin_edges[1:] + bin_edges[:-1])
+
+    return bin_centers, y_means, counts

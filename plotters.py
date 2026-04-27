@@ -5,17 +5,7 @@ Plotting Methods
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
-import matplotlib
-import os
 import time
-import threading
-from tqdm.auto import tqdm
-import scipy.optimize as opt
-import scipy.interpolate as interp
-import inspect
-import pickle
-from OrensteinLab_git.concurrency import LockedVar, StoppableThread, LockedDict
-from OrensteinLab_git.motors_and_instruments import MOTOR_DICT, INSTRUMENT_DICT, ACTIVE_MOTORS, ACTIVE_INSTRUMENTS
 
 DEFAULT_FIGSIZE = (6,3)
 
@@ -45,7 +35,7 @@ def setup_1d_plots_append(vars, xlabel, figsize=DEFAULT_FIGSIZE):
 
     # setup 1d plot
     fig, axes = plt.subplots(nvars, 1, figsize=(figsize[0],nvars*figsize[1]))
-    if type(axes) is matplotlib.axes._axes.Axes:
+    if nvars==1:
         axes = [axes]
     for ii, ax in enumerate(axes):
         ax.set_xlabel(xlabel)
@@ -120,7 +110,7 @@ def setup_1d_plots(vars, xlabel, xrange, figsize=DEFAULT_FIGSIZE):
 
     # setup 1d plot
     fig, axes = plt.subplots(nvars, 1, figsize=(figsize[0],nvars*figsize[1]))
-    if type(axes) is matplotlib.axes._axes.Axes:
+    if nvars==1:
         axes = [axes]
     for ii, ax in enumerate(axes):
         ax.set_xlabel(xlabel)
@@ -166,6 +156,35 @@ def update_1d_plots(fig, axes, vars, plot_handles_dict, vdata1d_dict, xind, newd
 
     return vdata1d_dict
 
+def update_1d_plots_replace(fig, axes, vars, plot_handles_dict, vdata1d_dict, newdata):
+    '''
+    update plots where data container lengths are known, and newdata replaces all data
+
+    args:
+        - fig
+        - axes
+        - vars:                 list of y axis variables
+        - plot_handles_dict:    dictionary containing line handles for each variable in var
+        - vdata1d_dict:         dictionary containing data containers (np arrays) for each variable in var
+        - newdata:              dictionary of values to update at index xind for each variable in var
+
+    return:
+        - vdata1d_dict:         modified vdata1d_dict
+    '''
+
+    for v in vars:
+        line = plot_handles_dict[v]
+        vdata1d_dict[v] = newdata[v]
+        vdata = vdata1d_dict[v]
+        line.set_ydata(vdata)
+    for ax in axes:
+        ax.relim()
+        ax.autoscale()
+    fig.canvas.draw()
+    fig.canvas.flush_events()
+
+    return vdata1d_dict
+
 def setup_2d_plots(vars, xlabel, xrange, ylabel, yrange, figsize=DEFAULT_FIGSIZE):
     '''
     setup 2d plots where data container lengths are known
@@ -197,7 +216,7 @@ def setup_2d_plots(vars, xlabel, xrange, ylabel, yrange, figsize=DEFAULT_FIGSIZE
 
     # setup 2d plots
     fig, axes = plt.subplots(nvars, 1, figsize=(figsize[0],nvars*figsize[1]))
-    if type(axes) is matplotlib.axes._axes.Axes:
+    if nvars==1:
         axes = [axes]
     plot_handles_dict = {}
     for ii, v in enumerate(vars):

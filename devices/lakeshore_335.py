@@ -7,9 +7,11 @@ from OrensteinLab_git.configuration import CONFIG_DICT
 import time
 import numpy as np
 
-lakeshore_model = CONFIG_DICT['Lakeshore Model']
+INPUT = CONFIG_DICT['Lakeshore Input']
+OUTPUT = CONFIG_DICT['Lakeshore Output']
+INPUTDICT = {'None':0, 'A':1, 'B':2, 'C':3, 'D':4}
 
-def set_temperature(temperature, lsobj=None, tolerance=0.1, avg_time=3, wait_time=0, max_check=750, output=1, on_off=0, rate=0, check_stability=True):
+def set_temperature(temperature, lsobj=None, tolerance=0.1, avg_time=3, wait_time=0, max_check=750, output=OUTPUT, input=INPUT, on_off=0, rate=0, check_stability=True):
     '''
     sets lakeshore setpoint, waits until temperature is within tolerance of setpoint, and waits for soak time before returning.
 
@@ -30,7 +32,7 @@ def set_temperature(temperature, lsobj=None, tolerance=0.1, avg_time=3, wait_tim
     if check_stability==True:
         current_temp = []
         for m in range(max_check):
-            current_temp.append(read_temperature(lsobj)[0])
+            current_temp.append(read_temperature(lsobj, input)[0])
             if m >= 5*avg_time and abs(np.mean(current_temp[-avg_time:]) - temp) < tolerance:
                 time.sleep(wait_time)
                 break
@@ -38,7 +40,7 @@ def set_temperature(temperature, lsobj=None, tolerance=0.1, avg_time=3, wait_tim
                 time.sleep(1)
         if m==max_check-1:
             time.sleep(wait_time)
-            print(f'Maximum time exceeded. Temperature: {read_temperature(lsobj)[0]}')
+            print(f'Maximum time exceeded. Temperature: {read_temperature(lsobj, input)[0]}')
 
     if lsobj_passed==False:
         close_lakeshore(lsobj)
@@ -46,7 +48,7 @@ def set_temperature(temperature, lsobj=None, tolerance=0.1, avg_time=3, wait_tim
     else:
         return lsobj
 
-def read_temperature(lsobj=None):
+def read_temperature(lsobj=None, input=INPUT):
     '''
     reads temperature from lakeshore controller
 
@@ -56,10 +58,7 @@ def read_temperature(lsobj=None):
         - temp(float):  read temperature
     '''
     lsobj, lsobj_passed = get_lsobj(lsobj)
-    if lakeshore_model=='335':
-        temp = float(lsobj.query('KRDG?'))
-    elif lakeshore_model=='336':
-        temp = float(lsobj.query('KRDG?A'))
+    temp = float(lsobj.query('KRDG?'))
 
     if lsobj_passed==False:
         close_lakeshore(lsobj)
@@ -67,11 +66,11 @@ def read_temperature(lsobj=None):
     else:
         return temp, lsobj
 
-def check_lakeshore_stability(lsobj=None, tolerance=0.01, max_check=750, avg_time=30, wait_time=30):
+def check_lakeshore_stability(lsobj=None, tolerance=0.01, max_check=750, avg_time=30, wait_time=30, input=INPUT):
 
     current_temp = []
     for m in range(max_check):
-        current_temp.append(read_temperature(lsobj)[0])
+        current_temp.append(read_temperature(lsobj, input)[0])
         if m >= 3*avg_time and np.std(current_temp[-avg_time:]) < tolerance:
             break
         else:
@@ -79,7 +78,7 @@ def check_lakeshore_stability(lsobj=None, tolerance=0.01, max_check=750, avg_tim
 
     time.sleep(wait_time)
 
-def set_setpoint(set_temperature, lsobj=None, output=1):
+def set_setpoint(set_temperature, lsobj=None, output=OUTPUT):
     lsobj, lsobj_passed = get_lsobj(lsobj)
     lsobj.command("SETP "+str(output)+','+str(float(set_temperature)))
     if lsobj_passed==False:
@@ -88,19 +87,18 @@ def set_setpoint(set_temperature, lsobj=None, output=1):
     else:
         return lsobj
 
-def read_setpoint(lsobj=None):
+def read_setpoint(lsobj=None, output=OUTPUT):
 
     lsobj, lsobj_passed = get_lsobj(lsobj)
-    if lakeshore_model=='335':
-        setpoint = float(lsobj.query('SETP?'))
-    elif lakeshore_model=='336':
-        setpoint = float(lsobj.query('SETP?A'))
+
+    setpoint = float(lsobj.query('SETP?'))
+
     if lsobj_passed==False:
         close_lakeshore(lsobj)
         return setpoint, lsobj
     return setpoint, lsobj
 
-def set_ramp(on_off, rate, lsobj=None, output=1):
+def set_ramp(on_off, rate, lsobj=None, output=OUTPUT):
     '''
     args:
         - output: specifies which output control loop to configure. 1 or 2
@@ -115,13 +113,12 @@ def set_ramp(on_off, rate, lsobj=None, output=1):
     else:
         return lsobj
 
-def read_ramp(lsobj=None):
+def read_ramp(lsobj=None, output=OUTPUT):
 
     lsobj, lsobj_passed = get_lsobj(lsobj)
-    if lakeshore_model=='335':
-        output = lsobj.query('RAMP?').split(',')
-    elif lakeshore_model=='336':
-        output = lsobj.query('RAMP?A').split(',')
+
+    output = lsobj.query('RAMP?').split(',')
+
     on_off = bool(int(output[0]))
     rate = float(output[1])
     if lsobj_passed==False:
@@ -129,7 +126,7 @@ def read_ramp(lsobj=None):
         return [on_off, rate], None
     return [on_off, rate], lsobj
 
-def set_range(range, lsobj=None, output=1):
+def set_range(range, lsobj=None, output=OUTPUT):
     '''
     sets lakeshore range (0=off, 1=Low, 2=Med, 3=High)
 
@@ -153,15 +150,15 @@ def set_range(range, lsobj=None, output=1):
     else:
         return lsobj
 
-def read_range(lsobj=None):
+def read_range(lsobj=None, output=OUTPUT):
     lsobj, lsobj_passed = get_lsobj(lsobj)
-    range = lsobj.query('Range?')
+    range = lsobj.query(f'RANGE? {output}')
     if lsobj_passed==False:
         close_lakeshore(lsobj)
         return range, None
     return range, lsobj
 
-def set_pid(p, i, d, lsobj=None, output=1):
+def set_pid(p, i, d, lsobj=None, output=OUTPUT):
 
     lsobj, lsobj_passed = get_lsobj(lsobj)
     lsobj.command(f'PID {output}, {p}, {i}, {d}')
@@ -171,17 +168,17 @@ def set_pid(p, i, d, lsobj=None, output=1):
     else:
         return lsobj
 
-def read_pid(lsobj=None, output=1):
+def read_pid(lsobj=None, output=OUTPUT):
 
     lsobj, lsobj_passed = get_lsobj(lsobj)
-    pid = lsobj.query('PID?')
+    pid = lsobj.query(f'PID? {output}')
     p, i, d = [float(i) for i in pid.split(',')]
     if lsobj_passed==False:
         close_lakeshore(lsobj)
         return [p, i, d], None
     return [p, i, d], lsobj
 
-def set_outmode(mode, lsobj=None, output=1, input=1, powerup_enable=1):
+def set_outmode(mode, lsobj=None, output=OUTPUT, input=INPUT, powerup_enable=1):
     '''
     mode:
         - 0: off
@@ -193,14 +190,14 @@ def set_outmode(mode, lsobj=None, output=1, input=1, powerup_enable=1):
     '''
 
     lsobj, lsobj_passed = get_lsobj(lsobj)
-    lsobj.command(f'OUTMODE {output}, {mode}, {input}, {powerup_enable}')
+    lsobj.command(f'OUTMODE {output}, {mode}, {INPUTDICT[input]}, {powerup_enable}')
     if lsobj_passed==False:
         close_lakeshore(lsobj)
         return None
     else:
         return lsobj
 
-def read_outmode(lsobj=None, output=1):
+def read_outmode(lsobj=None, output=OUTPUT):
 
     lsobj, lsobj_passed = get_lsobj(lsobj)
     outmode = lsobj.query(f'OUTMODE? {output}')
@@ -210,7 +207,7 @@ def read_outmode(lsobj=None, output=1):
         return message, None
     return message, lsobj
 
-def set_mout(mout, lsobj=None, output=1, input=1, powerup_enable=1):
+def set_mout(mout, lsobj=None, output=OUTPUT, powerup_enable=1):
 
     lsobj, lsobj_passed = get_lsobj(lsobj)
     lsobj.command(f'MOUT {output}, {mout}')
@@ -220,7 +217,7 @@ def set_mout(mout, lsobj=None, output=1, input=1, powerup_enable=1):
     else:
         return lsobj
 
-def read_mout(lsobj=None, output=1):
+def read_mout(lsobj=None, output=OUTPUT):
 
     lsobj, lsobj_passed = get_lsobj(lsobj)
     mout = float(lsobj.query(f'MOUT? {output}'))
@@ -229,17 +226,17 @@ def read_mout(lsobj=None, output=1):
         return mout, None
     return mout, lsobj
 
-def set_zone(zone, upper_bound, p, i, d, range, rate, lsobj=None, mout=0, output=1, input=1):
+def set_zone(zone, upper_bound, p, i, d, range, rate, lsobj=None, mout=0, output=OUTPUT, input=INPUT):
 
     lsobj, lsobj_passed = get_lsobj(lsobj)
-    lsobj.command(f'ZONE {output}, {zone}, {upper_bound}, {p}, {i}, {d}, {mout}, {range}, {input}, {rate}')
+    lsobj.command(f'ZONE {output}, {zone}, {upper_bound}, {p}, {i}, {d}, {mout}, {range}, {INPUTDICT[input]}, {rate}')
     if lsobj_passed==False:
         close_lakeshore(lsobj)
         return None
     else:
         return lsobj
 
-def read_zone(zone, lsobj=None, output=1):
+def read_zone(zone, lsobj=None, output=OUTPUT):
 
     lsobj, lsobj_passed = get_lsobj(lsobj)
     message = lsobj.query(f'ZONE? {output}, {zone}')
@@ -250,12 +247,7 @@ def read_zone(zone, lsobj=None, output=1):
     return message, lsobj
 
 def initialize_lakeshore():
-    if lakeshore_model == '335':
-        return ls.model_335.Model335(57600)
-    elif lakeshore_model == '336':
-        return ls.model_336.Model336()
-    else:
-        raise ValueError('Invalid Lakeshore Model.')
+    return ls.model_335.Model335(57600)
 
 def close_lakeshore(lsobj):
     lsobj.disconnect_usb()

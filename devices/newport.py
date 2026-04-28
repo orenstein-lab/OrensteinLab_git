@@ -357,6 +357,13 @@ def corotate_axes12(angle, axes=None, bal_angle=0, check_stability=True, velocit
         axis_1, axis_2 = axes
     return corotate_axes(1, 2, angle, angle+bal_angle, axis_1=axis_1, axis_2=axis_2, check_stability=check_stability, velocity=velocity)
 
+def corotate_axes23(angle, axes=None, bal_angle=0, check_stability=True, velocity=10):
+    if axes==None:
+        axis_2, axis_3 = initialize_corotate_axes23()
+    else:
+        axis_2, axis_3 = axes
+    return corotate_axes(2, 3, angle, angle+bal_angle, axis_1=axis_2, axis_2=axis_3, check_stability=check_stability, velocity=velocity)
+
 def read_axis_1(axis=None):
     return read_axis(1, axis)
 
@@ -374,6 +381,14 @@ def read_corotate_axes12(axes=None):
     pos, axis_1 = read_axis(1, axis_1)
     return pos, [axis_1, axis_2]
 
+def read_corotate_axes23(axes=None):
+    if axes==None:
+        axis_2, axis_3 = initialize_corotate_axes23()
+    else:
+        axis_2, axis_3 = axes
+    pos, axis_2 = read_axis(1, axis_2)
+    return pos, [axis_2, axis_3]
+
 def initialize_axis_1():
     return initialize_axis(1)
 
@@ -388,6 +403,11 @@ def initialize_corotate_axes12():
     axis_2 = initialize_axis_2()
     return axis_1, axis_2
 
+def initialize_corotate_axes23():
+    axis_2 = initialize_axis_2()
+    axis_3 = initialize_axis_3()
+    return axis_2, axis_3
+
 def close_axis_1(axis):
     close_axis(axis)
 
@@ -401,3 +421,4 @@ def close_corotate_axes12(axis):
     ax1, ax2 = axis
     close_axis(ax1)
     close_axis(ax2)
+

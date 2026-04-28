@@ -1704,9 +1704,9 @@ def align_delay_stage(wait_time=5, range=(-125,125)):
     user_input_thread.start()
 
     while run.locked_read():
-        delay_stage = move(range[0], delay_stage)
+        delay_stage = move(range[0], delay_stage, velocity=50)
         time.sleep(wait_time)
-        delay_stage = move(range[1], delay_stage)
+        delay_stage = move(range[1], delay_stage, velocity=50)
         time.sleep(wait_time)
 
     # wait for thread to finish

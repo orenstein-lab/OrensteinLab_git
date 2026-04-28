@@ -347,8 +347,8 @@ def move_axis_2(pos, axis=None, wait_time=0, check_stability=True, velocity=10):
 def move_axis_3(pos, axis=None, wait_time=0, check_stability=True, velocity=10):
     return move_axis(3, pos, axis, wait_time, check_stability, velocity)
 
-def move_delay_stage(pos, axis=None, wait_time=0, check_stability=True, velocity=50):
-    return move_axis(3, pos, axis, wait_time, check_stability, velocity)
+def move_delay_stage(pos, index=3, axis=None, wait_time=0, check_stability=True, velocity=50):
+    return move_axis(index, pos, axis, wait_time, check_stability, velocity)
 
 def corotate_axes12(angle, axes=None, bal_angle=0, check_stability=True, velocity=10):
     if axes==None:

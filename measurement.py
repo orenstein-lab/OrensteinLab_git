@@ -1403,7 +1403,7 @@ def pump_probe_scan(start_pos, end_pos, velocity=2, time_step=0.25, navg=1, mkwa
 
     # do loop
     avg_data = {}
-    for n in range(navg):
+    for n in tqdm(range(navg)):
 
         # measure motors
         measured_motors_dict, mobj_dict = helper.read_motors(ACTIVE_MOTORS, mobj_dict, mkwargs_read_dict)

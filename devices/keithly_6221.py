@@ -195,7 +195,7 @@ def set_voltage_compliance(val, obj=None, check_stability=True):
         return obj
 
 def init():
-    obj = SerialManager.get_connection(PORT)
+    obj = SerialManager.get_connection()
     return obj
 
 def close(obj):
@@ -248,7 +248,7 @@ class SerialManager:
     _connection = None
 
     @classmethod
-    def get_connection(cls, port):
+    def get_connection(cls):
         # Reuse existing open connection if it matches
         if cls._connection is not None and cls._connection.is_open:
             return cls._connection

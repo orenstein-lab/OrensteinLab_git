@@ -195,44 +195,10 @@ def set_voltage_compliance(val, obj=None, check_stability=True):
         return obj
 
 def init():
-
-    try:
-        if os.path.exists(KEITHLY_HANDLE_FNAME):
-            #with open(KEITHLY_HANDLE_FNAME, 'rb') as f:
-                #obj = pickle.load(f)
-            pass
-        else:
-            obj = serial.Serial(port=COM_PORT,             # Replace with your serial port
-                    baudrate=9600,           # Set the baud rate for your device
-                    parity=serial.PARITY_NONE,
-                    stopbits=serial.STOPBITS_ONE,  # 1 stop bits
-                    bytesize=serial.EIGHTBITS,
-                    timeout=1,                # Timeout for read operations
-                    xonxoff=False,
-                    rtscts=False
-                    )
-            #with open(KEITHLY_HANDLE_FNAME, 'wb') as f:
-                #pickle.dump(obj, f)
-    except Exception as e:
-        #print(f'initialization error: {e}')
-        #os.remove(KEITHLY_HANDLE_FNAME)
-        obj = serial.Serial(port=COM_PORT,             # Replace with your serial port
-                baudrate=9600,           # Set the baud rate for your device
-                parity=serial.PARITY_NONE,
-                stopbits=serial.STOPBITS_ONE,  # 1 stop bits
-                bytesize=serial.EIGHTBITS,
-                timeout=1,                # Timeout for read operations
-                xonxoff=False,
-                rtscts=False
-                )
-        #with open(KEITHLY_HANDLE_FNAME, 'wb') as f:
-        #    pickle.dump(obj, f)
-
+    obj = SerialManager.get_connection(PORT)
     return obj
 
 def close(obj):
-    #if os.path.exists(KEITHLY_HANDLE_FNAME):
-    #    os.remove(KEITHLY_HANDLE_FNAME)
     obj.close()
 
 def enable_output(obj=None):
@@ -276,3 +242,30 @@ def disable_output(obj=None):
         return None
     else:
         return obj
+
+
+class SerialManager:
+    _connection = None
+
+    @classmethod
+    def get_connection(cls, port):
+        # Reuse existing open connection if it matches
+        if cls._connection is not None and cls._connection.is_open:
+            return cls._connection
+
+        cls._connection = serial.Serial(port=COM_PORT,             # Replace with your serial port
+                    baudrate=9600,           # Set the baud rate for your device
+                    parity=serial.PARITY_NONE,
+                    stopbits=serial.STOPBITS_ONE,  # 1 stop bits
+                    bytesize=serial.EIGHTBITS,
+                    timeout=1,                # Timeout for read operations
+                    xonxoff=False,
+                    rtscts=False
+                    )
+        return cls._connection
+
+    @classmethod
+    def close(cls):
+        if cls._connection and cls._connection.is_open:
+            cls._connection.close()
+        cls._connection = None

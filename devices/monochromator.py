@@ -113,22 +113,69 @@ def set_wavelength(wavelength, obj=None):
     command = 'GOWAVE '+str(round(wavelength,3))
     obj.write(command)
 
+    if obj_passed==False:
+        close_monochromator(obj)
+        return None
+    else:
+        return obj
+    
+def set_wavelength_PEM(wavelength, obj=None):
+
+    obj, obj_passed = get_obj(obj)
+    filter_ind = 0
+    if wavelength < 800:
+        filter_ind = 1 # empty slot: 450 ~ 800 nm
+    elif wavelength < 1200:
+        filter_ind = 2 # 10CGA-780 (LP filter), 800 ~ 1200 nm
+    elif wavelength < 1900:
+        filter_ind = 3 # 10CGA-1000 (LP filter), 1200 ~ 1900 nm
+#     elif wavelength < 2200: # 90107911, 1900 ~ 2200 nm
+#         filter_ind = 4
+    else:
+        ValueError('Wavelength out of range!')
+
+    if filter_ind > 0:
+        filter_ind_old, _ = read_filter(obj)
+        if filter_ind != filter_ind_old :
+            set_filter(filter_ind,obj)
+            time.sleep(1)
+            filter_ind_new, _ = read_filter(obj)
+            if filter_ind_new != filter_ind:
+                ValueError('Fail to change filter')
+
+    # the following grating selection is for CS130B-3-MC
+    if wavelength < 700:
+        grating_ind = 1
+    elif wavelength < 1900:
+        grating_ind = 2
+    else: 
+        ValueError('Wavelength out of range!')
+    
+    if grating_ind > 0:
+        grating_ind_old, _ = read_grating(obj)
+        if grating_ind != grating_ind_old:
+            set_grating(grating_ind,obj)
+            time.sleep(1)
+            grating_ind_new, _ = read_grating(obj)
+            if grating_ind_new != grating_ind:
+                ValueError('Fail to change grating')
+    command = 'GOWAVE '+str(round(wavelength,3))
+    obj.write(command)
+
     # changing the wavelength of PEM simultaneously 
     # Set up the serial connection
-    # ser = serial.Serial(
-    # port='COM6',             # Replace with your serial port
-    # baudrate=2400,           # Set the baud rate for your device
-    # parity=serial.PARITY_NONE,
-    # stopbits=serial.STOPBITS_ONE,  # 2 stop bits
-    # bytesize=serial.EIGHTBITS,
-    # timeout=100,                # Timeout for read operations
-    # rtscts=True
-    # )
-
-    # command = "W:"+str(round(wavelength*10)).zfill(6)+'\r'
-    # ser.write(command.encode())
-    # time.sleep(0.5)
-    # ser.close()
+    ser = serial.Serial(port='COM8',             # Replace with your serial port
+        baudrate=2400,           # Set the baud rate for your device
+        parity=serial.PARITY_NONE,
+        stopbits=serial.STOPBITS_ONE,  # 2 stop bits
+        bytesize=serial.EIGHTBITS,
+        timeout=100,                # Timeout for read operations
+        rtscts=True
+        )
+    command = "W:"+str(round(wavelength*10)).zfill(6)+'\r'
+    ser.write(command.encode())
+    time.sleep(0.5)
+    ser.close()
     # end of PEM wavelength control
 
 

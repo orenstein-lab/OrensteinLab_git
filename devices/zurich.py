@@ -347,6 +347,10 @@ def set_zurich_aux_offset_1(offset, daq_objs=None, wait_time=0, check_stability=
 def set_zurich_aux_offset_2(offset, daq_objs=None, wait_time=0):
     set_zurich_aux_offset(offset, daq_objs, wait_time, 2)
 
+def set_zurich_aux_offset_12(offset,daq_objs=None,ratio=1.0,intercept=0.0, wait_time=0):
+    daq_objs = set_zurich_aux_offset(offset, daq_objs, wait_time, 1)
+    return set_zurich_aux_offset(offset*ratio+intercept, daq_objs, wait_time, 2) 
+
 def get_zurich_aux_offset_1(daq_objs=None, wait_time=0):
     return get_zurich_aux_offset(daq_objs, wait_time, 1)
 

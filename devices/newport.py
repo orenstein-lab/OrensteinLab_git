@@ -350,19 +350,19 @@ def move_axis_3(pos, axis=None, wait_time=0, check_stability=True, velocity=10):
 def move_delay_stage(pos, index=3, axis=None, wait_time=0, check_stability=True, velocity=50):
     return move_axis(index, pos, axis, wait_time, check_stability, velocity)
 
-def corotate_axes12(angle, axes=None, bal_angle=0, check_stability=True, velocity=10):
+def corotate_axes12(angle, axes=None, bal_angle=0, check_stability=True, velocity=10, rate=1):
     if axes==None:
         axis_1, axis_2 = initialize_corotate_axes12()
     else:
         axis_1, axis_2 = axes
-    return corotate_axes(1, 2, angle, angle+bal_angle, axis_1=axis_1, axis_2=axis_2, check_stability=check_stability, velocity=velocity)
+    return corotate_axes(1, 2, angle, rate*angle+bal_angle, axis_1=axis_1, axis_2=axis_2, check_stability=check_stability, velocity=velocity)
 
-def corotate_axes23(angle, axes=None, bal_angle=0, check_stability=True, velocity=10):
+def corotate_axes23(angle, axes=None, bal_angle=0, check_stability=True, velocity=10, rate=1):
     if axes==None:
         axis_2, axis_3 = initialize_corotate_axes23()
     else:
         axis_2, axis_3 = axes
-    return corotate_axes(2, 3, angle, angle+bal_angle, axis_1=axis_2, axis_2=axis_3, check_stability=check_stability, velocity=velocity)
+    return corotate_axes(2, 3, angle, rate*angle+bal_angle, axis_1=axis_2, axis_2=axis_3, check_stability=check_stability, velocity=velocity)
 
 def read_axis_1(axis=None):
     return read_axis(1, axis)

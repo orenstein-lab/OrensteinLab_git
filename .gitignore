@@ -8,6 +8,7 @@ __pycache__/
 attocube_handle
 zurich_handle
 opticool_handle
+keithly_handle
 
 # ignore config and motor file
 motors_and_instruments.py

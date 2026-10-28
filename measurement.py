@@ -875,8 +875,8 @@ def corotate_scan(start_angle, end_angle, step_size, angle_offset, rate_axis_2=1
     angles_2 = rate_axis_2*angles_1 + angle_offset
 
     # move axis to start
-    axis_1, axis_2 = newport.corotate_axes(1, 2, start_angle-move_back_1, start_angle+angle_offset-move_back_2, axis_1=axis_1, axis_2=axis_2)
-    axis_1, axis_2 = newport.corotate_axes(1, 2, start_angle, start_angle+angle_offset, axis_1=axis_1, axis_2=axis_2)
+    axis_1, axis_2 = newport.corotate_axes(1, 2, angles_1[0]-move_back_1, angles_2[0]-move_back_2, axis_1=axis_1, axis_2=axis_2)
+    axis_1, axis_2 = newport.corotate_axes(1, 2, angles_1[0],  angles_2[0], axis_1=axis_1, axis_2=axis_2)
     mobj_dict['axis_1'] = axis_1
     mobj_dict['axis_2'] = axis_2
 
@@ -895,7 +895,7 @@ def corotate_scan(start_angle, end_angle, step_size, angle_offset, rate_axis_2=1
         # move angles
         angle_1 = angle
         angle_2 = angles_2[ii]
-        axis_1, axis_2 = newport.corotate_axes(1, 2, angle, angle+angle_offset, axis_1=axis_1, axis_2=axis_2)
+        axis_1, axis_2 = newport.corotate_axes(1, 2, angle, angle_2, axis_1=axis_1, axis_2=axis_2)
         mobj_dict['axis_1'] = axis_1
         mobj_dict['axis_2'] = axis_2
         if ii==0:
@@ -924,10 +924,10 @@ def corotate_scan(start_angle, end_angle, step_size, angle_offset, rate_axis_2=1
             xrange, vdata1d_dict = plotters.update_1d_plots_append(fig, axes, vars, plot_handles_dict, xrange, vdata1d_dict, angle, newdata)
 
     # move motor back to original positions
-    axis_1, axis_2 = newport.corotate_axes(1, 2, start_angle-move_back_1, start_angle+angle_offset-move_back_2, axis_1=axis_1, axis_2=axis_2)
+    axis_1, axis_2 = newport.corotate_axes(1, 2, angles_1[0]-move_back_1, angles_2[0]-move_back_2, axis_1=axis_1, axis_2=axis_2)
     mobj_dict['axis_1'] = axis_1
     mobj_dict['axis_2'] = axis_2
-    axis_1, axis_2 = newport.corotate_axes(1, 2, start_angle, start_angle+angle_offset, axis_1=axis_1, axis_2=axis_2)
+    axis_1, axis_2 = newport.corotate_axes(1, 2, angles_1[0], angles_2[0], axis_1=axis_1, axis_2=axis_2)
     mobj_dict['axis_1'] = axis_1
     mobj_dict['axis_2'] = axis_2
 
@@ -1189,6 +1189,9 @@ def find_balance_angle(start_angle, end_angle, step_size, balance_at=0, offset=0
     if bal_axis==2:
         bal_axis='axis_2'
         static_axis='axis_1'
+    elif bal_axis==3:
+        bal_axis='axis_3'
+        static_axis='axis_2'
     else:
         bal_axis='axis_1'
         static_axis='axis_2'
@@ -1204,6 +1207,7 @@ def find_balance_angle(start_angle, end_angle, step_size, balance_at=0, offset=0
     # initialize ACTIVE_MOTORS to read during measurement
     # mobj_dict: dictionary of motor handle objects for each motor in motors
     mobj_dict = helper.initialize_motors(['axis_1', 'axis_2'], mobj_dict)
+    # mobj_dict = helper.initialize_motors(['axis_2', 'axis_3'], mobj_dict)
 
     # define axes objects and funcs
     static_axis_obj = mobj_dict[static_axis]
@@ -1252,7 +1256,7 @@ def find_balance_angle(start_angle, end_angle, step_size, balance_at=0, offset=0
     fit = popt[0]*angles_vect + popt[1]
 
     # display fit result
-    axes[0].plot(angles_vect, fit, '-', color='black')
+    #axes[0].plot(angles_vect, fit, '-', color='black')
 
     # set balance angle relative to 0
     balance_angle = balance_angle - balance_at
@@ -1294,6 +1298,9 @@ def autobalance(slope, tolerance, offset=0, bal_axis=2, var='Demod 1 x', ikwargs
     if bal_axis==2:
         bal_axis='axis_2'
         static_axis='axis_1'
+    elif bal_axis==3:
+        bal_axis='axis_3'
+        static_axis='axis_2' 
     else:
         bal_axis='axis_1'
         static_axis='axis_2'
@@ -1309,6 +1316,8 @@ def autobalance(slope, tolerance, offset=0, bal_axis=2, var='Demod 1 x', ikwargs
     # initialize ACTIVE_MOTORS to read during measurement
     # mobj_dict: dictionary of motor handle objects for each motor in motors
     mobj_dict = helper.initialize_motors(['axis_1', 'axis_2'], mobj_dict)
+    #mobj_dict = helper.initialize_motors(['axis_2', 'axis_3'], mobj_dict)
+
 
     # define axes objects and funcs
     static_axis_obj = mobj_dict[static_axis]
@@ -1332,7 +1341,7 @@ def autobalance(slope, tolerance, offset=0, bal_axis=2, var='Demod 1 x', ikwargs
 
         data_dict, iobj_dict = helper.read_instruments(ACTIVE_INSTRUMENTS, iobj_dict, ikwargs_dict)
         signal = data_dict[var]
-        new_pos = (curr_pos-(1/slope)*(signal-offset))%360
+        new_pos = (curr_pos-(1/slope)*(signal-offset))
         bal_axis_obj = move_bal_axis(new_pos, bal_axis_obj)
         curr_pos = new_pos
 

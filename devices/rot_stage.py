@@ -43,8 +43,61 @@ def read_from_instrument(obj=None):
 #         close_preamp(obj)
 #     return data.decode().strip() #decode the bytes to string
 
+def move(angle, obj=None, check_stability=True):
+
+    obj_passed=True
+    if obj==None:
+        obj=initialize_rotstage()
+        obj_passed=False
+
+    ##
+    ## new code goes here
+    ##
+    angle_current = load_position()
+    d_angle = angle - angle_current
+    obj = rotate(d_angle,obj)
+    angle_current = load_position()
+
+    if check_stability==True:
+        ## check stability
+        pass
+
+    if obj_passed==False:
+        close_rotstage(obj)
+        return None
+    else:
+        return obj
+
+def read(obj=None):
+
+    obj_passed=True
+    if obj==None:
+        obj=initialize_rotstage()
+        obj_passed=False
+
+    ##
+    ## new code goes here
+    ##
+    if os.path.exists("motor_pos.json"):
+        with open("motor_pos.json", "r") as f:
+            data = json.load(f)
+            position =  data["last_angle"]
+    else:
+        position = 0.0
+
+    if obj_passed==False:
+        close_rotstage(obj)
+        return position, None
+    else:
+        return position, obj
 
 def rotate(angle, obj=None): #rotate the stage by angle (deg)
+
+    obj_passed=True
+    if obj==None:
+        obj=initialize_rotstage()
+        obj_passed=False
+
     angle_current = load_position()
     obj, obj_passed = get_obj(obj)
 
@@ -92,10 +145,6 @@ def set_position(angle_target, obj=None):
     angle_current = load_position()
     return angle_current
 
-
-
-
-
 def save_position(angle):
     with open("motor_pos.json", "w") as f:
         json.dump({"last_angle": angle}, f)
@@ -120,7 +169,6 @@ def initialize_rotstage():
     except:
         raise ValueError('Cannot Find Arduino')
        
-
 def close_rotstage(obj):
     obj.close()
 

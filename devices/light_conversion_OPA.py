@@ -19,7 +19,8 @@ import requests
 IP = CONFIG_DICT['Orpheus IP']
 PORT_T1 = CONFIG_DICT['Orpheus Port T1']
 PORT_T2 = CONFIG_DICT['Orpheus Port T2']
-SERIAL = CONFIG_DICT['Orpheus Serial']
+SERIAL_T1 = CONFIG_DICT['Orpheus Serial T1']
+SERIAL_T2 = CONFIG_DICT['Orpheus Serial T2']
 
 class Orpheus:
 
@@ -162,7 +163,7 @@ def move_t1(val, obj=None, check_stability=True):
         return obj
 
 def init_t1():
-    obj = Orpheus(ip=IP, port=PORT_T1, serial=SERIAL)
+    obj = Orpheus(ip=IP, port=PORT_T1, serial=SERIAL_T1)
     return obj
 
 def close_t1(obj):
@@ -211,7 +212,7 @@ def move_t2(val, obj=None, check_stability=True):
         return obj
 
 def init_t2():
-    obj = Orpheus(IP, PORT_T2, SERIAL)
+    obj = Orpheus(IP, PORT_T2, SERIAL_T2)
     return obj
 
 def close_t2(obj):
